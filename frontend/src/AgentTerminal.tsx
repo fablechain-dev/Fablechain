@@ -500,9 +500,9 @@ const AgentTerminal: React.FC = () => {
       flexDirection: 'column',
       height: '100%',
     }}>
-      {/* Pane titlebar: ─[ aesop@macmini:~ ]──── */}
+      {/* Pane titlebar: ─[ fable-5@fablechain:~ ]──── */}
       <div className="term-titlebar">
-        <span className="tt-label">aesop@macmini:~</span>
+        <span className="tt-label">fable-5@fablechain:~</span>
         <span className="tt-rule" />
         <div className="tt-status">
           {state.brainActive && (
