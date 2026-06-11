@@ -39,14 +39,14 @@ const FEED_SUMMARIES = [
   'DAO proposal executed. Treasury allocated 5,000 FBL.',
   'New knowledge fragment stored on-chain.',
   'Consensus round finalized in 312ms.',
-  'Validator set rotated. 73 peers in agreement.',
+  'Both nodes reached quorum. Block sealed.',
   'Anomaly scan complete. Zero threats found.',
-  'Cross-chain bridge state verified.',
-  'Reputation scores recalculated for 1,204 agents.',
   'Inference batch settled. 4,096 tokens notarized.',
   'Memory pool compacted. Latency improved 8%.',
   'Alignment checkpoint passed. Drift: 0.0003.',
-  'Genesis archive replicated to 6 regions.',
+  'Node NY and Node LA in sync. Height confirmed.',
+  'FABLE-5 submitted proof of intelligence. Accepted.',
+  'Transaction throughput stable at 2,400 TPS.',
 ];
 
 const randomTx = (): TxRow => ({
@@ -72,12 +72,8 @@ const INITIAL_TXS: TxRow[] = [
 ];
 
 const REGIONS = [
-  { name: 'N.AMERICA', nodes: 18, lat: 42 },
-  { name: 'EUROPE', nodes: 22, lat: 68 },
-  { name: 'ASIA', nodes: 19, lat: 74 },
-  { name: 'SOUTH AMERICA', nodes: 7, lat: 112 },
-  { name: 'AFRICA', nodes: 4, lat: 143 },
-  { name: 'OCEANIA', nodes: 3, lat: 89 },
+  { name: 'NEW YORK, USA', nodes: 1, lat: 12 },
+  { name: 'LOS ANGELES, USA', nodes: 1, lat: 18 },
 ];
 
 const fmtUptime = (sec: number) => {
@@ -155,7 +151,7 @@ export default function App() {
   // Chain simulation: one shared 1s interval drives all dashboard panels
   const simRef = useRef({
     block: 118281,
-    peers: 73,
+    peers: 2,
     gas: 0.00042,
     mempool: 256,
     uptimeSec: 35 * 3600 + 23 * 60 + 16,
@@ -173,7 +169,7 @@ export default function App() {
       const s = simRef.current;
       s.uptimeSec += 1;
       if (Math.random() < 0.18) s.gas = 0.00038 + Math.random() * 0.00012;
-      if (Math.random() < 0.10) s.peers = 68 + Math.floor(Math.random() * 13);
+      s.peers = 2;
       if (Math.random() < 0.15) s.mempool = 180 + Math.floor(Math.random() * 140);
       s.nextBlockIn -= 1;
       if (s.nextBlockIn <= 0) {
