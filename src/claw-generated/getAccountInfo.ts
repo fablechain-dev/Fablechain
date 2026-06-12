@@ -1,19 +1,22 @@
-import { PublicKey } from '@solana/web3.js';
-import { Account } from '../state/account';
+import { Connection, PublicKey, AccountInfo as SolanaAccountInfo } from '@solana/web3.js';
 
-export async function getAccountInfo(pubkey: PublicKey): Promise<{
+export interface AccountInfo {
   lamports: number;
-  owner: PublicKey;
+  owner: string;
   executable: boolean;
-}> {
-  const account = await Account.getByPublicKey(pubkey);
-  if (!account) {
-    throw new Error(`Account not found for pubkey ${pubkey.toBase58()}`);
+}
+
+export async function getAccountInfo(connection: Connection, pubkey: string): Promise<AccountInfo> {
+  const publicKey = new PublicKey(pubkey);
+  const accountInfo = await connection.getAccountInfo(publicKey);
+
+  if (!accountInfo) {
+    throw new Error(`Account not found for pubkey: ${pubkey}`);
   }
 
   return {
-    lamports: account.lamports,
-    owner: account.owner,
-    executable: account.executable,
+    lamports: accountInfo.lamports,
+    owner: accountInfo.owner.toBase58(),
+    executable: accountInfo.executable
   };
 }
