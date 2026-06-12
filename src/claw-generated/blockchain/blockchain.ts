@@ -51,6 +51,59 @@ export class Blockchain {
     }
   }
 
+  private reorganizeChain(newBlock: Block) {
+    // Find the common ancestor block between the current chain and the new chain
+    const commonAncestorIndex = this.findCommonAncestor(newBlock);
+
+    // Revert the current chain back to the common ancestor
+    for (let i = this.blocks.length - 1; i >= commonAncestorIndex; i--) {
+      const block = this.blocks[i];
+      this.revertBlockTransactions(block);
+    }
+    this.blocks = this.blocks.slice(0, commonAncestorIndex);
+
+    // Add the new chain blocks
+    for (let i = commonAncestorIndex + 1; i < newBlock.height; i++) {
+      this.blocks.push(newBlock);
+      this.updateStateFromBlock(newBlock);
+    }
+
+    // Propagate the new chain to the network
+    this.blockPropagator.propagateChain(this.blocks);
+  }
+
+  private findCommonAncestor(newBlock: Block): number {
+    // Traverse the current chain and the new chain to find the common ancestor block
+    let currentIndex = this.blocks.length - 1;
+    let newIndex = newBlock.height - 1;
+
+    while (currentIndex >= 0 && newIndex >= 0) {
+      if (this.blocks[currentIndex].hash === newBlock.parentHash) {
+        return currentIndex;
+      }
+      if (this.blocks[currentIndex].height > newBlock.height) {
+        currentIndex--;
+      } else {
+        newIndex--;
+      }
+    }
+
+    // If no common ancestor is found, return 0 (genesis block)
+    return 0;
+  }
+
+  private revertBlockTransactions(block: Block) {
+    // Revert the state changes made by the transactions in the given block
+    for (const tx of block.transactions) {
+      this.revertTransaction(tx);
+    }
+  }
+
+  private revertTransaction(tx: any) {
+    // Implement logic to revert the state changes made by the given transaction
+    // This will involve undoing the account and contract state updates
+  }
+
   private validateBlockTransactions(block: Block): boolean {
     return validateBlockTransactions(block, this.accountStorage, this.contractStorage);
   }
