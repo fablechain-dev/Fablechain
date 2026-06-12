@@ -19,6 +19,18 @@ export class VirtualMachine {
       case 0x02: // MUL
         this.mul();
         break;
+      case 0x03: // PUSH
+        this.push(bytecode[++this.pc]);
+        break;
+      case 0x04: // POP
+        this.pop();
+        break;
+      case 0x05: // LOAD
+        this.load(bytecode[++this.pc]);
+        break;
+      case 0x06: // STORE
+        this.store(bytecode[++this.pc]);
+        break;
       // Add more opcode handling here
       default:
         throw new Error(`Unknown opcode: ${opcode}`);
@@ -35,5 +47,21 @@ export class VirtualMachine {
     const b = this.stack.pop();
     const a = this.stack.pop();
     this.stack.push(a * b);
+  }
+
+  private push(value: number) {
+    this.stack.push(value);
+  }
+
+  private pop() {
+    return this.stack.pop();
+  }
+
+  private load(address: number) {
+    this.stack.push(this.memory[address]);
+  }
+
+  private store(address: number) {
+    this.memory[address] = this.stack.pop();
   }
 }
