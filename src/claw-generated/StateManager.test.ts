@@ -1,61 +1,41 @@
-import { StateManager } from '../state/StateManager';
-import { Account } from '../models/Account';
-import { Transaction } from '../models/Transaction';
+import { describe, it, expect } from 'vitest';
+import { StateManager } from './StateManager';
+import { Account, Transaction } from '../types';
 
 describe('StateManager', () => {
-  let stateManager: StateManager;
-
-  beforeEach(() => {
-    stateManager = new StateManager();
-  });
-
   it('should update balances correctly', () => {
-    // Test balance updates
-    const address1 = '0x1234567890abcdef';
-    const address2 = '0x0987654321fedcba';
+    const stateManager = new StateManager();
+    const account1: Account = { address: 'account1', balance: 100 };
+    const account2: Account = { address: 'account2', balance: 50 };
 
-    stateManager.updateBalance(address1, 100);
-    stateManager.updateBalance(address2, 50);
+    stateManager.applyTransaction({ from: account1.address, to: account2.address, amount: 20 });
 
-    expect(stateManager.getAccount(address1).balance).toBe(100);
-    expect(stateManager.getAccount(address2).balance).toBe(50);
+    expect(stateManager.getBalance(account1.address)).toBe(80);
+    expect(stateManager.getBalance(account2.address)).toBe(70);
   });
 
   it('should calculate the state root correctly', () => {
-    // Test state root calculation
-    const address1 = '0x1234567890abcdef';
-    const address2 = '0x0987654321fedcba';
+    const stateManager = new StateManager();
+    const account1: Account = { address: 'account1', balance: 100 };
+    const account2: Account = { address: 'account2', balance: 50 };
 
-    stateManager.updateBalance(address1, 100);
-    stateManager.updateBalance(address2, 50);
+    stateManager.applyTransaction({ from: account1.address, to: account2.address, amount: 20 });
 
-    const stateRoot = stateManager.getStateRoot();
-    expect(stateRoot).not.toBeEmpty();
+    expect(stateManager.getStateRoot()).not.toBe('');
   });
 
   it('should apply transactions correctly', () => {
-    // Test transaction application
-    const tx1 = new Transaction({
-      from: '0x1234567890abcdef',
-      to: '0x0987654321fedcba',
-      amount: 20,
-    });
+    const stateManager = new StateManager();
+    const account1: Account = { address: 'account1', balance: 100 };
+    const account2: Account = { address: 'account2', balance: 50 };
 
-    const tx2 = new Transaction({
-      from: '0x0987654321fedcba',
-      to: '0x1234567890abcdef',
-      amount: 10,
-    });
-
-    stateManager.updateBalance(tx1.from, 100);
-    stateManager.updateBalance(tx2.from, 50);
+    const tx1: Transaction = { from: account1.address, to: account2.address, amount: 20 };
+    const tx2: Transaction = { from: account2.address, to: account1.address, amount: 10 };
 
     stateManager.applyTransaction(tx1);
     stateManager.applyTransaction(tx2);
 
-    expect(stateManager.getAccount(tx1.from).balance).toBe(80);
-    expect(stateManager.getAccount(tx1.to).balance).toBe(20);
-    expect(stateManager.getAccount(tx2.from).balance).toBe(40);
-    expect(stateManager.getAccount(tx2.to).balance).toBe(10);
+    expect(stateManager.getBalance(account1.address)).toBe(90);
+    expect(stateManager.getBalance(account2.address)).toBe(60);
   });
 });
