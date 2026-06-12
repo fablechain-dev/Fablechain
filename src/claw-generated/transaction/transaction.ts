@@ -1,5 +1,4 @@
-import { TransactionReceipt } from './TransactionReceipt';
-import { Log, LogEntry, BloomFilter } from '../types';
+import { verifySignature } from '../crypto/verifier';
 
 export class Transaction {
   hash: string;
@@ -9,6 +8,7 @@ export class Transaction {
   timestamp: number;
   gasUsed: number;
   status: boolean;
+  signature: string; // New signature property
 
   constructor(
     hash: string,
@@ -17,7 +17,8 @@ export class Transaction {
     amount: number,
     timestamp: number,
     gasUsed: number,
-    status: boolean
+    status: boolean,
+    signature: string // New signature parameter
   ) {
     this.hash = hash;
     this.from = from;
@@ -26,6 +27,12 @@ export class Transaction {
     this.timestamp = timestamp;
     this.gasUsed = gasUsed;
     this.status = status;
+    this.signature = signature; // Assign signature to the new property
+  }
+
+  verifySignature(): boolean {
+    // Verify the transaction's signature using the sender's public key
+    return verifySignature(this.hash, this.signature, this.from);
   }
 
   generateReceipt(): TransactionReceipt {
