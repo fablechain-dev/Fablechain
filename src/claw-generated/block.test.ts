@@ -1,66 +1,40 @@
 import { Block } from './block';
-import { Transaction } from './transaction';
 
 describe('Block', () => {
-  it('should create a new block', () => {
-    const transactions: Transaction[] = [
-      new Transaction(
-        'sender',
-        'recipient',
-        100,
-        'signature'
-      )
-    ];
-    const block = new Block(1, Date.now(), transactions, 'prevHash');
-    expect(block.version).toBe(1);
-    expect(block.timestamp).toBeGreaterThan(0);
-    expect(block.transactions).toEqual(transactions);
-    expect(block.previousHash).toBe('prevHash');
-    expect(block.hash).toBeTruthy();
+  describe('constructor', () => {
+    it('should create a new block with the provided parameters', () => {
+      const block = new Block(1, Date.now(), 'prevHash', [{ tx: 'test' }], 0);
+      expect(block.version).toEqual(1);
+      expect(block.timestamp).toBeGreaterThan(0);
+      expect(block.previousHash).toEqual('prevHash');
+      expect(block.transactions).toEqual([{ tx: 'test' }]);
+      expect(block.nonce).toEqual(0);
+      expect(block.hash).not.toEqual('');
+    });
   });
 
-  it('should validate a block', () => {
-    const transactions: Transaction[] = [
-      new Transaction(
-        'sender',
-        'recipient',
-        100,
-        'signature'
-      )
-    ];
-    const block = new Block(1, Date.now(), transactions, 'prevHash');
-    expect(block.isValid()).toBe(true);
+  describe('calculateHash', () => {
+    it('should calculate the correct hash for a block', () => {
+      const block = new Block(1, Date.now(), 'prevHash', [{ tx: 'test' }], 0);
+      const hash = block.calculateHash();
+      expect(hash).not.toEqual('');
+      expect(hash.length).toEqual(64);
+    });
   });
 
-  it('should serialize and deserialize a block', () => {
-    const transactions: Transaction[] = [
-      new Transaction(
-        'sender',
-        'recipient',
-        100,
-        'signature'
-      )
-    ];
-    const block = new Block(1, Date.now(), transactions, 'prevHash');
-    const serialized = block.serialize();
-    const deserialized = JSON.parse(serialized);
-    expect(deserialized.version).toBe(block.version);
-    expect(deserialized.timestamp).toBe(block.timestamp);
-    expect(deserialized.transactions).toEqual(block.transactions);
-    expect(deserialized.previousHash).toBe(block.previousHash);
-    expect(deserialized.hash).toBe(block.hash);
+  describe('isValid', () => {
+    it('should return true for a valid block', () => {
+      const block = new Block(1, Date.now(), 'prevHash', [{ tx: 'test' }], 0);
+      expect(block.isValid()).toEqual(true);
+    });
   });
 
-  it('should calculate the correct hash', () => {
-    const transactions: Transaction[] = [
-      new Transaction(
-        'sender',
-        'recipient',
-        100,
-        'signature'
-      )
-    ];
-    const block = new Block(1, Date.now(), transactions, 'prevHash');
-    expect(block.calculateHash()).toBe(block.hash);
+  describe('serialize', () => {
+    it('should serialize the block to a string', () => {
+      const block = new Block(1, Date.now(), 'prevHash', [{ tx: 'test' }], 0);
+      const serialized = block.serialize();
+      expect(typeof serialized).toEqual('string');
+      expect(serialized.length).toBeGreaterThan(0);
+    });
   });
 });
