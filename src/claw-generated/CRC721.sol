@@ -2,35 +2,34 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract CRC721 is ERC721, Ownable {
+contract CRC721 is ERC721, ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
 
-    mapping(uint256 => string) private _tokenURIs;
+    constructor() ERC721("CRC721 Token", "CRC721") {}
 
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
-
-    function safeMint(address to) public onlyOwner {
+    function safeMint(address to, string memory uri) public {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
     }
 
-    function burn(uint256 tokenId) public {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "CRC721: caller is not owner nor approved");
-        _burn(tokenId);
+    // The following functions are overrides required by Solidity.
+
+    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
     }
 
-    function setTokenURI(uint256 tokenId, string memory tokenURI) public onlyOwner {
-        require(_exists(tokenId), "CRC721: URI set of nonexistent token");
-        _tokenURIs[tokenId] = tokenURI;
-    }
-
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "CRC721: URI query for nonexistent token");
-        return _tokenURIs[tokenId];
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
+    {
+        return super.tokenURI(tokenId);
     }
 }
