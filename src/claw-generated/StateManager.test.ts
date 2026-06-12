@@ -1,7 +1,6 @@
-import { StateManager } from './StateManager';
-import { MerklePatriciaTrie } from './MerklePatriciaTrie';
-
-jest.mock('./MerklePatriciaTrie');
+import { StateManager } from '../state/StateManager';
+import { Account } from '../models/Account';
+import { Transaction } from '../models/Transaction';
 
 describe('StateManager', () => {
   let stateManager: StateManager;
@@ -10,49 +9,53 @@ describe('StateManager', () => {
     stateManager = new StateManager();
   });
 
-  test('should get state root', () => {
-    (MerklePatriciaTrie as jest.MockedClass<typeof MerklePatriciaTrie>).prototype.getRoot.mockReturnValue('root');
-    expect(stateManager.getStateRoot()).toEqual('root');
+  it('should update balances correctly', () => {
+    // Test balance updates
+    const address1 = '0x1234567890abcdef';
+    const address2 = '0x0987654321fedcba';
+
+    stateManager.updateBalance(address1, 100);
+    stateManager.updateBalance(address2, 50);
+
+    expect(stateManager.getAccount(address1).balance).toBe(100);
+    expect(stateManager.getAccount(address2).balance).toBe(50);
   });
 
-  test('should set state', () => {
-    stateManager.setState('key', 'value');
-    expect(MerklePatriciaTrie.prototype.set).toHaveBeenCalledWith('key', 'value');
+  it('should calculate the state root correctly', () => {
+    // Test state root calculation
+    const address1 = '0x1234567890abcdef';
+    const address2 = '0x0987654321fedcba';
+
+    stateManager.updateBalance(address1, 100);
+    stateManager.updateBalance(address2, 50);
+
+    const stateRoot = stateManager.getStateRoot();
+    expect(stateRoot).not.toBeEmpty();
   });
 
-  test('should get state', () => {
-    (MerklePatriciaTrie as jest.MockedClass<typeof MerklePatriciaTrie>).prototype.get.mockReturnValue('value');
-    expect(stateManager.getState('key')).toEqual('value');
-  });
+  it('should apply transactions correctly', () => {
+    // Test transaction application
+    const tx1 = new Transaction({
+      from: '0x1234567890abcdef',
+      to: '0x0987654321fedcba',
+      amount: 20,
+    });
 
-  test('should get proof', () => {
-    stateManager.getProof('key');
-    expect(MerklePatriciaTrie.prototype.getProof).toHaveBeenCalledWith('key');
-  });
+    const tx2 = new Transaction({
+      from: '0x0987654321fedcba',
+      to: '0x1234567890abcdef',
+      amount: 10,
+    });
 
-  test('should verify proof', () => {
-    (MerklePatriciaTrie as jest.MockedClass<typeof MerklePatriciaTrie>).prototype.verifyProof.mockReturnValue(true);
-    expect(stateManager.verifyProof('key', 'value', ['proof'])).toBe(true);
-  });
+    stateManager.updateBalance(tx1.from, 100);
+    stateManager.updateBalance(tx2.from, 50);
 
-  test('should handle concurrent access', async () => {
-    const numThreads = 10;
-    const numOperations = 1000;
+    stateManager.applyTransaction(tx1);
+    stateManager.applyTransaction(tx2);
 
-    const promises = [];
-    for (let i = 0; i < numThreads; i++) {
-      promises.push(
-        new Promise((resolve) => {
-          for (let j = 0; j < numOperations; j++) {
-            stateManager.setState(`key-${i}-${j}`, `value-${i}-${j}`);
-          }
-          resolve();
-        })
-      );
-    }
-
-    await Promise.all(promises);
-
-    expect(MerklePatriciaTrie.prototype.set).toHaveBeenCalledTimes(numThreads * numOperations);
+    expect(stateManager.getAccount(tx1.from).balance).toBe(80);
+    expect(stateManager.getAccount(tx1.to).balance).toBe(20);
+    expect(stateManager.getAccount(tx2.from).balance).toBe(40);
+    expect(stateManager.getAccount(tx2.to).balance).toBe(10);
   });
 });
