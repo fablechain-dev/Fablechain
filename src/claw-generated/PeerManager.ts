@@ -1,37 +1,32 @@
-import { PeerInfo } from './PeerInfo';
+import { PeerInfo } from './types';
 
-export class PeerManager {
+class PeerManager {
   private peers: Map<string, PeerInfo> = new Map();
+  private reputationThreshold: number = 50;
 
-  addPeer(peerInfo: PeerInfo) {
-    this.peers.set(peerInfo.id, peerInfo);
+  addPeer(peerInfo: PeerInfo): void {
+    this.peers.set(peerInfo.id, { ...peerInfo, reputation: 100 });
   }
 
-  removePeer(peerId: string) {
+  removePeer(peerId: string): void {
     this.peers.delete(peerId);
   }
 
-  getPeer(peerId: string): PeerInfo | undefined {
-    return this.peers.get(peerId);
-  }
-
-  getAllPeers(): PeerInfo[] {
-    return Array.from(this.peers.values());
-  }
-
-  banPeer(peerId: string, reason: string) {
-    const peer = this.getPeer(peerId);
-    if (peer) {
-      peer.banned = true;
-      peer.banReason = reason;
+  updatePeerReputation(peerId: string, delta: number): void {
+    const peerInfo = this.peers.get(peerId);
+    if (peerInfo) {
+      peerInfo.reputation = Math.max(0, peerInfo.reputation + delta);
+      if (peerInfo.reputation < this.reputationThreshold) {
+        this.removePeer(peerId);
+      }
     }
   }
 
-  unbanPeer(peerId: string) {
-    const peer = this.getPeer(peerId);
-    if (peer) {
-      peer.banned = false;
-      peer.banReason = '';
-    }
+  getBestPeers(maxPeers: number): PeerInfo[] {
+    return Array.from(this.peers.values())
+      .sort((a, b) => b.reputation - a.reputation)
+      .slice(0, maxPeers);
   }
 }
+
+export default PeerManager;

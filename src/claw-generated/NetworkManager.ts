@@ -1,43 +1,26 @@
-import { BlockManagerExtension } from './BlockManagerExtension';
-import { Peer } from './Peer';
+import PeerManager from './PeerManager';
+import { PeerInfo } from './types';
 
-export class NetworkManager {
-  private blockManager: BlockManagerExtension;
-  private peers: Peer[] = [];
+class NetworkManager {
+  private peerManager: PeerManager = new PeerManager();
 
-  requestMissingBlocks() {
-    const missingBlockIds = this.blockManager.detectMissingBlocks();
-    if (missingBlockIds.length === 0) {
-      return;
-    }
-
-    // Query peers for the missing blocks
-    const blocks = await this.downloadBlocksInParallel(missingBlockIds);
-
-    // Validate and store the downloaded blocks
-    for (const block of blocks) {
-      this.blockManager.storeBlock(block);
-    }
+  addPeer(peerInfo: PeerInfo): void {
+    this.peerManager.addPeer(peerInfo);
   }
 
-  private async downloadBlocksInParallel(blockIds: number[]) {
-    const promises = blockIds.map(async (blockId) => {
-      const peer = this.getRandomPeer();
-      const blockData = await peer.getBlock(blockId);
-      const block = Block.fromData(blockData);
-      if (await this.blockManager.validateBlock(block)) {
-        return block;
-      } else {
-        return null;
-      }
-    });
-
-    const results = await Promise.all(promises);
-    return results.filter(Boolean) as Block[];
+  removePeer(peerId: string): void {
+    this.peerManager.removePeer(peerId);
   }
 
-  private getRandomPeer(): Peer {
-    // TODO: Implement peer selection logic
-    return this.peers[0];
+  updatePeerReputation(peerId: string, delta: number): void {
+    this.peerManager.updatePeerReputation(peerId, delta);
   }
+
+  getBestPeers(maxPeers: number): PeerInfo[] {
+    return this.peerManager.getBestPeers(maxPeers);
+  }
+
+  // Other network management methods...
 }
+
+export default NetworkManager;
