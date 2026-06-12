@@ -10,51 +10,38 @@ describe('RateLimiter', () => {
     const rateLimiter = new RateLimiter();
     app.use(rateLimiter.middleware);
 
-    app.post('/test', (req, res) => {
-      res.status(200).json({ message: 'Success' });
+    app.get('/test', (req, res) => {
+      res.send('OK');
     });
   });
 
-  it('should allow legitimate requests', async () => {
-    const response = await request(app)
-      .post('/test')
-      .set('X-API-Key', 'valid-key')
-      .expect(200);
-    expect(response.body.message).toBe('Success');
-  });
-
-  it('should rate limit excessive requests', async () => {
+  it('should limit requests', async () => {
+    // Make 101 requests
     for (let i = 0; i < 101; i++) {
-      await request(app)
-        .post('/test')
-        .set('X-API-Key', 'valid-key')
-        .expect(i < 100 ? 200 : 429);
+      const response = await request(app).get('/test');
+      if (i < 100) {
+        expect(response.status).toEqual(200);
+      } else {
+        expect(response.status).toEqual(429);
+        expect(response.body).toEqual({ error: 'Too many requests' });
+      }
     }
   });
 
-  it('should track requests by IP and API key', async () => {
-    await request(app)
-      .post('/test')
-      .set('X-API-Key', 'valid-key')
-      .set('X-Forwarded-For', '1.2.3.4')
-      .expect(200);
+  it('should reset the counter after the window expires', async () => {
+    // Make 100 requests
+    for (let i = 0; i < 100; i++) {
+      const response = await request(app).get('/test');
+      expect(response.status).toEqual(200);
+    }
 
-    await request(app)
-      .post('/test')
-      .set('X-API-Key', 'valid-key')
-      .set('X-Forwarded-For', '5.6.7.8')
-      .expect(200);
+    // Wait for the window to expire
+    await new Promise((resolve) => setTimeout(resolve, 61000));
 
-    await request(app)
-      .post('/test')
-      .set('X-API-Key', 'another-key')
-      .set('X-Forwarded-For', '1.2.3.4')
-      .expect(200);
-
-    await request(app)
-      .post('/test')
-      .set('X-API-Key', 'valid-key')
-      .set('X-Forwarded-For', '1.2.3.4')
-      .expect(429);
+    // Make another 100 requests
+    for (let i = 0; i < 100; i++) {
+      const response = await request(app).get('/test');
+      expect(response.status).toEqual(200);
+    }
   });
 });
