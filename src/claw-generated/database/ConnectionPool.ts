@@ -1,39 +1,52 @@
-import { createPool, Pool, PoolConfig } from 'mysql2';
+import { createPool, Pool, PoolConnection, PoolOptions } from 'mysql2';
 
 export class ConnectionPool {
-  private static _pool: Pool;
+  private static pool: Pool;
 
-  static async getConnection(): Promise<Pool> {
-    if (!this._pool) {
-      try {
-        this._pool = createPool({
-          host: 'localhost',
-          user: 'root',
-          password: 'password',
-          database: 'clawchain',
-          connectionLimit: 20,
-          queueLimit: 0,
-          waitForConnections: true,
-          connectTimeout: 10000,
-          acquireTimeout: 10000,
-          timeout: 10000
-        } as PoolConfig);
-      } catch (err) {
-        console.error('Error creating database connection pool:', err);
-        throw err;
-      }
-    }
-    return this._pool;
+  static initialize(options: PoolOptions): void {
+    ConnectionPool.pool = createPool({
+      ...options,
+      connectionLimit: 10,
+      waitForConnections: true,
+      queueLimit: 0,
+    });
+
+    ConnectionPool.pool.on('connection', (connection) => {
+      console.log('New database connection created');
+    });
+
+    ConnectionPool.pool.on('acquire', (connection) => {
+      console.log('Connection acquired from pool');
+    });
+
+    ConnectionPool.pool.on('release', (connection) => {
+      console.log('Connection released to pool');
+    });
+
+    ConnectionPool.pool.on('error', (err) => {
+      console.error('Database connection pool error:', err);
+    });
   }
 
-  static async query(sql: string, values?: any[]): Promise<any> {
+  static async getConnection(): Promise<PoolConnection> {
     try {
-      const pool = await this.getConnection();
-      const [rows] = await pool.query(sql, values);
+      return await ConnectionPool.pool.getConnection();
+    } catch (err) {
+      console.error('Error getting connection from pool:', err);
+      throw err;
+    }
+  }
+
+  static async query(sql: string, params?: any[]): Promise<any[]> {
+    const connection = await ConnectionPool.getConnection();
+    try {
+      const [rows] = await connection.execute(sql, params);
       return rows;
     } catch (err) {
-      console.error('Error executing database query:', err);
+      console.error('Error executing query:', err);
       throw err;
+    } finally {
+      connection.release();
     }
   }
 }
