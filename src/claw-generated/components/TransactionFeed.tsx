@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction } from '../transaction';
+import { Transaction } from '../Transaction';
+import { TransactionPool } from '../TransactionPool';
 
 interface TransactionFeedProps {
-  maxTransactions?: number;
+  transactionPool: TransactionPool;
 }
 
-const TransactionFeed: React.FC<TransactionFeedProps> = ({ maxTransactions = 20 }) => {
+const TransactionFeed: React.FC<TransactionFeedProps> = ({ transactionPool }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
-    const eventSource = new EventSource('/api/transactions/feed');
-    eventSource.onmessage = (event) => {
-      const newTransaction = JSON.parse(event.data) as Transaction;
-      setTransactions((prevTransactions) => [newTransaction, ...prevTransactions].slice(0, maxTransactions));
-    };
+    const subscription = transactionPool.subscribe((newTransactions: Transaction[]) => {
+      setTransactions(newTransactions);
+    });
 
     return () => {
-      eventSource.close();
+      subscription.unsubscribe();
     };
-  }, [maxTransactions]);
+  }, [transactionPool]);
 
   return (
     <div className="transaction-feed">
@@ -27,7 +26,7 @@ const TransactionFeed: React.FC<TransactionFeedProps> = ({ maxTransactions = 20 
         {transactions.map((tx, index) => (
           <li key={index}>
             <div>
-              <strong>Tx Hash:</strong> {tx.hash}
+              <strong>Transaction:</strong> {tx.hash}
             </div>
             <div>
               <strong>From:</strong> {tx.from}
@@ -36,7 +35,7 @@ const TransactionFeed: React.FC<TransactionFeedProps> = ({ maxTransactions = 20 
               <strong>To:</strong> {tx.to}
             </div>
             <div>
-              <strong>Value:</strong> {tx.value} CLAW
+              <strong>Value:</strong> {tx.value} CLC
             </div>
           </li>
         ))}

@@ -1,17 +1,16 @@
-import { Transaction } from '../transactions/transaction';
-import { HttpClient } from './http-client';
+import { Transaction } from '../Transaction';
+import { Subject } from 'rxjs';
 
-export class TransactionBroadcaster {
-  private httpClient: HttpClient;
+class TransactionBroadcaster {
+  private transactionSubject = new Subject<Transaction>();
 
-  constructor() {
-    this.httpClient = new HttpClient();
+  publishTransaction(tx: Transaction) {
+    this.transactionSubject.next(tx);
   }
 
-  async broadcastTransaction(transaction: Transaction): Promise<void> {
-    const response = await this.httpClient.post('/transactions', transaction);
-    if (response.status !== 200) {
-      throw new Error(`Failed to broadcast transaction: ${response.status} - ${response.statusText}`);
-    }
+  subscribe(observer: (tx: Transaction) => void): { unsubscribe: () => void } {
+    return this.transactionSubject.subscribe(observer);
   }
 }
+
+export { TransactionBroadcaster };

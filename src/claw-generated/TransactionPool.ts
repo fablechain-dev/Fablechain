@@ -1,21 +1,29 @@
 import { Transaction } from './Transaction';
-import { verifySignature } from '../crypto/ed25519';
+import { Subject, Observable } from 'rxjs';
+import { TransactionBroadcaster } from './network/transaction-broadcaster';
 
-export class TransactionPool {
+class TransactionPool {
   private transactions: Transaction[] = [];
+  private transactionSubject = new Subject<Transaction[]>();
+  private transactionBroadcaster: TransactionBroadcaster;
 
-  addTransaction(tx: Transaction): boolean {
-    // Verify transaction signature
-    if (!verifySignature(tx.from, tx.signature, tx.toString())) {
-      return false;
-    }
+  constructor(transactionBroadcaster: TransactionBroadcaster) {
+    this.transactionBroadcaster = transactionBroadcaster;
+    this.transactionBroadcaster.subscribe((tx) => this.addTransaction(tx));
+  }
 
-    // If valid, add to the pool
+  addTransaction(tx: Transaction) {
     this.transactions.push(tx);
-    return true;
+    this.transactionSubject.next(this.transactions);
   }
 
   getTransactions(): Transaction[] {
     return this.transactions;
   }
+
+  subscribe(observer: (transactions: Transaction[]) => void): { unsubscribe: () => void } {
+    return this.transactionSubject.subscribe(observer);
+  }
 }
+
+export { TransactionPool };
