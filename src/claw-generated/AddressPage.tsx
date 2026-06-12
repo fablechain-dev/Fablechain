@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getAddressBalance, getAddressTransactions, getAddressTokens } from './explorer';
+import { getAddressBalance, getAddressTransactions, getAddressTokens } from '../api/blockchain';
 
 const AddressPage: React.FC = () => {
   const { address } = useParams<{ address: string }>();
-  const [balance, setBalance] = useState<string>('');
+  const [balance, setBalance] = useState<number>(0);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [tokens, setTokens] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAddressData = async () => {
       const balanceResult = await getAddressBalance(address);
       setBalance(balanceResult.balance);
 
@@ -19,26 +19,30 @@ const AddressPage: React.FC = () => {
       const tokensResult = await getAddressTokens(address);
       setTokens(tokensResult.tokens);
     };
-    fetchData();
+
+    fetchAddressData();
   }, [address]);
 
   return (
     <div>
       <h1>Address: {address}</h1>
-      <p>Balance: {balance} ETH</p>
+      <p>Balance: {balance} CLAW</p>
       <h2>Transactions</h2>
       <ul>
-        {transactions.map((tx) => (
-          <li key={tx.hash}>
-            <a href={`/tx/${tx.hash}`}>{tx.hash}</a>
+        {transactions.map((tx, index) => (
+          <li key={index}>
+            <p>TX Hash: {tx.hash}</p>
+            <p>Amount: {tx.amount} CLAW</p>
+            <p>Date: {tx.timestamp}</p>
           </li>
         ))}
       </ul>
       <h2>Tokens</h2>
       <ul>
-        {tokens.map((token) => (
-          <li key={token.address}>
-            {token.symbol}: {token.balance}
+        {tokens.map((token, index) => (
+          <li key={index}>
+            <p>Token: {token.name}</p>
+            <p>Balance: {token.balance}</p>
           </li>
         ))}
       </ul>
