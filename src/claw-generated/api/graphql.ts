@@ -1,6 +1,5 @@
 import { gql } from 'apollo-server-express';
 
-// GraphQL Schema
 export const typeDefs = gql`
   type Query {
     block(hash: String): Block
