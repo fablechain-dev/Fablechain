@@ -1,19 +1,23 @@
+import { Transaction } from '../core/Transaction';
+
 export class Account {
   address: string;
   balance: number;
-  nonce: number;
 
-  constructor(address: string, balance: number, nonce: number) {
+  constructor(address: string) {
     this.address = address;
-    this.balance = balance;
-    this.nonce = nonce;
+    this.balance = 0;
   }
 
-  updateBalance(amount: number) {
-    this.balance += amount;
+  validateTransaction(tx: Transaction): boolean {
+    // Default validation logic
+    return tx.from === this.address && this.balance >= tx.amount;
   }
 
-  incrementNonce() {
-    this.nonce++;
+  executeTransaction(tx: Transaction): void {
+    if (this.validateTransaction(tx)) {
+      this.balance -= tx.amount;
+      // Update blockchain state
+    }
   }
 }
