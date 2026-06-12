@@ -10,6 +10,7 @@ export class Transaction {
   status: boolean;
   signature: string;
   fee: number;
+  nonce: number; // Add nonce property
 
   constructor(
     hash: string,
@@ -20,7 +21,8 @@ export class Transaction {
     gasUsed: number,
     status: boolean,
     signature: string,
-    fee: number
+    fee: number,
+    nonce: number // Add nonce parameter
   ) {
     this.hash = hash;
     this.from = from;
@@ -31,6 +33,7 @@ export class Transaction {
     this.status = status;
     this.signature = signature;
     this.fee = fee;
+    this.nonce = nonce; // Assign nonce to the property
   }
 
   verifySignature(): boolean {
@@ -62,6 +65,7 @@ export class Transaction {
       status: this.status,
       signature: this.signature,
       fee: this.fee,
+      nonce: this.nonce, // Include nonce in serialization
     });
   }
 }
