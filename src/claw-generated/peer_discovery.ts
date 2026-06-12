@@ -1,28 +1,34 @@
-import { Kademlia } from './kademlia';
-import { BootstrapNode } from './bootstrap_node';
+import { KademliaNode, KademliaRoutingTable } from './kademlia';
+import { PeerInfo } from './types';
 
-class PeerDiscovery {
-  private kademlia: Kademlia;
-  private bootstrapNodes: BootstrapNode[];
+class PeerDiscoveryProtocol {
+  private routingTable: KademliaRoutingTable;
+  private bootstrapNodes: PeerInfo[];
 
-  constructor(bootstrapNodes: BootstrapNode[]) {
+  constructor(bootstrapNodes: PeerInfo[]) {
+    this.routingTable = new KademliaRoutingTable();
     this.bootstrapNodes = bootstrapNodes;
-    this.kademlia = new Kademlia();
   }
 
   async start() {
-    // Connect to bootstrap nodes
+    // Connect to bootstrap nodes and populate the routing table
     await this.connectToBootstrapNodes();
 
-    // Start Kademlia DHT
-    await this.kademlia.start();
+    // Start periodically refreshing the routing table
+    setInterval(() => this.refreshRoutingTable(), 60000);
   }
 
   private async connectToBootstrapNodes() {
     for (const node of this.bootstrapNodes) {
-      await this.kademlia.connectToNode(node);
+      const kademliaNode = new KademliaNode(node);
+      await kademliaNode.connect();
+      this.routingTable.addNode(kademliaNode);
     }
+  }
+
+  private async refreshRoutingTable() {
+    // Periodically query the routing table and connect to new nodes
   }
 }
 
-export { PeerDiscovery };
+export { PeerDiscoveryProtocol };
