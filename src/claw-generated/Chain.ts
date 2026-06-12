@@ -3,16 +3,24 @@ import { Block } from './Block';
 export class Chain {
   private blocks: Block[] = [];
 
-  constructor() {
-    // Create the genesis block
-    this.addBlock(new Block(0, Date.now(), 'Genesis Block', '0'));
+  addBlock(block: Block): void {
+    if (this.isValid(block)) {
+      this.blocks.push(block);
+    } else {
+      throw new Error('Invalid block');
+    }
   }
 
-  private addBlock(block: Block): void {
-    this.blocks.push(block);
+  isValid(block: Block): boolean {
+    // Implement chain validation logic
+    return true;
   }
 
-  public getBlocks(): Block[] {
+  getLatestBlock(): Block {
+    return this.blocks[this.blocks.length - 1];
+  }
+
+  getBlocks(): Block[] {
     return this.blocks;
   }
 }

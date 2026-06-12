@@ -1,33 +1,23 @@
-import { BigNumber } from 'ethers';
-import { Stake } from './staking/Stake';
-import { StateSnapshot } from './StateSnapshot';
-
 export class Block {
-  // Existing block properties...
+  hash: string;
+  prevHash: string;
+  timestamp: number;
+  transactions: any[];
 
-  stateDiffs: StateSnapshot = new StateSnapshot();
-
-  constructor(/* existing params */) {
-    // Existing constructor logic...
+  constructor(prevHash: string, timestamp: number, transactions: any[]) {
+    this.prevHash = prevHash;
+    this.timestamp = timestamp;
+    this.transactions = transactions;
+    this.hash = this.calculateHash();
   }
 
-  addStake(address: string, stake: Stake): void {
-    // Existing addStake logic...
+  calculateHash(): string {
+    // Implement hash calculation logic
+    return 'placeholder-hash';
   }
 
-  getStakesForAddress(address: string): Stake[] {
-    // Existing getStakesForAddress logic...
-  }
-
-  getTotalStakedAmount(): BigNumber {
-    // Existing getTotalStakedAmount logic...
-  }
-
-  applyStateDiff(diff: StateSnapshot): void {
-    this.stateDiffs.merge(diff);
-  }
-
-  getStateDiff(): StateSnapshot {
-    return this.stateDiffs;
+  validate(): boolean {
+    // Implement block validation logic
+    return true;
   }
 }
