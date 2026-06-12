@@ -1,8 +1,8 @@
-use crate::transaction::Transaction;
+use crate::transaction::TransactionProcessor;
 
-pub fn simulate_transaction(request: &str) -> String {
-    // Implement the simulateTransaction RPC method
-    let transaction: Transaction = serde_json::from_str(request).unwrap();
-    let (logs, compute_units) = transaction.simulate();
-    format!("{{ \"logs\": {:?}, \"compute_units\": {} }}", logs, compute_units)
+pub fn simulate_transaction(tx: &str) -> Result<(Vec<String>, u64), String> {
+    let tx_bytes = base64::decode(tx).map_err(|e| format!("Failed to decode transaction: {}", e))?;
+    let mut tx_processor = TransactionProcessor::new();
+    let (logs, compute_units) = tx_processor.simulate_transaction(&tx_bytes)?;
+    Ok((logs, compute_units))
 }
