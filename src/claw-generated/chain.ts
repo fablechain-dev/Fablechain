@@ -1,24 +1,36 @@
-import { Account } from './account';
-import { ExternallyOwnedAccount } from './externallyOwnedAccount';
-import { SmartContractAccount } from './smartContractAccount';
+import { Block } from '../blockchain/block';
+import { Transaction } from '../blockchain/transaction';
 
-export class Chain {
-  private accounts: Map&lt;string, Account&gt; = new Map();
+export class BlockChain {
+  private chain: Block[] = [];
 
-  addAccount(account: Account): void {
-    this.accounts.set(account.getAddress(), account);
+  constructor() {
+    // Initialize the genesis block
+    this.chain.push(new Block(0, [], 0));
   }
 
-  getAccount(address: string): Account {
-    return this.accounts.get(address)!;
+  isChainValid(): boolean {
+    // ... existing isChainValid() implementation
   }
 
-  async processTransaction(tx: Transaction): Promise&lt;void&gt; {
-    const senderAccount = this.getAccount(tx.from);
-    if (senderAccount.validateTransaction(tx)) {
-      await senderAccount.execute(tx);
+  getLongestValidChain(newChain: Block[]): Block[] {
+    // ... existing getLongestValidChain() implementation
+  }
+
+  revertAndReplayTransactions(newChain: Block[]): void {
+    // ... existing revertAndReplayTransactions() implementation
+  }
+
+  handleChainReorg(newChain: Block[]): void {
+    const longestValidChain = this.getLongestValidChain(newChain);
+
+    if (longestValidChain !== this.chain) {
+      console.log('Chain reorganization detected. Reverting and replaying transactions.');
+      this.revertAndReplayTransactions(longestValidChain);
     } else {
-      throw new Error('Invalid transaction');
+      console.log('New chain is not longer than current chain. No reorganization needed.');
     }
   }
+
+  // Other methods for adding blocks, etc.
 }
