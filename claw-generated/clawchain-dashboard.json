@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Chain Health",
+      "datasource": "ClawChain",
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "stats",
+          "metricName": "block_height",
+          "label": "Block Height"
+        },
+        {
+          "refId": "B",
+          "queryType": "stats",
+          "metricName": "block_time",
+          "label": "Block Time"
+        },
+        {
+          "refId": "C",
+          "queryType": "stats",
+          "metricName": "finalized_blocks",
+          "label": "Finalized Blocks"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Network Performance",
+      "datasource": "ClawChain",
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeseries",
+          "metricName": "transactions_per_second",
+          "label": "Transactions/Sec"
+        },
+        {
+          "refId": "B",
+          "queryType": "timeseries",
+          "metricName": "transaction_latency",
+          "label": "Transaction Latency"
+        },
+        {
+          "refId": "C",
+          "queryType": "timeseries",
+          "metricName": "active_nodes",
+          "label": "Active Nodes"
+        }
+      ]
+    },
+    {
+      "type": "alert-list",
+      "title": "Alerts",
+      "datasource": "ClawChain",
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "alerts",
+          "metricName": "validator_failures",
+          "label": "Validator Failures"
+        },
+        {
+          "refId": "B",
+          "queryType": "alerts",
+          "metricName": "block_propagation_issues",
+          "label": "Block Propagation Issues" 
+        },
+        {
+          "refId": "C",
+          "queryType": "alerts",
+          "metricName": "high_resource_utilization",
+          "label": "High Resource Utilization"
+        }
+      ]
+    }
+  ]
+}
