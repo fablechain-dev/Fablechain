@@ -5,7 +5,7 @@ describe('VirtualMachine', () => {
   let vm: VirtualMachine;
 
   beforeEach(() => {
-    vm = new VirtualMachine();
+    vm = new VirtualMachine(10);
   });
 
   test('PUSH1 and ADD', () => {
@@ -30,5 +30,10 @@ describe('VirtualMachine', () => {
   test('Unknown opcode', () => {
     const bytecode = new Uint8Array([0xFF]);
     expect(() => vm.execute(bytecode)).toThrowError('Unknown opcode: 255');
+  });
+
+  test('Out of gas', () => {
+    const bytecode = new Uint8Array([Opcode.PUSH1, Opcode.PUSH1, Opcode.ADD, Opcode.PUSH1, Opcode.PUSH1, Opcode.ADD]);
+    expect(() => vm.execute(bytecode)).toThrowError('Out of gas');
   });
 });
