@@ -1,18 +1,44 @@
-export class GenesisBlockConfig {
-  chainId: string;
-  initialAllocations: { [address: string]: number };
-  blockDifficulty: number;
-  blockTime: number;
+import { Account, AccountData } from '../account/Account';
 
-  constructor(
-    chainId: string,
-    initialAllocations: { [address: string]: number },
-    blockDifficulty: number,
-    blockTime: number
-  ) {
-    this.chainId = chainId;
-    this.initialAllocations = initialAllocations;
-    this.blockDifficulty = blockDifficulty;
-    this.blockTime = blockTime;
+export interface GenesisBlockConfig {
+  chainId: string;
+  initialAccounts: AccountData[];
+  initialParameters: {
+    blockTime: number;
+    blockReward: number;
+    maxBlockSize: number;
+  };
+}
+
+export class GenesisBlockConfigurator {
+  private config: GenesisBlockConfig;
+
+  constructor(config: GenesisBlockConfig) {
+    this.config = config;
+  }
+
+  getChainId(): string {
+    return this.config.chainId;
+  }
+
+  getInitialAccounts(): Account[] {
+    return this.config.initialAccounts.map(data => new Account(data));
+  }
+
+  getInitialParameters(): {
+    blockTime: number;
+    blockReward: number;
+    maxBlockSize: number;
+  } {
+    return this.config.initialParameters;
+  }
+
+  validate(): boolean {
+    // Add validation logic here
+    return true;
+  }
+
+  toJSON(): string {
+    return JSON.stringify(this.config, null, 2);
   }
 }
