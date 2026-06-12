@@ -1,30 +1,20 @@
 export class Block {
-  public version: number;
+  public index: number;
   public timestamp: number;
-  public transactions: any[];
+  public data: any;
   public previousHash: string;
   public hash: string;
 
-  constructor(version: number, timestamp: number, transactions: any[], previousHash: string) {
-    this.version = version;
+  constructor(index: number, timestamp: number, data: any, previousHash: string) {
+    this.index = index;
     this.timestamp = timestamp;
-    this.transactions = transactions;
+    this.data = data;
     this.previousHash = previousHash;
     this.hash = this.calculateHash();
   }
 
-  calculateHash(): string {
+  private calculateHash(): string {
     // Implement hash calculation logic here
-    return "";
-  }
-
-  isValid(): boolean {
-    // Implement block validation logic here
-    return true;
-  }
-
-  serialize(): string {
-    // Implement serialization logic here
-    return "";
+    return 'placeholder-hash';
   }
 }

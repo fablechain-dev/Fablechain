@@ -1,23 +1,18 @@
-import { StakingManager } from './staking';
+import { Block } from './Block';
 
-class Chain {
-  private stakingManager: StakingManager;
+export class Chain {
+  private blocks: Block[] = [];
 
   constructor() {
-    this.stakingManager = new StakingManager();
+    // Create the genesis block
+    this.addBlock(new Block(0, Date.now(), 'Genesis Block', '0'));
   }
 
-  async stake(amount: BigNumber, delegatee: string): Promise<void> {
-    await this.stakingManager.stake(amount, delegatee);
+  private addBlock(block: Block): void {
+    this.blocks.push(block);
   }
 
-  async withdraw(amount: BigNumber, delegatee: string): Promise<void> {
-    await this.stakingManager.withdraw(amount, delegatee);
-  }
-
-  async claimRewards(delegatee: string): Promise<BigNumber> {
-    return await this.stakingManager.claimRewards(delegatee);
+  public getBlocks(): Block[] {
+    return this.blocks;
   }
 }
-
-export default Chain;
