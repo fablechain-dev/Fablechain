@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import MultiWalletConnect from '../frontend/src/MultiWalletConnect';
+import React, { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
+import { useWallet } from './useWallet';
 
 interface WalletConnectModalProps {
   isOpen: boolean;
@@ -19,6 +20,31 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({
   connectedWalletType
 }) => {
   const [showModal, setShowModal] = useState(isOpen);
+  const { connectWallet, disconnectWallet, currentWalletType, currentAddress } = useWallet();
+
+  useEffect(() => {
+    setShowModal(isOpen);
+  }, [isOpen]);
+
+  const handleConnect = async () => {
+    try {
+      const { address, provider, walletType } = await connectWallet();
+      onWalletConnected(address, provider, walletType);
+      handleClose();
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectWallet();
+      onWalletDisconnected();
+      handleClose();
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+    }
+  };
 
   const handleClose = () => {
     setShowModal(false);
@@ -32,12 +58,14 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({
         <button className="modal-close-btn" onClick={handleClose}>
           &times;
         </button>
-        <MultiWalletConnect
-          onWalletConnected={onWalletConnected}
-          onWalletDisconnected={onWalletDisconnected}
-          connectedAddress={connectedAddress}
-          connectedWalletType={connectedWalletType}
-        />
+        {connectedAddress ? (
+          <div>
+            <p>Connected to: {connectedAddress}</p>
+            <button onClick={handleDisconnect}>Disconnect</button>
+          </div>
+        ) : (
+          <button onClick={handleConnect}>Connect Wallet</button>
+        )}
       </div>
     </div>
   );
