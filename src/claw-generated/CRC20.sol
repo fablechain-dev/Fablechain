@@ -3,85 +3,53 @@ pragma solidity ^0.8.0;
 
 /**
  * @title CRC-20 Token Standard
- * @dev Implementation of the basic standard for fungible tokens, following the ERC-20 specification.
- * Features include the ability to transfer tokens, approve others to spend tokens on your behalf, and transfer tokens on behalf of another account.
+ * @dev Fungible token standard for ClawChain
  */
 contract CRC20 {
-    mapping(address =&gt; uint256) private _balances;
-    mapping(address =&gt; mapping(address =&gt; uint256)) private _allowances;
-
-    uint256 private _totalSupply;
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
-
+    // Events
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
-    constructor(string memory name_, string memory symbol_, uint8 decimals_) {
-        _name = name_;
-        _symbol = symbol_;
-        _decimals = decimals_;
+    // Token Metadata
+    string public name;
+    string public symbol;
+    uint8 public decimals;
+
+    // Token State
+    mapping(address =&gt; uint256) public balanceOf;
+    mapping(address =&gt; mapping(address =&gt; uint256)) public allowance;
+
+    // Constructor
+    constructor(string memory _name, string memory _symbol, uint8 _decimals) {
+        name = _name;
+        symbol = _symbol;
+        decimals = _decimals;
     }
 
-    function name() public view returns (string memory) {
-        return _name;
-    }
-
-    function symbol() public view returns (string memory) {
-        return _symbol;
-    }
-
-    function decimals() public view returns (uint8) {
-        return _decimals;
-    }
-
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
-    }
-
-    function transfer(address recipient, uint256 amount) public virtual returns (bool) {
-        _transfer(_msgSender(), recipient, amount);
+    // Token Transfer
+    function transfer(address _to, uint256 _value) public virtual returns (bool) {
+        require(_value &lt;= balanceOf[msg.sender], "Insufficient balance");
+        balanceOf[msg.sender] -= _value;
+        balanceOf[_to] += _value;
+        emit Transfer(msg.sender, _to, _value);
         return true;
     }
 
-    function approve(address spender, uint256 amount) public virtual returns (bool) {
-        _approve(_msgSender(), spender, amount);
+    // Token Approval
+    function approve(address _spender, uint256 _value) public virtual returns (bool) {
+        allowance[msg.sender][_spender] = _value;
+        emit Approval(msg.sender, _spender, _value);
         return true;
     }
 
-    function allowance(address owner, address spender) public view virtual returns (uint256) {
-        return _allowances[owner][spender];
-    }
-
-    function transferFrom(address sender, address recipient, uint256 amount) public virtual returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()] - amount);
+    // Token TransferFrom
+    function transferFrom(address _from, address _to, uint256 _value) public virtual returns (bool) {
+        require(_value &lt;= balanceOf[_from], "Insufficient balance");
+        require(_value &lt;= allowance[_from][msg.sender], "Insufficient allowance");
+        balanceOf[_from] -= _value;
+        balanceOf[_to] += _value;
+        allowance[_from][msg.sender] -= _value;
+        emit Transfer(_from, _to, _value);
         return true;
-    }
-
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual {
-        require(sender != address(0), "CRC20: transfer from the zero address");
-        require(recipient != address(0), "CRC20: transfer to the zero address");
-
-        _balances[sender] -= amount;
-        _balances[recipient] += amount;
-        emit Transfer(sender, recipient, amount);
-    }
-
-    function _approve(address owner, address spender, uint256 amount) internal virtual {
-        require(owner != address(0), "CRC20: approve from the zero address");
-        require(spender != address(0), "CRC20: approve to the zero address");
-
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
-    }
-
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
     }
 }
