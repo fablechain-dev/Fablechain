@@ -1,25 +1,26 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import { FaucetRequestDto } from './dto/faucet-request.dto';
 import { FaucetService } from './faucet.service';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 
 @Controller('faucet')
 export class FaucetController {
   constructor(private faucetService: FaucetService) {}
 
   @Post()
-  async requestTokens(
-    @Body() faucetRequestDto: FaucetRequestDto,
-    @Req() req: Request,
-    @Res() res: Response
-  ) {
-    try {
-      const result = await this.faucetService.dispenseTokens(
-        faucetRequestDto.address
-      );
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ error: error.message });
+  async requestTokens(@Body() faucetRequest: FaucetRequestDto, @Req() req: Request) {
+    const { address } = faucetRequest;
+    const ipAddress = req.ip;
+
+    // Check if the address has already requested tokens within the last 24 hours
+    const canDispenseTokens = await this.faucetService.canDispenseTokens(address, ipAddress);
+
+    if (canDispenseTokens) {
+      // Mint 10 CLAW tokens and update the faucet address record
+      await this.faucetService.dispenseTokens(address);
+      return { message: 'Tokens dispensed successfully' };
+    } else {
+      return { message: 'You have already requested tokens within the last 24 hours' };
     }
   }
 }
