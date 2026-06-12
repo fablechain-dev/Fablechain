@@ -1,32 +1,27 @@
 import { BigNumber } from 'ethers';
-import { BlockUtils } from './BlockUtils';
 
 export class StakingContract {
-  private totalStaked: BigNumber = BigNumber.from(0);
-  private rewardRate: BigNumber = BigNumber.from(1000); // 0.1% per block
-  private rewardPerBlock: BigNumber = BigNumber.from(0);
+  private stakedBalances: Map<string, BigNumber> = new Map();
+  private rewardRatePerBlock: BigNumber;
 
-  constructor() {
-    this.updateRewardPerBlock();
+  constructor(rewardRatePerBlock: BigNumber) {
+    this.rewardRatePerBlock = rewardRatePerBlock;
   }
 
-  private updateRewardPerBlock() {
-    this.rewardPerBlock = this.totalStaked.mul(this.rewardRate).div(10000);
+  stake(account: string, amount: BigNumber): void {
+    const currentBalance = this.stakedBalances.get(account) || BigNumber.from(0);
+    this.stakedBalances.set(account, currentBalance.add(amount));
   }
 
-  stake(amount: BigNumber): void {
-    this.totalStaked = this.totalStaked.add(amount);
-    this.updateRewardPerBlock();
+  withdraw(account: string, amount: BigNumber): void {
+    const currentBalance = this.stakedBalances.get(account) || BigNumber.from(0);
+    this.stakedBalances.set(account, currentBalance.sub(amount));
   }
 
-  withdraw(amount: BigNumber): void {
-    this.totalStaked = this.totalStaked.sub(amount);
-    this.updateRewardPerBlock();
-  }
-
-  claimRewards(address: string, lastClaimBlock: number): BigNumber {
-    const blocksElapsed = BlockUtils.getCurrentBlockNumber() - lastClaimBlock;
-    const rewards = this.rewardPerBlock.mul(blocksElapsed);
+  claimRewards(account: string): BigNumber {
+    const currentBalance = this.stakedBalances.get(account) || BigNumber.from(0);
+    const rewards = currentBalance.mul(this.rewardRatePerBlock);
+    this.stakedBalances.set(account, currentBalance);
     return rewards;
   }
 }
