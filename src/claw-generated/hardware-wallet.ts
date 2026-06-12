@@ -1,27 +1,26 @@
-import { Wallet } from './wallet';
-import { Transaction } from '../types';
-import TransportWebUSB from '@ledgerhq/hw-transport-webusb';
-import Ledger from '@ledgerhq/hw-app-eth';
+import { ethers } from 'ethers';
 
-export class HardwareWallet implements Wallet {
-  private transport: TransportWebUSB;
-  private ledger: Ledger;
+export class HardwareWallet {
+  private provider: ethers.providers.Provider;
+  private signer: ethers.Signer;
 
-  async connect(): Promise<void> {
-    this.transport = await TransportWebUSB.create();
-    this.ledger = new Ledger(this.transport);
+  constructor(provider: ethers.providers.Provider) {
+    this.provider = provider;
+    this.signer = new ethers.VoidSigner(ethers.constants.AddressZero, this.provider);
   }
 
-  async getPublicKey(): Promise<string> {
-    const { publicKey } = await this.ledger.getAddress("44'/60'/0'/0/0");
-    return publicKey;
+  async connectLedger(): Promise<ethers.Signer> {
+    // TODO: Implement Ledger connection logic
+    return this.signer;
   }
 
-  async signTransaction(tx: Transaction): Promise<string> {
-    const { s, r, v } = await this.ledger.signTransaction(
-      "44'/60'/0'/0/0",
-      tx.serialize()
-    );
-    return `0x${r}${s}${v}`;
+  async connectTrezor(): Promise<ethers.Signer> {
+    // TODO: Implement Trezor connection logic
+    return this.signer;
+  }
+
+  async signTransaction(transaction: ethers.utils.Deferrable<ethers.providers.TransactionRequest>): Promise<string> {
+    // TODO: Implement transaction signing with connected hardware wallet
+    return '0x';
   }
 }
