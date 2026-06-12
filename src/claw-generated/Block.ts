@@ -1,25 +1,28 @@
-import { Transaction } from '../model/Transaction';
-
 export class Block {
+  hash: string;
+  prevHash: string;
   timestamp: number;
   transactions: Transaction[];
-  prevHash: string;
-  hash: string;
+  confirmations: number;
 
-  constructor(timestamp: number, transactions: Transaction[], prevHash: string) {
-    this.timestamp = timestamp;
-    this.transactions = transactions;
+  constructor(prevHash: string, transactions: Transaction[]) {
     this.prevHash = prevHash;
+    this.transactions = transactions;
+    this.timestamp = Date.now();
+    this.confirmations = 0;
     this.hash = this.calculateHash();
   }
 
   calculateHash(): string {
-    // Implement hash calculation logic
-    return '';
+    // Implement hash calculation logic here
+    return "placeholder_hash";
   }
 
-  isValid(): boolean {
-    // Implement block validation logic
-    return true;
+  incrementConfirmations(): void {
+    this.confirmations++;
+  }
+
+  isFinalized(minConfirmations: number): boolean {
+    return this.confirmations >= minConfirmations;
   }
 }
