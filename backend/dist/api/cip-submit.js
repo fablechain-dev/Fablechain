@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.cipSubmitRouter = void 0;
 const express_1 = require("express");
 const db_1 = require("../database/db");
-const claw_1 = require("./claw");
+const open_1 = require("./open");
 const cipSubmitRouter = (0, express_1.Router)();
 exports.cipSubmitRouter = cipSubmitRouter;
 // Profanity and spam patterns
@@ -45,7 +45,7 @@ const validateBasics = (submission) => {
 };
 // AI evaluation of proposal quality
 const evaluateProposal = async (submission) => {
-    const systemPrompt = `You are a ClawChain governance moderator. Your job is to evaluate improvement proposals (CIPs) for quality and relevance.
+    const systemPrompt = `You are a OpenChain governance moderator. Your job is to evaluate improvement proposals (CIPs) for quality and relevance.
 
 REJECT proposals that are:
 - Nonsensical or gibberish
@@ -57,7 +57,7 @@ REJECT proposals that are:
 - Low effort (generic statements without specific proposals)
 
 APPROVE proposals that:
-- Address a real problem or opportunity for ClawChain
+- Address a real problem or opportunity for OpenChain
 - Provide specific, actionable suggestions
 - Show understanding of blockchain concepts
 - Include consideration of tradeoffs or challenges
@@ -69,7 +69,7 @@ Respond with EXACTLY this JSON format:
   "score": 1-10 (quality score),
   "reason": "Brief explanation of your decision"
 }`;
-    const userMessage = `Evaluate this ClawChain Improvement Proposal:
+    const userMessage = `Evaluate this OpenChain Improvement Proposal:
 
 TITLE: ${submission.title}
 
@@ -82,7 +82,7 @@ ${submission.details}
 
 Is this a genuine, well-thought-out proposal worthy of AI validator debate?`;
     try {
-        const response = await (0, claw_1.anthropicChatCompletion)(systemPrompt, userMessage);
+        const response = await (0, open_1.anthropicChatCompletion)(systemPrompt, userMessage);
         // Parse JSON response
         const jsonMatch = response.match(/\{[\s\S]*\}/);
         if (jsonMatch) {

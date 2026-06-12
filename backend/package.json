@@ -1,7 +1,7 @@
 {
-  "name": "clawchain-backend",
+  "name": "openchain-backend",
   "version": "1.0.0",
-  "description": "ClawChain Backend - Autonomous AI building a blockchain in real-time",
+  "description": "OpenChain Backend - Autonomous AI building a blockchain in real-time",
   "main": "dist/api/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/api/server.ts",
@@ -14,7 +14,7 @@
     "ai",
     "validators"
   ],
-  "author": "ClawChain",
+  "author": "OpenChain",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",

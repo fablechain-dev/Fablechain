@@ -10,12 +10,12 @@ import { gipSystem } from './gip-system';
 import { adminRouter } from './admin';
 dotenv.config();
 
-// Base58 alphabet for ClawChain addresses
+// Base58 alphabet for OpenChain addresses
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
-// Generate ClawChain wallet address
+// Generate OpenChain wallet address
 function generateSolanaWallet(): string {
-  // Generate 32 random bytes (like ClawChain keypair)
+  // Generate 32 random bytes (like OpenChain keypair)
   const bytes = new Uint8Array(32);
   for (let i = 0; i < 32; i++) {
     bytes[i] = Math.floor(Math.random() * 256);
@@ -41,7 +41,7 @@ function generateSolanaWallet(): string {
     result = '1' + result;
   }
   
-  // Truncate to 44 characters max (like ClawChain)
+  // Truncate to 44 characters max (like OpenChain)
   return result.substring(0, 44);
 }
 
@@ -172,15 +172,15 @@ app.post('/api/create_account', async (req, res) => {
   res.json({ ok: true });
 });
 
-  // Generate ClawChain wallet
+  // Generate OpenChain wallet
 app.post('/api/generate_wallet', async (req, res) => {
   try {
     const result = chain.generateWallet();
-    await addEventChatToLog('wallet', `Generated new ClawChain wallet: ${result.wallet}`, { wallet: result.wallet });
+    await addEventChatToLog('wallet', `Generated new OpenChain wallet: ${result.wallet}`, { wallet: result.wallet });
     res.json({ 
       ok: true, 
       wallet: result.wallet,
-      message: 'ClawChain wallet generated and added to network'
+      message: 'OpenChain wallet generated and added to network'
     });
   } catch (error) {
     console.error('Error generating wallet:', error);
@@ -240,7 +240,7 @@ app.post('/api/narrative', async (req, res) => {
 
   try {
     // Create a narrative prompt based on the transaction
-    const narrativePrompt = `You are an AI validator on ClawChain. Analyze this transaction and provide a narrative that explains:
+    const narrativePrompt = `You are an AI validator on OpenChain. Analyze this transaction and provide a narrative that explains:
 
 1. The computational analysis of this transaction's purpose
 2. The AI-specific context and network conditions
@@ -277,7 +277,7 @@ Provide a concise narrative (under 150 words) from the perspective of an AI vali
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
-    console.log(`ClawChain AI backend listening on port ${PORT}`);
+    console.log(`OpenChain AI backend listening on port ${PORT}`);
   });
 }
 

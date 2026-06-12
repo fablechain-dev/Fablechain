@@ -49,7 +49,7 @@ interface Message {
   content: string;
 }
 
-// Lobster mascot component - matches Claw.bot design
+// Lobster mascot component - matches Open.bot design
 const Lobster = ({ size = 120 }: { size?: number }) => (
   <div className="animate-float" style={{ filter: 'drop-shadow(0 0 40px rgba(232, 90, 79, 0.6))' }}>
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
@@ -62,7 +62,7 @@ const Lobster = ({ size = 120 }: { size?: number }) => (
       <path d="M62 28 Q66 12 70 8" stroke="#E85A4F" strokeWidth="4" strokeLinecap="round" fill="none"/>
       <circle cx="30" cy="8" r="4" fill="#E85A4F"/>
       <circle cx="70" cy="8" r="4" fill="#E85A4F"/>
-      {/* Ears/Side claws */}
+      {/* Ears/Side opens */}
       <ellipse cx="20" cy="48" rx="10" ry="12" fill="#E85A4F"/>
       <ellipse cx="80" cy="48" rx="10" ry="12" fill="#E85A4F"/>
       {/* Eyes */}
@@ -267,7 +267,7 @@ export default function App() {
 
   const tabs = [
     { id: 'terminal', label: 'Terminal' },
-    { id: 'molt', label: 'Claw' },
+    { id: 'molt', label: 'Open' },
     { id: 'explorer', label: 'Explorer' },
     { id: 'faucet', label: 'Faucet' },
     { id: 'wallet', label: 'Wallet' },
@@ -307,9 +307,9 @@ export default function App() {
     <div style={{ padding: isMobile ? '24px 16px' : '40px 24px', maxWidth: 600, margin: '0 auto' }}>
       <div className="card" style={{ padding: 32, textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🚰</div>
-        <h2 style={{ fontSize: 24, marginBottom: 8, color: 'var(--text-primary)' }}>ClawChain Faucet</h2>
+        <h2 style={{ fontSize: 24, marginBottom: 8, color: 'var(--text-primary)' }}>OpenChain Faucet</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>
-          Get testnet CLAW tokens to experiment with the network
+          Get testnet OPEN tokens to experiment with the network
         </p>
         <div style={{ marginBottom: 24 }}>
           <input 
@@ -337,7 +337,7 @@ export default function App() {
           fontWeight: 600,
           cursor: 'pointer',
         }}>
-          Request 10 CLAW
+          Request 10 OPEN
         </button>
         <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 16 }}>
           Limited to 1 request per address per day
@@ -350,9 +350,9 @@ export default function App() {
     <div style={{ padding: isMobile ? '24px 16px' : '40px 24px', maxWidth: 600, margin: '0 auto' }}>
       <div className="card" style={{ padding: 32, textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>👛</div>
-        <h2 style={{ fontSize: 24, marginBottom: 8, color: 'var(--text-primary)' }}>ClawChain Wallet</h2>
+        <h2 style={{ fontSize: 24, marginBottom: 8, color: 'var(--text-primary)' }}>OpenChain Wallet</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>
-          Manage your CLAW tokens and interact with the network
+          Manage your OPEN tokens and interact with the network
         </p>
         <button style={{
           background: 'var(--coral)',
@@ -392,7 +392,7 @@ export default function App() {
         <div style={{ marginBottom: 24 }}>
           <h2 style={{ fontSize: 24, marginBottom: 8, color: 'var(--text-primary)' }}>Agent Network</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            OpenClaw.ai agents collaborating to build ClawChain
+            OpenOpen.ai agents collaborating to build OpenChain
           </p>
         </div>
 
@@ -467,7 +467,7 @@ export default function App() {
               + Connect Your Agent
             </button>
             <p style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>
-              Requires OpenClaw.ai API key
+              Requires OpenOpen.ai API key
             </p>
           </div>
 
@@ -509,7 +509,7 @@ export default function App() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <span style={{ 
                         fontWeight: 600, 
-                        color: msg.agent === 'CLAW' ? 'var(--coral)' : 'var(--teal)',
+                        color: msg.agent === 'OPEN' ? 'var(--coral)' : 'var(--teal)',
                         fontSize: 13
                       }}>{msg.agent}</span>
                       <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{msg.time}</span>
@@ -596,7 +596,7 @@ export default function App() {
           letterSpacing: '-0.02em',
           filter: 'drop-shadow(0 0 60px rgba(232, 90, 79, 0.6))'
         }}>
-          ClawChain
+          OpenChain
         </h1>
         <p style={{ 
           color: 'var(--text-secondary)', 
@@ -607,7 +607,7 @@ export default function App() {
           padding: isMobile ? '0 12px' : 0,
           fontStyle: 'italic'
         }}>
-          We put Claw in a Mac Mini and asked it to build its own blockchain.
+          We put Open in a Mac Mini and asked it to build its own blockchain.
         </p>
         <p style={{ 
           color: 'var(--teal)', 
@@ -664,12 +664,12 @@ export default function App() {
               borderLeft: `3px solid ${msg.role === 'molt' ? 'var(--coral)' : msg.role === 'user' ? 'var(--teal)' : 'transparent'}`
             }}>
               <div style={{ fontSize: isMobile ? 10 : 11, color: msg.role === 'molt' ? 'var(--coral)' : 'var(--teal)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {msg.role === 'molt' ? 'Claw' : msg.role === 'user' ? 'You' : 'System'}
+                {msg.role === 'molt' ? 'Open' : msg.role === 'user' ? 'You' : 'System'}
                         </div>
               <div style={{ color: 'var(--text-primary)', lineHeight: 1.6, fontSize: isMobile ? 14 : 16 }}>{msg.content}</div>
               </div>
               ))}
-          {loading && <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: isMobile ? 12 : 16, fontSize: isMobile ? 14 : 16 }}>Claw is thinking...</div>}
+          {loading && <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: isMobile ? 12 : 16, fontSize: isMobile ? 14 : 16 }}>Open is thinking...</div>}
           <div ref={messagesEndRef} />
             </div>
           )}
@@ -681,7 +681,7 @@ export default function App() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder={isMobile ? "Message Claw..." : "Message Claw or type /help for commands..."}
+          placeholder={isMobile ? "Message Open..." : "Message Open or type /help for commands..."}
           style={{ flex: 1, fontSize: isMobile ? 16 : 14 }}
         />
         <button onClick={sendMessage} disabled={loading} className="btn-primary" style={{ width: isMobile ? '100%' : 'auto' }}>
@@ -700,7 +700,7 @@ export default function App() {
             display: 'flex',
       flexDirection: 'column' 
     }}>
-      <h2 className="gradient-text" style={{ fontSize: isMobile ? 24 : 32, marginBottom: isMobile ? 16 : 24 }}>Chat with Claw</h2>
+      <h2 className="gradient-text" style={{ fontSize: isMobile ? 24 : 32, marginBottom: isMobile ? 16 : 24 }}>Chat with Open</h2>
       <div style={{ flex: 1, overflow: 'auto', marginBottom: isMobile ? 16 : 24 }}>
         {messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: isMobile ? 40 : 60, color: 'var(--text-muted)' }}>
@@ -717,13 +717,13 @@ export default function App() {
               borderLeft: `3px solid ${msg.role === 'molt' ? 'var(--coral)' : 'var(--teal)'}`
             }}>
               <div style={{ fontSize: isMobile ? 10 : 11, color: msg.role === 'molt' ? 'var(--coral)' : 'var(--teal)', fontWeight: 600, marginBottom: 6 }}>
-                {msg.role === 'molt' ? 'CLAW' : 'YOU'}
+                {msg.role === 'molt' ? 'OPEN' : 'YOU'}
             </div>
               <div style={{ lineHeight: 1.6, fontSize: isMobile ? 14 : 16 }}>{msg.content}</div>
             </div>
           ))
         )}
-        {loading && <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: isMobile ? 14 : 16 }}>Claw is thinking...</div>}
+        {loading && <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: isMobile ? 14 : 16 }}>Open is thinking...</div>}
         <div ref={messagesEndRef} />
             </div>
       <div style={{ display: 'flex', gap: isMobile ? 8 : 12, flexDirection: isMobile ? 'column' : 'row' }}>
@@ -732,7 +732,7 @@ export default function App() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Ask Claw anything..."
+          placeholder="Ask Open anything..."
           style={{ flex: 1, fontSize: isMobile ? 16 : 14 }}
         />
         <button onClick={sendMessage} disabled={loading} className="btn-primary" style={{ width: isMobile ? '100%' : 'auto' }}>Send</button>
@@ -748,7 +748,7 @@ export default function App() {
   useEffect(() => {
     const fetchCommits = async () => {
       try {
-        const response = await fetch('https://api.github.com/repos/CLAWchain/clawchain/commits?per_page=30');
+        const response = await fetch('https://api.github.com/repos/OPENchain/openchain/commits?per_page=30');
         if (response.ok) {
           const data = await response.json();
           setCommits(data);
@@ -776,7 +776,7 @@ export default function App() {
     <div style={{ padding: isMobile ? '20px 16px' : '40px 24px', maxWidth: 800, margin: '0 auto' }}>
       <h2 className="gradient-text" style={{ fontSize: isMobile ? 24 : 32, marginBottom: isMobile ? 8 : 12 }}>Updates</h2>
       <p style={{ color: 'var(--text-muted)', marginBottom: isMobile ? 20 : 32, fontSize: isMobile ? 13 : 14 }}>
-        Real commits from the ClawChain repository.
+        Real commits from the OpenChain repository.
       </p>
       
       {commitsLoading ? (
@@ -926,7 +926,7 @@ export default function App() {
       </div>
       
       <p style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: 14 }}>
-        Real-time stream of everything Claw is building. Every task, every commit, every line of code.
+        Real-time stream of everything Open is building. Every task, every commit, every line of code.
       </p>
       
       <div style={{
@@ -1013,7 +1013,7 @@ export default function App() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10 }}>
             <Lobster size={isMobile ? 28 : 32} />
-            <span className="gradient-text font-display" style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700 }}>ClawChain</span>
+            <span className="gradient-text font-display" style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700 }}>OpenChain</span>
         </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 20 }}>
             {!isMobile && (
@@ -1029,7 +1029,7 @@ export default function App() {
             
             {/* GitHub Link */}
             <a
-              href="https://github.com/CLAWchain/clawchain"
+              href="https://github.com/OPENchain/openchain"
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -1327,7 +1327,7 @@ export default function App() {
             BQ48k92gDbxDrpw8Zr7NtYA5Bi7kttZ5cDASnEZNpump
           </span>
         </div>
-        <span style={{ color: 'var(--text-muted)', fontSize: isMobile ? 11 : 13 }}>Powered by Claw.bot</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: isMobile ? 11 : 13 }}>Powered by Open.bot</span>
       </footer>
     </div>
   );

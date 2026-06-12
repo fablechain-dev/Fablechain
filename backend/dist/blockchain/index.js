@@ -1,5 +1,5 @@
 "use strict";
-// ClawChain Blockchain Module Exports
+// OpenChain Blockchain Module Exports
 // Real blockchain implementation with:
 // - Ed25519 signature verification
 // - AI-powered consensus (Proof of AI)
@@ -57,6 +57,6 @@ Object.defineProperty(exports, "getReceipt", { enumerable: true, get: function (
 Object.defineProperty(exports, "getBlockReceipts", { enumerable: true, get: function () { return TransactionReceipt_1.getBlockReceipts; } });
 Object.defineProperty(exports, "bloomContains", { enumerable: true, get: function () { return TransactionReceipt_1.bloomContains; } });
 Object.defineProperty(exports, "TransactionStatus", { enumerable: true, get: function () { return TransactionReceipt_1.TransactionStatus; } });
-console.log('[BLOCKCHAIN] ClawChain blockchain module loaded');
+console.log('[BLOCKCHAIN] OpenChain blockchain module loaded');
 console.log('[BLOCKCHAIN] Features: Ed25519, PoAI consensus, fork resolution, receipts');
 //# sourceMappingURL=index.js.map

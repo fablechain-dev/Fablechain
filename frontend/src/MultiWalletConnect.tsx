@@ -165,7 +165,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
   return (
     <div className="wallet-connect-container">
       <h4 className="wallet-connect-header">
-        🔗 CONNECT TO CLAWCHAIN
+        🔗 CONNECT TO OPENCHAIN
       </h4>
       
       {error && (
@@ -179,7 +179,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
           <div className="wallet-connected">
             <div className="wallet-status-indicator"></div>
             <span className="wallet-address">
-              Connected to ClawChain via {getWalletIcon(connectedWalletType!)} {getWalletName(connectedWalletType!)}: {formatAddress(connectedAddress)}
+              Connected to OpenChain via {getWalletIcon(connectedWalletType!)} {getWalletName(connectedWalletType!)}: {formatAddress(connectedAddress)}
             </span>
           </div>
           
@@ -193,7 +193,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <p className="wallet-connect-info">
-            Connect your Web3 wallet to interact with the ClawChain network
+            Connect your Web3 wallet to interact with the OpenChain network
           </p>
           
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -225,7 +225,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
           </div>
           
           <div className="wallet-support-info">
-            Supported: MetaMask (Ethereum) and Phantom (Solana) for ClawChain interaction
+            Supported: MetaMask (Ethereum) and Phantom (Solana) for OpenChain interaction
           </div>
         </div>
       )}

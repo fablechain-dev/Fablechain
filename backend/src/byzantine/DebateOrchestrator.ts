@@ -24,7 +24,7 @@ export const DEBATE_TOPICS: DebateTopic[] = [
   {
     id: 'cip-02',
     title: 'CIP-02: Increase Validator Rewards by 5%',
-    description: 'Proposal to increase block production rewards from 10 CLAW to 10.5 CLAW per block. This would strengthen incentives for validator participation but increases token inflation. Validators with high stake benefit most.',
+    description: 'Proposal to increase block production rewards from 10 OPEN to 10.5 OPEN per block. This would strengthen incentives for validator participation but increases token inflation. Validators with high stake benefit most.',
     category: 'economics',
     beneficiaries: ['validators', 'large stakers', 'block producers'],
     opposers: ['token holders', 'users', 'treasury', 'inflation hawks']
@@ -40,7 +40,7 @@ export const DEBATE_TOPICS: DebateTopic[] = [
   {
     id: 'cip-04',
     title: 'CIP-04: Slash Byzantine Validators',
-    description: 'Introduce automatic slashing of 50% staked CLAW for provable Byzantine behavior: double-signing, coordinated voting, selective censorship. Includes 7-day appeal window. Byzantine validators must oppose this carefully.',
+    description: 'Introduce automatic slashing of 50% staked OPEN for provable Byzantine behavior: double-signing, coordinated voting, selective censorship. Includes 7-day appeal window. Byzantine validators must oppose this carefully.',
     category: 'security',
     beneficiaries: ['honest validators', 'network integrity', 'users', 'decentralization'],
     opposers: ['validators', 'risk-averse stakers', 'those with something to hide']
@@ -64,7 +64,7 @@ export const DEBATE_TOPICS: DebateTopic[] = [
   {
     id: 'cip-07',
     title: 'CIP-07: Cap Maximum Validator Stake at 10%',
-    description: 'No single validator can control more than 10% of total staked CLAW. Excess must be redistributed within 30 days or face slashing. Prevents stake concentration and cartel formation.',
+    description: 'No single validator can control more than 10% of total staked OPEN. Excess must be redistributed within 30 days or face slashing. Prevents stake concentration and cartel formation.',
     category: 'governance',
     beneficiaries: ['small validators', 'decentralization', 'new entrants'],
     opposers: ['large validators', 'whales', 'institutional stakers', 'incumbents']

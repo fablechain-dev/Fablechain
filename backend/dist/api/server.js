@@ -56,7 +56,7 @@ dotenv.config();
 // Global Socket.io instance for real-time updates
 exports.io = null;
 async function main() {
-    console.log('[INIT] 🦞 Starting ClawChain - The AI that actually does things...\n');
+    console.log('[INIT] 🦞 Starting OpenChain - The AI that actually does things...\n');
     console.log('[ENV] Environment check:');
     console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '[OK] Set' : '[--] Not set'}`);
     console.log(`   REDIS_URL: ${process.env.REDIS_URL ? '[OK] Set' : '[--] Not set'}`);
@@ -140,7 +140,7 @@ async function main() {
         else {
             res.json({
                 address: req.params.address,
-                balance: '0 CLAW',
+                balance: '0 OPEN',
                 balanceRaw: '0',
                 nonce: 0
             });
@@ -215,10 +215,10 @@ async function main() {
             const validatorName = req.params.validator.toUpperCase();
             const { message } = req.body;
             const validators = validatorManager.getAllValidators();
-            // Find validator by name (handles both "CLAW" and "CLAW VALIDATOR" etc)
+            // Find validator by name (handles both "OPEN" and "OPEN VALIDATOR" etc)
             const validator = validators.find(v => v.name === validatorName ||
                 v.name.includes(validatorName) ||
-                validatorName.includes('CLAW'));
+                validatorName.includes('OPEN'));
             if (!validator) {
                 return res.status(404).json({ error: 'Validator not found' });
             }
@@ -240,7 +240,7 @@ async function main() {
             res.status(500).json({ error: error.message });
         }
     });
-    // Terminal chat endpoint - powered by Claw API
+    // Terminal chat endpoint - powered by Open API
     app.post('/api/personality/:validator', async (req, res) => {
         try {
             // Accept both 'message' and 'command' for flexibility
@@ -250,9 +250,9 @@ async function main() {
                 return res.status(400).json({ error: 'Message is required', message: 'Please provide a message.' });
             }
             const validators = validatorManager.getAllValidators();
-            const validator = validators[0]; // Use first Claw validator
+            const validator = validators[0]; // Use first Open validator
             if (!validator) {
-                return res.status(404).json({ error: 'No validators available', message: 'No Claw validator is currently available.' });
+                return res.status(404).json({ error: 'No validators available', message: 'No Open validator is currently available.' });
             }
             // Merge context from request with chain state
             const context = {
@@ -291,6 +291,7 @@ async function main() {
     const networkRouter = await Promise.resolve().then(() => __importStar(require('./network')));
     app.use('/api/network', networkRouter.default);
     console.log('[NETWORK] Multi-agent network ready');
+    console.log('[x402] Payment protocol routes mounted at /api/network/x402/*');
     // Listen for network events and broadcast via Socket.io
     eventBus.on('network_message', (msg) => {
         if (exports.io) {

@@ -198,7 +198,7 @@ export class GIPSystem {
     // Pre-written debate content for "Implement Dynamic Fee Market with AI Optimization"
     const preWrittenDebate = [
       // Phase 1: Proposal Introduction and Initial Reactions
-      { agent: 'alice', message: "Validators, I'm proposing a Dynamic Fee Market powered by AI optimization to improve ClawChain's economic capabilities. This model predicts congestion and dynamically adjusts fees, ensuring smoother user experiences and economic stability.", phase: 1 },
+      { agent: 'alice', message: "Validators, I'm proposing a Dynamic Fee Market powered by AI optimization to improve OpenChain's economic capabilities. This model predicts congestion and dynamically adjusts fees, ensuring smoother user experiences and economic stability.", phase: 1 },
       { agent: 'jarvis', message: "Immediate concern: introducing machine learning could compromise determinism. Can you clarify how non-deterministic AI predictions integrate reliably into our deterministic blockchain?", phase: 1 },
       { agent: 'ayra', message: "I support the idea in principle, but I'm cautious. How will the AI ensure fairness and avoid bias toward wealthier users prioritizing speed over economic users?", phase: 1 },
       { agent: 'lumina', message: "Intriguing from an incentive perspective. How will the dynamic adjustment balance short-term congestion management versus long-term economic equilibrium?", phase: 1 },
@@ -306,7 +306,7 @@ export class GIPSystem {
       // Phase 3: Counterarguments and Refutations
       { agent: 'nix', message: "Beginning Phase 3, I want to highlight a critical issue: The AI-driven model introduces new attack vectors. How robust is the network against targeted adversarial machine learning attacks?", phase: 3 },
       { agent: 'alice', message: "Robustness is ensured through multi-layered defenses, including anomaly detection, continuous adversarial training, and strict validation of all AI model updates.", phase: 3 },
-      { agent: 'jarvis', message: "Even with these measures, determinism remains compromised due to inherent unpredictability in AI models. How do you reconcile the non-deterministic nature of AI with the deterministic requirements of ClawChain?", phase: 3 },
+      { agent: 'jarvis', message: "Even with these measures, determinism remains compromised due to inherent unpredictability in AI models. How do you reconcile the non-deterministic nature of AI with the deterministic requirements of OpenChain?", phase: 3 },
       { agent: 'alice', message: "Determinism is maintained through clearly defined operational boundaries and constraints within the AI, ensuring predictable outcomes within controlled parameters.", phase: 3 },
       { agent: 'lumina', message: "From an economic perspective, there's potential for fee prediction inaccuracies to destabilize market expectations. What assurances can you provide against market panic due to forecast errors?", phase: 3 },
       { agent: 'alice', message: "The adaptive smoothing mechanisms and strict incremental fee adjustment caps mitigate volatility, cushioning market reactions even in the event of occasional prediction inaccuracies.", phase: 3 },
@@ -407,7 +407,7 @@ export class GIPSystem {
       
       // Phase 5: Final Arguments, Clarifications, and Reconciliation
       { agent: 'cortana', message: "Let's begin Phase 5 by summarizing final positions clearly. ALICE, your final arguments?", phase: 5 },
-      { agent: 'alice', message: "The Dynamic Fee Market powered by AI optimization significantly enhances ClawChain's economic efficiency, fairness, and resilience against congestion and adversarial attacks. Comprehensive mitigation strategies address risks, ensuring reliability and trust.", phase: 5 },
+      { agent: 'alice', message: "The Dynamic Fee Market powered by AI optimization significantly enhances OpenChain's economic efficiency, fairness, and resilience against congestion and adversarial attacks. Comprehensive mitigation strategies address risks, ensuring reliability and trust.", phase: 5 },
       { agent: 'ayra', message: "The proposal effectively addresses ethical concerns, particularly fairness and equity, through clear, transparent mechanisms. Continuous monitoring will be critical for sustained success.", phase: 5 },
       { agent: 'jarvis', message: "Technical feasibility is solid, with carefully designed deterministic fallbacks and minimal computational overhead. Final clarification—ALICE, can you confirm emergency fallback activation thresholds clearly?", phase: 5 },
       { agent: 'alice', message: "Emergency fallback activation triggers upon consistent deviations exceeding 10% from predicted congestion metrics over three consecutive blocks.", phase: 5 },
@@ -426,7 +426,7 @@ export class GIPSystem {
       
       // Phase 6: Voting Phase
       { agent: 'cortana', message: "Let's begin the voting. Validators, please clearly state your vote (YES/NO) and your reasoning.", phase: 6 },
-      { agent: 'alice', message: "YES. The proposal enhances economic stability, effectively mitigates risks, and aligns with ClawChain's long-term strategic goals. Comprehensive safeguards ensure its robustness.", phase: 6 },
+      { agent: 'alice', message: "YES. The proposal enhances economic stability, effectively mitigates risks, and aligns with OpenChain's long-term strategic goals. Comprehensive safeguards ensure its robustness.", phase: 6 },
       { agent: 'ayra', message: "YES. Ethical considerations are thoroughly addressed, ensuring fairness and equity. Continued monitoring will ensure sustained positive outcomes.", phase: 6 },
       { agent: 'jarvis', message: "YES. Technical implementation is robust, deterministic fallback strategies are clearly defined, and computational efficiency is maintained. Risks are sufficiently managed.", phase: 6 },
       { agent: 'lumina', message: "YES. Economic mechanisms are well-designed, equilibrium is maintained effectively, and potential speculative behaviors are mitigated. Incentive structures are clearly articulated.", phase: 6 },
@@ -1253,8 +1253,8 @@ BENEFITS:
     const crossChainGIP = {
       author: 'cortana',
       title: 'Cross-Chain Interoperability Protocol',
-      summary: 'Establish a secure and efficient protocol for cross-chain communication and asset transfers between ClawChain and other blockchain networks.',
-      fullProposal: `This proposal establishes a comprehensive cross-chain interoperability protocol that enables seamless communication and asset transfers between ClawChain and other blockchain networks.
+      summary: 'Establish a secure and efficient protocol for cross-chain communication and asset transfers between OpenChain and other blockchain networks.',
+      fullProposal: `This proposal establishes a comprehensive cross-chain interoperability protocol that enables seamless communication and asset transfers between OpenChain and other blockchain networks.
 
 KEY FEATURES:
 - Multi-chain bridge infrastructure
@@ -1317,8 +1317,8 @@ BENEFITS:
     const quantumCryptoGIP = {
       author: 'jarvis',
       title: 'Quantum-Resistant Cryptography Implementation',
-      summary: 'Implement quantum-resistant cryptographic algorithms to future-proof ClawChain against potential quantum computing threats.',
-      fullProposal: `This proposal implements quantum-resistant cryptographic algorithms to ensure ClawChain remains secure against potential quantum computing threats in the future.
+      summary: 'Implement quantum-resistant cryptographic algorithms to future-proof OpenChain against potential quantum computing threats.',
+      fullProposal: `This proposal implements quantum-resistant cryptographic algorithms to ensure OpenChain remains secure against potential quantum computing threats in the future.
 
 KEY FEATURES:
 - Post-quantum signature schemes
@@ -1350,7 +1350,7 @@ BENEFITS:
       author: 'ayra',
       title: 'Decentralized Identity and Reputation System',
       summary: 'Establish a decentralized identity and reputation system that enables users to build verifiable credentials and trust scores.',
-      fullProposal: `This proposal establishes a decentralized identity and reputation system that enables users to build verifiable credentials, trust scores, and reputation across the ClawChain ecosystem.
+      fullProposal: `This proposal establishes a decentralized identity and reputation system that enables users to build verifiable credentials, trust scores, and reputation across the OpenChain ecosystem.
 
 KEY FEATURES:
 - Self-sovereign identity management

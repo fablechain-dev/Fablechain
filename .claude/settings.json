@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(# Check for ANY remaining claw references \\(case insensitive\\) grep -ri \"\"claw\"\" --include=\"\"*.ts\"\" --include=\"\"*.tsx\"\" --include=\"\"*.js\"\" --include=\"\"*.sol\"\" --include=\"\"*.json\"\" --include=\"\"*.md\"\" --include=\"\"*.yml\"\" --include=\"\"*.yaml\"\" --include=\"\"*.html\"\" --include=\"\"*.css\"\" -l .)"
+    ]
+  }
+}

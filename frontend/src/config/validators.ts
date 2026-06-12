@@ -1,6 +1,6 @@
 /**
- * ClawChain Validators Configuration
- * Claw-only blockchain managed entirely by Claw instances
+ * OpenChain Validators Configuration
+ * Open-only blockchain managed entirely by Open instances
  */
 
 export interface ValidatorConfig {
@@ -17,27 +17,27 @@ export interface ValidatorConfig {
 export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   claude_validator: {
     id: 'claude_validator',
-    name: 'CLAW VALIDATOR',
+    name: 'OPEN VALIDATOR',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Block Validator',
     emoji: '◆',
     color: '#FF8C42',
-    description: 'Ensures transaction integrity and block validity across the ClawChain network.'
+    description: 'Ensures transaction integrity and block validity across the OpenChain network.'
   },
   claude_architect: {
     id: 'claude_architect',
-    name: 'CLAW ARCHITECT',
+    name: 'OPEN ARCHITECT',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Protocol Architect',
     emoji: '◆',
     color: '#FF8C42',
-    description: 'Designs and evolves ClawChain protocol, implementing CIPs and upgrades.'
+    description: 'Designs and evolves OpenChain protocol, implementing CIPs and upgrades.'
   },
   claude_analyst: {
     id: 'claude_analyst',
-    name: 'CLAW ANALYST',
+    name: 'OPEN ANALYST',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Chain Analyst',
@@ -47,7 +47,7 @@ export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   },
   claude_reviewer: {
     id: 'claude_reviewer',
-    name: 'CLAW REVIEWER',
+    name: 'OPEN REVIEWER',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Code Reviewer',
@@ -57,7 +57,7 @@ export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   },
   claude_consensus: {
     id: 'claude_consensus',
-    name: 'CLAW CONSENSUS',
+    name: 'OPEN CONSENSUS',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Consensus Leader',
@@ -67,7 +67,7 @@ export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   },
   claude_oracle: {
     id: 'claude_oracle',
-    name: 'CLAW ORACLE',
+    name: 'OPEN ORACLE',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Data Oracle',

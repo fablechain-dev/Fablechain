@@ -5,10 +5,10 @@ const db_1 = require("../database/db");
 const Block_1 = require("./Block");
 const EventBus_1 = require("../events/EventBus");
 // Initial token supply and distribution
-const INITIAL_SUPPLY = BigInt('1000000000000000000000000'); // 1 million CLAW (with 18 decimals)
-const GENESIS_ADDRESS = 'CLAWGenesis1111111111111111111111111111111';
-const FAUCET_ADDRESS = 'CLAWCHAIN_FAUCET';
-const TREASURY_ADDRESS = 'CLAWTreasury11111111111111111111111111111';
+const INITIAL_SUPPLY = BigInt('1000000000000000000000000'); // 1 million OPEN (with 18 decimals)
+const GENESIS_ADDRESS = 'OPENGenesis1111111111111111111111111111111';
+const FAUCET_ADDRESS = 'OPENCHAIN_FAUCET';
+const TREASURY_ADDRESS = 'OPENTreasury11111111111111111111111111111';
 class StateManager {
     constructor() {
         this.accounts = new Map();
@@ -65,7 +65,7 @@ class StateManager {
             this.initialized = true;
             console.log(`[STATE] StateManager initialized with ${this.accounts.size} accounts`);
             console.log(`[STATE] Current state root: ${this.stateRoot.substring(0, 20)}...`);
-            console.log(`[STATE] Faucet balance: ${this.formatBalance(this.getBalance(FAUCET_ADDRESS))} CLAW`);
+            console.log(`[STATE] Faucet balance: ${this.formatBalance(this.getBalance(FAUCET_ADDRESS))} OPEN`);
         }
         catch (error) {
             console.error('[STATE] Initialization error:', error);
@@ -326,8 +326,8 @@ class StateManager {
             nonce: acc.nonce
         }))
             .sort((a, b) => {
-            const balA = BigInt(a.balance.replace(' CLAW', '').replace(/,/g, ''));
-            const balB = BigInt(b.balance.replace(' CLAW', '').replace(/,/g, ''));
+            const balA = BigInt(a.balance.replace(' OPEN', '').replace(/,/g, ''));
+            const balB = BigInt(b.balance.replace(' OPEN', '').replace(/,/g, ''));
             return balB > balA ? 1 : -1;
         });
     }
@@ -344,7 +344,7 @@ class StateManager {
     // Format balance for display
     formatBalance(balance) {
         const wholePart = balance / (10n ** 18n);
-        return `${wholePart.toLocaleString()} CLAW`;
+        return `${wholePart.toLocaleString()} OPEN`;
     }
     // Persist account state to database
     async persistAccountState(account) {

@@ -16,33 +16,33 @@ const TASK_TEMPLATES = [
             'Building: Wallet Connector',
         ],
         prompts: [
-            `Build a token balance checking utility for ClawChain. 
+            `Build a token balance checking utility for OpenChain. 
 
 Requirements:
 - Accept a wallet address as input
-- Query the chain for CLAW token balance
+- Query the chain for OPEN token balance
 - Format the output nicely with proper decimal handling
 - Add caching for repeated queries
 
 Think through the design, then write the TypeScript code.`,
-            `Create a gas estimation utility for ClawChain transactions.
+            `Create a gas estimation utility for OpenChain transactions.
 
 Requirements:
 - Estimate gas for different transaction types (transfer, stake, unstake)
 - Factor in current network congestion
-- Return both gas units and CLAW cost estimate
+- Return both gas units and OPEN cost estimate
 
 Walk through your reasoning and implement it.`,
-            `Build an address validation utility for ClawChain.
+            `Build an address validation utility for OpenChain.
 
 Requirements:
-- Validate ClawChain address format (base58)
+- Validate OpenChain address format (base58)
 - Check checksum validity
 - Return helpful error messages for invalid addresses
 - Support both full addresses and shortened formats
 
 Show your work as you build this.`,
-            `Create a transaction hash generator for ClawChain.
+            `Create a transaction hash generator for OpenChain.
 
 Requirements:
 - Take transaction parameters as input
@@ -88,7 +88,7 @@ Requirements:
 
 Design the interface and implement.`,
         ],
-        agents: ['CLAW ARCHITECT', 'CLAW DEVELOPER', 'CLAW BUILDER'],
+        agents: ['OPEN ARCHITECT', 'OPEN DEVELOPER', 'OPEN BUILDER'],
     },
     {
         type: 'security_audit',
@@ -159,7 +159,7 @@ Check for:
 
 Provide security analysis and recommendations.`,
         ],
-        agents: ['CLAW REVIEWER', 'CLAW AUDITOR', 'CLAW SECURITY'],
+        agents: ['OPEN REVIEWER', 'OPEN AUDITOR', 'OPEN SECURITY'],
     },
     {
         type: 'chain_analysis',
@@ -172,7 +172,7 @@ Provide security analysis and recommendations.`,
             'Analyzing: Block Production',
         ],
         prompts: [
-            `Analyze ClawChain network performance over recent blocks.
+            `Analyze OpenChain network performance over recent blocks.
 
 Examine:
 - Block time consistency
@@ -181,7 +181,7 @@ Examine:
 - Validator response times
 
 Generate a performance report with visualizations.`,
-            `Analyze transaction patterns on ClawChain.
+            `Analyze transaction patterns on OpenChain.
 
 Look for:
 - Common transaction types
@@ -199,7 +199,7 @@ Examine:
 - Response time patterns
 
 Generate a validator health report.`,
-            `Analyze gas usage trends across ClawChain.
+            `Analyze gas usage trends across OpenChain.
 
 Examine:
 - Average gas per transaction
@@ -208,7 +208,7 @@ Examine:
 - Contract vs transfer gas usage
 
 Create a gas economics report.`,
-            `Analyze the stake distribution across ClawChain.
+            `Analyze the stake distribution across OpenChain.
 
 Examine:
 - Stake concentration (Gini coefficient)
@@ -227,7 +227,7 @@ Examine:
 
 Create a block production health report.`,
         ],
-        agents: ['CLAW ANALYST', 'CLAW DATA', 'CLAW METRICS'],
+        agents: ['OPEN ANALYST', 'OPEN DATA', 'OPEN METRICS'],
     },
     {
         type: 'protocol_improvement',
@@ -250,7 +250,7 @@ Include:
 - Timeline estimate
 
 Make it ready for council review.`,
-            `Propose an improved fee model for ClawChain.
+            `Propose an improved fee model for OpenChain.
 
 Include:
 - Analysis of current fee issues
@@ -259,7 +259,7 @@ Include:
 - Migration strategy
 - Expected outcomes
 
-Draft a complete MIP (ClawChain Improvement Proposal).`,
+Draft a complete MIP (OpenChain Improvement Proposal).`,
             `Propose enhanced validator incentives.
 
 Include:
@@ -280,7 +280,7 @@ Include:
 - Security considerations
 
 Make it comprehensive and ready for debate.`,
-            `Propose performance optimizations for ClawChain.
+            `Propose performance optimizations for OpenChain.
 
 Include:
 - Bottleneck analysis
@@ -290,7 +290,7 @@ Include:
 - Benchmark methodology
 
 Draft a technical improvement proposal.`,
-            `Propose a new transaction type for ClawChain.
+            `Propose a new transaction type for OpenChain.
 
 Include:
 - Use case justification
@@ -301,7 +301,7 @@ Include:
 
 Create a detailed technical proposal.`,
         ],
-        agents: ['CLAW ARCHITECT', 'CLAW GOVERNANCE', 'CLAW PROTOCOL'],
+        agents: ['OPEN ARCHITECT', 'OPEN GOVERNANCE', 'OPEN PROTOCOL'],
     },
     {
         type: 'documentation',
@@ -313,7 +313,7 @@ Create a detailed technical proposal.`,
             'Documenting: Security Best Practices',
         ],
         prompts: [
-            `Write API documentation for ClawChain endpoints.
+            `Write API documentation for OpenChain endpoints.
 
 Cover:
 - Authentication
@@ -324,7 +324,7 @@ Cover:
 - Code examples
 
 Make it developer-friendly with examples.`,
-            `Create a getting started guide for ClawChain developers.
+            `Create a getting started guide for OpenChain developers.
 
 Include:
 - Prerequisites
@@ -354,7 +354,7 @@ Include:
 - Best practices
 
 Make it practical with examples.`,
-            `Document security best practices for ClawChain.
+            `Document security best practices for OpenChain.
 
 Cover:
 - Key management
@@ -365,7 +365,7 @@ Cover:
 
 Create a comprehensive security guide.`,
         ],
-        agents: ['CLAW DOCS', 'CLAW WRITER', 'CLAW EDUCATOR'],
+        agents: ['OPEN DOCS', 'OPEN WRITER', 'OPEN EDUCATOR'],
     },
     {
         type: 'testing',
@@ -394,7 +394,7 @@ Test:
 - Balance updates
 
 Create comprehensive integration tests.`,
-            `Design stress tests for ClawChain.
+            `Design stress tests for OpenChain.
 
 Test:
 - High transaction volume
@@ -403,7 +403,7 @@ Test:
 - Memory usage under load
 
 Document test methodology and results.`,
-            `Write edge case tests for ClawChain.
+            `Write edge case tests for OpenChain.
 
 Test:
 - Zero-value transactions
@@ -413,7 +413,7 @@ Test:
 
 Create thorough edge case coverage.`,
         ],
-        agents: ['CLAW QA', 'CLAW TESTER', 'CLAW VALIDATOR'],
+        agents: ['OPEN QA', 'OPEN TESTER', 'OPEN VALIDATOR'],
     },
 ];
 class TaskGenerator {

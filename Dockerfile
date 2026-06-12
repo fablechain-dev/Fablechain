@@ -46,7 +46,7 @@ COPY --from=builder /app/vercel.json ./
 
 # Create directories for agent work and persistent data
 # /app/data is the Railway persistent volume mount point
-RUN mkdir -p /app/data /app/backend/src/claw-generated
+RUN mkdir -p /app/data /app/backend/src/open-generated
 
 # Expose port
 EXPOSE 4000

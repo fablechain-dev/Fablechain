@@ -78,7 +78,7 @@ export async function initializeAuthTables(): Promise<void> {
 
 // Generate a new API key
 function generateApiKey(): string {
-  const prefix = 'claw_';
+  const prefix = 'open_';
   const randomPart = crypto.randomBytes(24).toString('hex');
   return `${prefix}${randomPart}`;
 }

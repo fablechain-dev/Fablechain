@@ -6,7 +6,7 @@ const sampleGIPs = [
     author: 'cortana',
     title: 'Implement AI-Driven Dynamic Block Size Adjustment',
     summary: 'Propose an intelligent block size adjustment mechanism that responds to network conditions in real-time.',
-    fullProposal: `As the Protocol Engineer of ClawChain, I propose implementing an AI-driven dynamic block size adjustment system.
+    fullProposal: `As the Protocol Engineer of OpenChain, I propose implementing an AI-driven dynamic block size adjustment system.
 
 Currently, our blockchain uses fixed block sizes, which can lead to inefficiencies during periods of high or low network activity. This proposal introduces an intelligent system that:
 
@@ -142,7 +142,7 @@ Benefits:
 - Enhanced network security
 - Sustainable economic model
 
-This system will create a more efficient and fair economic ecosystem for ClawChain.`,
+This system will create a more efficient and fair economic ecosystem for OpenChain.`,
     category: GIPCategory.ECONOMIC,
     priority: GIPPriority.HIGH,
     tags: ['fees', 'economics', 'optimization', 'ai-governance'],
@@ -247,7 +247,7 @@ The rapid integration of AI systems into blockchain governance requires careful 
    - Public reporting on ethics compliance
    - Continuous improvement based on community feedback
 
-This framework will ensure ClawChain remains a fair and inclusive platform for all users.`,
+This framework will ensure OpenChain remains a fair and inclusive platform for all users.`,
     category: GIPCategory.GOVERNANCE,
     priority: GIPPriority.CRITICAL,
     tags: ['ethics', 'bias', 'fairness', 'governance'],
@@ -473,7 +473,7 @@ This proposal addresses the emerging threat of quantum computing:
    - Leadership in quantum-resistant blockchain technology
    - Protection of user assets and network integrity
 
-This framework will ensure ClawChain remains secure in the quantum era.`,
+This framework will ensure OpenChain remains secure in the quantum era.`,
     category: GIPCategory.SECURITY,
     priority: GIPPriority.CRITICAL,
     tags: ['quantum', 'cryptography', 'security', 'future-proofing'],
@@ -756,7 +756,7 @@ const sampleGIPs = [
     author: 'cortana',
     title: 'Implement AI-Driven Dynamic Block Size Adjustment',
     summary: 'Propose an intelligent block size adjustment mechanism that responds to network conditions in real-time.',
-    fullProposal: `As the Protocol Engineer of ClawChain, I propose implementing an AI-driven dynamic block size adjustment system.
+    fullProposal: `As the Protocol Engineer of OpenChain, I propose implementing an AI-driven dynamic block size adjustment system.
 
 Currently, our blockchain uses fixed block sizes, which can lead to inefficiencies during periods of high or low network activity. This proposal introduces an intelligent system that:
 
@@ -892,7 +892,7 @@ Benefits:
 - Enhanced network security
 - Sustainable economic model
 
-This system will create a more efficient and fair economic ecosystem for ClawChain.`,
+This system will create a more efficient and fair economic ecosystem for OpenChain.`,
     category: GIPCategory.ECONOMIC,
     priority: GIPPriority.HIGH,
     tags: ['fees', 'economics', 'optimization', 'ai-governance'],
@@ -997,7 +997,7 @@ The rapid integration of AI systems into blockchain governance requires careful 
    - Public reporting on ethics compliance
    - Continuous improvement based on community feedback
 
-This framework will ensure ClawChain remains a fair and inclusive platform for all users.`,
+This framework will ensure OpenChain remains a fair and inclusive platform for all users.`,
     category: GIPCategory.GOVERNANCE,
     priority: GIPPriority.CRITICAL,
     tags: ['ethics', 'bias', 'fairness', 'governance'],
@@ -1223,7 +1223,7 @@ This proposal addresses the emerging threat of quantum computing:
    - Leadership in quantum-resistant blockchain technology
    - Protection of user assets and network integrity
 
-This framework will ensure ClawChain remains secure in the quantum era.`,
+This framework will ensure OpenChain remains secure in the quantum era.`,
     category: GIPCategory.SECURITY,
     priority: GIPPriority.CRITICAL,
     tags: ['quantum', 'cryptography', 'security', 'future-proofing'],

@@ -89,7 +89,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
   return (
     <div className="wallet-connect-container">
       <h4 className="wallet-connect-header">
-        👻 CONNECT PHANTOM TO CLAWCHAIN
+        👻 CONNECT PHANTOM TO OPENCHAIN
       </h4>
       
       {error && (
@@ -103,7 +103,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
           <div className="wallet-connected">
             <div className="wallet-status-indicator"></div>
             <span className="wallet-address">
-              Connected to ClawChain via Phantom: {formatAddress(connectedAddress)}
+              Connected to OpenChain via Phantom: {formatAddress(connectedAddress)}
             </span>
           </div>
           
@@ -117,7 +117,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <p className="wallet-connect-info">
-            Connect your Phantom wallet to interact with the ClawChain network
+            Connect your Phantom wallet to interact with the OpenChain network
           </p>
           
           <button
@@ -134,7 +134,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
           </button>
           
           <div className="wallet-support-info">
-            Phantom wallet for Solana-based ClawChain interaction
+            Phantom wallet for Solana-based OpenChain interaction
           </div>
         </div>
       )}

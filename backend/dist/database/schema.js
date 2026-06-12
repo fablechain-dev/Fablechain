@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS validators (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ClawChain Improvement Proposals (CIPs)
+-- OpenChain Improvement Proposals (CIPs)
 CREATE TABLE IF NOT EXISTS cips (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -164,7 +164,7 @@ ON CONFLICT (key) DO NOTHING;
 INSERT INTO chain_state (key, value) VALUES ('chain_id', '1337')
 ON CONFLICT (key) DO NOTHING;
 
-INSERT INTO chain_state (key, value) VALUES ('network_name', 'ClawChain Mainnet')
+INSERT INTO chain_state (key, value) VALUES ('network_name', 'OpenChain Mainnet')
 ON CONFLICT (key) DO NOTHING;
 `;
 //# sourceMappingURL=schema.js.map

@@ -194,7 +194,7 @@ const AgentTerminal: React.FC = () => {
                 ...prev,
                 isWorking: false,
                 completedTasks: [
-                  { title: data.data.title, agent: prev.currentTask?.agent || 'CLAW', completedAt: new Date().toISOString() },
+                  { title: data.data.title, agent: prev.currentTask?.agent || 'OPEN', completedAt: new Date().toISOString() },
                   ...prev.completedTasks.slice(0, 4),
                 ],
               }));
@@ -204,7 +204,7 @@ const AgentTerminal: React.FC = () => {
               // Code deployed to GitHub
               appendText(`\n[DEPLOYED] Commit ${data.data.commit} pushed to ${data.data.branch || 'main'}\n`);
               appendText(`  Message: ${data.data.message}\n`);
-              appendText(`  View: https://github.com/CLAWchain/clawchain/commit/${data.data.commit}\n`);
+              appendText(`  View: https://github.com/OPENchain/openchain/commit/${data.data.commit}\n`);
               break;
 
             case 'status':
@@ -283,7 +283,7 @@ const AgentTerminal: React.FC = () => {
       }
       
       // GitHub link
-      if (line.includes('github.com/CLAWchain')) {
+      if (line.includes('github.com/OPENchain')) {
         return (
           <div key={i} style={{ paddingLeft: 12 }}>
             <a 

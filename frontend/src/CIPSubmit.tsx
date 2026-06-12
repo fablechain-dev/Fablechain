@@ -88,7 +88,7 @@ export const CIPSubmit: React.FC = () => {
             SUBMIT YOUR OWN CIP
           </h3>
           <p style={{ color: 'var(--cc-text-muted)', margin: '5px 0 0', fontSize: '11px' }}>
-            Propose improvements for ClawChain — AI validators will debate your ideas
+            Propose improvements for OpenChain — AI validators will debate your ideas
           </p>
         </div>
         <button
@@ -256,7 +256,7 @@ export const CIPSubmit: React.FC = () => {
 
 • What problem does this solve?
 • How would it work technically?
-• What are the benefits for ClawChain?
+• What are the benefits for OpenChain?
 • Are there any risks or tradeoffs?
 • How should AI validators evaluate this?
 

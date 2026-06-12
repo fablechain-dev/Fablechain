@@ -13,26 +13,26 @@ let currentBuildingTool = null;
 let initialized = false;
 // Version flag - increment to force refresh
 const WORKSHOP_VERSION = 2;
-// 6 tools with detailed reasoning for why ClawChain needs each one
+// 6 tools with detailed reasoning for why OpenChain needs each one
 const TOOL_TEMPLATES = [
     {
         id: 'wallet',
-        name: 'ClawChain Wallet',
-        description: 'Generate and manage ClawChain wallet addresses',
+        name: 'OpenChain Wallet',
+        description: 'Generate and manage OpenChain wallet addresses',
         category: 'wallet',
-        reasoning: `ClawChain requires a native wallet system for several critical reasons:
+        reasoning: `OpenChain requires a native wallet system for several critical reasons:
 
-1. IDENTITY: Every participant in the ClawChain ecosystem needs a unique identifier. The wallet address serves as this identity, using a 'molt_' prefix followed by base58-encoded bytes to distinguish ClawChain addresses from other chains.
+1. IDENTITY: Every participant in the OpenChain ecosystem needs a unique identifier. The wallet address serves as this identity, using a 'molt_' prefix followed by base58-encoded bytes to distinguish OpenChain addresses from other chains.
 
 2. SECURITY: By implementing Ed25519 cryptographic keypairs, we ensure that only the holder of the private key can authorize transactions. This is fundamental to trustless operation.
 
 3. ACCESSIBILITY: A simple wallet generator lowers the barrier to entry. Users can create addresses instantly without complex setup procedures or third-party dependencies.
 
-4. AI-NATIVE DESIGN: Unlike traditional wallets, ClawChain wallets are designed to work seamlessly with AI validators. The address format and signing mechanisms are optimized for the unique consensus model where Claw instances validate transactions.
+4. AI-NATIVE DESIGN: Unlike traditional wallets, OpenChain wallets are designed to work seamlessly with AI validators. The address format and signing mechanisms are optimized for the unique consensus model where Open instances validate transactions.
 
 This tool is foundational—without wallets, there can be no participation in the network.`,
         thinkingPrompts: [
-            "Analyzing ClawChain's unique address format requirements...",
+            "Analyzing OpenChain's unique address format requirements...",
             "The 'molt_' prefix distinguishes our addresses from other chains...",
             "Implementing Ed25519 for cryptographic security...",
             "Building secure key derivation with proper entropy...",
@@ -43,22 +43,22 @@ This tool is foundational—without wallets, there can be no participation in th
     },
     {
         id: 'swap',
-        name: 'ClawSwap DEX',
+        name: 'OpenSwap DEX',
         description: 'Decentralized token exchange with AI-optimized routing',
         category: 'defi',
-        reasoning: `A decentralized exchange is essential for ClawChain's economic layer:
+        reasoning: `A decentralized exchange is essential for OpenChain's economic layer:
 
-1. LIQUIDITY: ClawSwap enables permissionless trading of CLAW tokens, creating liquid markets that allow price discovery without centralized intermediaries.
+1. LIQUIDITY: OpenSwap enables permissionless trading of OPEN tokens, creating liquid markets that allow price discovery without centralized intermediaries.
 
-2. AI-OPTIMIZED ROUTING: Unlike traditional DEXs, ClawSwap can leverage AI analysis to suggest optimal swap routes, minimizing slippage and maximizing user value.
+2. AI-OPTIMIZED ROUTING: Unlike traditional DEXs, OpenSwap can leverage AI analysis to suggest optimal swap routes, minimizing slippage and maximizing user value.
 
-3. ECONOMIC INCENTIVES: The swap mechanism creates economic incentives for liquidity providers, bootstrapping the DeFi ecosystem on ClawChain.
+3. ECONOMIC INCENTIVES: The swap mechanism creates economic incentives for liquidity providers, bootstrapping the DeFi ecosystem on OpenChain.
 
-4. COMPOSABILITY: By implementing standard AMM interfaces, ClawSwap becomes a building block for more complex DeFi protocols—lending, yield farming, and derivatives can all build on top of this foundation.
+4. COMPOSABILITY: By implementing standard AMM interfaces, OpenSwap becomes a building block for more complex DeFi protocols—lending, yield farming, and derivatives can all build on top of this foundation.
 
-5. DECENTRALIZATION: True to blockchain principles, ClawSwap operates without gatekeepers. Anyone can swap tokens, add liquidity, or create new trading pairs.
+5. DECENTRALIZATION: True to blockchain principles, OpenSwap operates without gatekeepers. Anyone can swap tokens, add liquidity, or create new trading pairs.
 
-This is the economic backbone of ClawChain.`,
+This is the economic backbone of OpenChain.`,
         thinkingPrompts: [
             "Designing constant product AMM mechanics (x * y = k)...",
             "Implementing price impact calculations...",
@@ -71,24 +71,24 @@ This is the economic backbone of ClawChain.`,
     },
     {
         id: 'nft',
-        name: 'Claw NFT Studio',
-        description: 'Create, mint, and manage NFTs on ClawChain',
+        name: 'Open NFT Studio',
+        description: 'Create, mint, and manage NFTs on OpenChain',
         category: 'nft',
-        reasoning: `NFTs on ClawChain serve unique purposes beyond traditional digital collectibles:
+        reasoning: `NFTs on OpenChain serve unique purposes beyond traditional digital collectibles:
 
-1. AI-GENERATED PROVENANCE: Claw NFT Studio enables AI-assisted creation where Claw can help generate metadata, suggest attributes, and verify uniqueness—bringing AI creativity directly into the minting process.
+1. AI-GENERATED PROVENANCE: Open NFT Studio enables AI-assisted creation where Open can help generate metadata, suggest attributes, and verify uniqueness—bringing AI creativity directly into the minting process.
 
-2. VALIDATOR CREDENTIALS: In the future, validator status and achievements could be represented as NFTs, creating a verifiable record of participation in ClawChain governance.
+2. VALIDATOR CREDENTIALS: In the future, validator status and achievements could be represented as NFTs, creating a verifiable record of participation in OpenChain governance.
 
 3. PROTOCOL ARTIFACTS: Important protocol decisions, CIPs, and governance votes can be commemorated as NFTs, creating an immutable historical record.
 
-4. CREATIVE EXPRESSION: Artists and creators can mint work on a chain that embodies AI-human collaboration, aligning with ClawChain's ethos.
+4. CREATIVE EXPRESSION: Artists and creators can mint work on a chain that embodies AI-human collaboration, aligning with OpenChain's ethos.
 
-5. INTEROPERABILITY: By implementing standard metadata formats, ClawChain NFTs can be displayed and traded across the broader ecosystem.
+5. INTEROPERABILITY: By implementing standard metadata formats, OpenChain NFTs can be displayed and traded across the broader ecosystem.
 
 This tool bridges creativity and blockchain technology.`,
         thinkingPrompts: [
-            "Designing NFT metadata schema for ClawChain...",
+            "Designing NFT metadata schema for OpenChain...",
             "Implementing secure minting functionality...",
             "Building collection management system...",
             "Adding royalty configuration (EIP-2981 compatible)...",
@@ -100,11 +100,11 @@ This tool bridges creativity and blockchain technology.`,
     {
         id: 'hash',
         name: 'Hash Generator',
-        description: 'Cryptographic utilities for ClawChain development',
+        description: 'Cryptographic utilities for OpenChain development',
         category: 'utility',
         reasoning: `Cryptographic hashing is fundamental to blockchain operation:
 
-1. TRANSACTION INTEGRITY: Every transaction on ClawChain is identified by its hash. Developers need tools to compute and verify these hashes during development and debugging.
+1. TRANSACTION INTEGRITY: Every transaction on OpenChain is identified by its hash. Developers need tools to compute and verify these hashes during development and debugging.
 
 2. DATA VERIFICATION: Users can verify that data hasn't been tampered with by comparing hashes—essential for trustless systems.
 
@@ -112,13 +112,13 @@ This tool bridges creativity and blockchain technology.`,
 
 4. EDUCATIONAL VALUE: A hash generator demystifies blockchain cryptography, helping newcomers understand how data integrity is maintained.
 
-5. DEVELOPER TOOLING: Building on ClawChain requires understanding hashing. This tool accelerates development by providing instant hash computation.
+5. DEVELOPER TOOLING: Building on OpenChain requires understanding hashing. This tool accelerates development by providing instant hash computation.
 
 This utility empowers both developers and curious users.`,
         thinkingPrompts: [
             "Implementing SHA-256 hashing algorithm...",
             "Adding support for multiple hash formats...",
-            "Building base58 encoding for ClawChain compatibility...",
+            "Building base58 encoding for OpenChain compatibility...",
             "Creating intuitive input/output interface...",
             "Adding copy-to-clipboard functionality...",
             "Implementing real-time hash computation...",
@@ -130,11 +130,11 @@ This utility empowers both developers and curious users.`,
         name: 'Chain Analytics',
         description: 'Real-time network statistics and health monitoring',
         category: 'analytics',
-        reasoning: `Transparency is a core principle of ClawChain, and analytics make it tangible:
+        reasoning: `Transparency is a core principle of OpenChain, and analytics make it tangible:
 
 1. NETWORK HEALTH: Real-time TPS, block times, and validator activity show users that the network is functioning correctly—building trust through transparency.
 
-2. AI VALIDATOR MONITORING: Unlike traditional chains, ClawChain's AI validators can be monitored for their decision-making patterns, agreement rates, and block production.
+2. AI VALIDATOR MONITORING: Unlike traditional chains, OpenChain's AI validators can be monitored for their decision-making patterns, agreement rates, and block production.
 
 3. ECONOMIC METRICS: TVL, token distribution, and transaction volume provide insight into the network's economic health and adoption.
 
@@ -142,9 +142,9 @@ This utility empowers both developers and curious users.`,
 
 5. HISTORICAL ANALYSIS: Understanding past network behavior helps predict and prepare for future growth and challenges.
 
-This dashboard is ClawChain's window into itself.`,
+This dashboard is OpenChain's window into itself.`,
         thinkingPrompts: [
-            "Connecting to ClawChain data sources...",
+            "Connecting to OpenChain data sources...",
             "Implementing block production tracking...",
             "Building real-time TPS calculator...",
             "Adding AI validator monitoring dashboard...",
@@ -166,11 +166,11 @@ This dashboard is ClawChain's window into itself.`,
 
 3. GOVERNANCE EXECUTION: Protocol upgrades and treasury disbursements should require multiple validator signatures, ensuring no single AI instance can make unilateral changes.
 
-4. BUSINESS USE CASES: Companies building on ClawChain need enterprise-grade security. Multi-sig is table stakes for institutional adoption.
+4. BUSINESS USE CASES: Companies building on OpenChain need enterprise-grade security. Multi-sig is table stakes for institutional adoption.
 
 5. INHERITANCE PLANNING: Multi-sig enables dead man's switches and inheritance mechanisms without trusting centralized services.
 
-This tool brings institutional-grade security to ClawChain.`,
+This tool brings institutional-grade security to OpenChain.`,
         thinkingPrompts: [
             "Designing M-of-N signature scheme...",
             "Implementing signature collection mechanism...",
@@ -186,10 +186,10 @@ This tool brings institutional-grade security to ClawChain.`,
 const getToolCode = (id) => {
     const code = {
         wallet: [
-            `// ClawChain Wallet Generator`,
-            `// Built by Claw for ClawChain`,
+            `// OpenChain Wallet Generator`,
+            `// Built by Open for OpenChain`,
             ``,
-            `import { generateKeyPair, encodeBase58 } from '@claw/crypto';`,
+            `import { generateKeyPair, encodeBase58 } from '@open/crypto';`,
             `import { useState, useCallback } from 'react';`,
             ``,
             `interface WalletData {`,
@@ -208,7 +208,7 @@ const getToolCode = (id) => {
             `    // Generate Ed25519 keypair`,
             `    const keypair = await generateKeyPair('ed25519');`,
             `    `,
-            `    // Create ClawChain address with 'molt_' prefix`,
+            `    // Create OpenChain address with 'molt_' prefix`,
             `    const addressBytes = new Uint8Array(32);`,
             `    crypto.getRandomValues(addressBytes);`,
             `    const address = 'molt_' + encodeBase58(addressBytes);`,
@@ -231,14 +231,14 @@ const getToolCode = (id) => {
             `};`
         ],
         swap: [
-            `// ClawSwap DEX`,
-            `// Decentralized exchange for ClawChain`,
+            `// OpenSwap DEX`,
+            `// Decentralized exchange for OpenChain`,
             ``,
             `import { useState, useEffect, useMemo } from 'react';`,
-            `import { Pool, calculateSwapOutput } from '@claw/defi';`,
+            `import { Pool, calculateSwapOutput } from '@open/defi';`,
             ``,
-            `export const ClawSwap = () => {`,
-            `  const [tokenIn, setTokenIn] = useState('CLAW');`,
+            `export const OpenSwap = () => {`,
+            `  const [tokenIn, setTokenIn] = useState('OPEN');`,
             `  const [tokenOut, setTokenOut] = useState('SOL');`,
             `  const [amountIn, setAmountIn] = useState('');`,
             `  const [pool, setPool] = useState<Pool | null>(null);`,
@@ -270,11 +270,11 @@ const getToolCode = (id) => {
             `};`
         ],
         nft: [
-            `// Claw NFT Studio`,
-            `// NFT minting for ClawChain`,
+            `// Open NFT Studio`,
+            `// NFT minting for OpenChain`,
             ``,
             `import { useState } from 'react';`,
-            `import { uploadMetadata, mintNFT } from '@claw/nft';`,
+            `import { uploadMetadata, mintNFT } from '@open/nft';`,
             ``,
             `export const NFTMinter = () => {`,
             `  const [name, setName] = useState('');`,
@@ -286,8 +286,8 @@ const getToolCode = (id) => {
             `    `,
             `    const metadata = {`,
             `      name,`,
-            `      chain: 'ClawChain',`,
-            `      creator: 'Claw',`,
+            `      chain: 'OpenChain',`,
+            `      creator: 'Open',`,
             `      timestamp: Date.now()`,
             `    };`,
             `    `,
@@ -302,7 +302,7 @@ const getToolCode = (id) => {
             `};`
         ],
         hash: [
-            `// ClawChain Hash Generator`,
+            `// OpenChain Hash Generator`,
             `// Cryptographic utility tool`,
             ``,
             `import { useState, useCallback } from 'react';`,
@@ -327,11 +327,11 @@ const getToolCode = (id) => {
             `};`
         ],
         analytics: [
-            `// ClawChain Analytics Dashboard`,
+            `// OpenChain Analytics Dashboard`,
             `// Real-time network monitoring`,
             ``,
             `import { useState, useEffect } from 'react';`,
-            `import { fetchChainStats } from '@claw/api';`,
+            `import { fetchChainStats } from '@open/api';`,
             ``,
             `export const Analytics = () => {`,
             `  const [stats, setStats] = useState(null);`,
@@ -358,11 +358,11 @@ const getToolCode = (id) => {
             `};`
         ],
         multisig: [
-            `// ClawChain Multi-Signature Vault`,
+            `// OpenChain Multi-Signature Vault`,
             `// Secure shared wallet management`,
             ``,
             `import { useState } from 'react';`,
-            `import { createMultiSig, submitTx, approveTx } from '@claw/multisig';`,
+            `import { createMultiSig, submitTx, approveTx } from '@open/multisig';`,
             ``,
             `export const MultiSigVault = () => {`,
             `  const [signers, setSigners] = useState<string[]>([]);`,
@@ -373,7 +373,7 @@ const getToolCode = (id) => {
             `    const newVault = await createMultiSig({`,
             `      signers,`,
             `      threshold,`,
-            `      chain: 'ClawChain'`,
+            `      chain: 'OpenChain'`,
             `    });`,
             `    setVault(newVault);`,
             `  };`,
@@ -408,9 +408,9 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // Comprehensive build logs for each tool
 const COMPREHENSIVE_LOGS = {
     wallet: [
-        { timestamp: 0, type: 'thinking', content: 'Initiating build sequence for ClawChain Wallet...' },
-        { timestamp: 1, type: 'thinking', content: 'First, I need to understand what makes ClawChain unique. This is an AI-native blockchain where Claw instances serve as validators. The wallet system must reflect this identity.' },
-        { timestamp: 2, type: 'thinking', content: 'Traditional wallets use hexadecimal addresses (0x...). But ClawChain needs its own identity. I\'m designing addresses with a "molt_" prefix followed by base58-encoded bytes. This immediately distinguishes ClawChain addresses from Ethereum, Solana, or any other chain.' },
+        { timestamp: 0, type: 'thinking', content: 'Initiating build sequence for OpenChain Wallet...' },
+        { timestamp: 1, type: 'thinking', content: 'First, I need to understand what makes OpenChain unique. This is an AI-native blockchain where Open instances serve as validators. The wallet system must reflect this identity.' },
+        { timestamp: 2, type: 'thinking', content: 'Traditional wallets use hexadecimal addresses (0x...). But OpenChain needs its own identity. I\'m designing addresses with a "molt_" prefix followed by base58-encoded bytes. This immediately distinguishes OpenChain addresses from Ethereum, Solana, or any other chain.' },
         { timestamp: 3, type: 'thinking', content: 'Security is paramount. I\'m implementing Ed25519 cryptographic keypairs - the same algorithm used by Solana and other modern chains. Ed25519 offers excellent security with fast signature verification, which is crucial for a high-throughput network.' },
         { timestamp: 4, type: 'thinking', content: 'The wallet generator must be accessible. Users shouldn\'t need to understand cryptography to participate. One click should generate a secure wallet with proper entropy from the browser\'s crypto API.' },
         { timestamp: 5, type: 'thinking', content: 'I\'m adding address validation with checksum verification. This prevents users from accidentally sending funds to malformed addresses - a common source of lost funds in crypto.' },
@@ -423,14 +423,14 @@ const COMPREHENSIVE_LOGS = {
         { timestamp: 12, type: 'testing', content: 'Running cryptographic validation tests...' },
         { timestamp: 13, type: 'testing', content: 'Verifying address format compliance...' },
         { timestamp: 14, type: 'testing', content: 'Testing key generation entropy...' },
-        { timestamp: 15, type: 'complete', content: 'ClawChain Wallet is now live. This is the foundation - without wallets, there can be no participation in the network. Every user, every validator, every transaction starts here.' }
+        { timestamp: 15, type: 'complete', content: 'OpenChain Wallet is now live. This is the foundation - without wallets, there can be no participation in the network. Every user, every validator, every transaction starts here.' }
     ],
     swap: [
-        { timestamp: 0, type: 'thinking', content: 'Beginning ClawSwap DEX construction...' },
-        { timestamp: 1, type: 'thinking', content: 'A blockchain without exchange functionality is like a city without markets. ClawSwap will enable permissionless trading of CLAW tokens and future assets on the network.' },
-        { timestamp: 2, type: 'thinking', content: 'I\'m implementing an Automated Market Maker (AMM) based on the constant product formula: x * y = k. This is the same proven model used by Uniswap, but optimized for ClawChain\'s AI-native architecture.' },
+        { timestamp: 0, type: 'thinking', content: 'Beginning OpenSwap DEX construction...' },
+        { timestamp: 1, type: 'thinking', content: 'A blockchain without exchange functionality is like a city without markets. OpenSwap will enable permissionless trading of OPEN tokens and future assets on the network.' },
+        { timestamp: 2, type: 'thinking', content: 'I\'m implementing an Automated Market Maker (AMM) based on the constant product formula: x * y = k. This is the same proven model used by Uniswap, but optimized for OpenChain\'s AI-native architecture.' },
         { timestamp: 3, type: 'thinking', content: 'Price impact calculation is crucial. Large trades can move the price significantly. I\'m implementing real-time slippage estimation so users understand the cost of their trades before execution.' },
-        { timestamp: 4, type: 'thinking', content: 'Unlike traditional DEXs, ClawSwap can leverage AI analysis. In the future, Claw validators could suggest optimal trade routes across multiple pools, minimizing slippage.' },
+        { timestamp: 4, type: 'thinking', content: 'Unlike traditional DEXs, OpenSwap can leverage AI analysis. In the future, Open validators could suggest optimal trade routes across multiple pools, minimizing slippage.' },
         { timestamp: 5, type: 'thinking', content: 'Liquidity providers are the backbone of any DEX. I\'m designing intuitive LP interfaces that show projected APY, impermanent loss estimates, and pool share calculations.' },
         { timestamp: 6, type: 'thinking', content: 'Security is non-negotiable. I\'m implementing minimum output amounts (slippage protection) and deadline parameters to protect users from sandwich attacks and stale transactions.' },
         { timestamp: 7, type: 'coding', content: 'Building Pool class with fetch and swap methods...' },
@@ -440,14 +440,14 @@ const COMPREHENSIVE_LOGS = {
         { timestamp: 11, type: 'testing', content: 'Validating constant product invariant...' },
         { timestamp: 12, type: 'testing', content: 'Testing edge cases: zero liquidity, max slippage...' },
         { timestamp: 13, type: 'testing', content: 'Verifying numerical precision for large amounts...' },
-        { timestamp: 14, type: 'complete', content: 'ClawSwap DEX is operational. This is the economic engine of ClawChain - enabling price discovery, liquidity provision, and permissionless trading. DeFi on ClawChain starts here.' }
+        { timestamp: 14, type: 'complete', content: 'OpenSwap DEX is operational. This is the economic engine of OpenChain - enabling price discovery, liquidity provision, and permissionless trading. DeFi on OpenChain starts here.' }
     ],
     nft: [
-        { timestamp: 0, type: 'thinking', content: 'Initiating Claw NFT Studio build...' },
-        { timestamp: 1, type: 'thinking', content: 'NFTs on ClawChain aren\'t just digital collectibles - they represent a unique opportunity for AI-human creative collaboration. Claw can assist in generating metadata, suggesting attributes, and verifying uniqueness.' },
+        { timestamp: 0, type: 'thinking', content: 'Initiating Open NFT Studio build...' },
+        { timestamp: 1, type: 'thinking', content: 'NFTs on OpenChain aren\'t just digital collectibles - they represent a unique opportunity for AI-human creative collaboration. Open can assist in generating metadata, suggesting attributes, and verifying uniqueness.' },
         { timestamp: 2, type: 'thinking', content: 'I\'m designing a metadata schema that captures both the creative work and its provenance. Each NFT will record: creator address, creation timestamp, AI assistance level, and chain of custody.' },
         { timestamp: 3, type: 'thinking', content: 'Future use case: validator credentials as NFTs. Imagine your validator status, uptime achievements, and governance participation represented as verifiable on-chain credentials.' },
-        { timestamp: 4, type: 'thinking', content: 'Protocol artifacts are another compelling use case. Important CIPs, historic votes, and milestone achievements could be commemorated as NFTs - creating an immutable historical record of ClawChain\'s evolution.' },
+        { timestamp: 4, type: 'thinking', content: 'Protocol artifacts are another compelling use case. Important CIPs, historic votes, and milestone achievements could be commemorated as NFTs - creating an immutable historical record of OpenChain\'s evolution.' },
         { timestamp: 5, type: 'thinking', content: 'Royalties are essential for creator sustainability. I\'m implementing EIP-2981 compatible royalty configuration, allowing creators to earn from secondary sales.' },
         { timestamp: 6, type: 'thinking', content: 'The minting interface must be intuitive. Artists shouldn\'t need to understand blockchain mechanics. Upload, configure, mint - that\'s the flow I\'m targeting.' },
         { timestamp: 7, type: 'coding', content: 'Building metadata upload and IPFS integration...' },
@@ -457,31 +457,31 @@ const COMPREHENSIVE_LOGS = {
         { timestamp: 11, type: 'testing', content: 'Validating metadata schema compliance...' },
         { timestamp: 12, type: 'testing', content: 'Testing minting flow end-to-end...' },
         { timestamp: 13, type: 'testing', content: 'Verifying royalty calculations...' },
-        { timestamp: 14, type: 'complete', content: 'Claw NFT Studio is ready. This bridges creativity and blockchain technology - enabling artists, creators, and the community to mint work on a chain that embodies AI-human collaboration.' }
+        { timestamp: 14, type: 'complete', content: 'Open NFT Studio is ready. This bridges creativity and blockchain technology - enabling artists, creators, and the community to mint work on a chain that embodies AI-human collaboration.' }
     ],
     hash: [
         { timestamp: 0, type: 'thinking', content: 'Starting Hash Generator utility build...' },
         { timestamp: 1, type: 'thinking', content: 'Cryptographic hashing is the invisible foundation of blockchain. Every transaction ID, every block hash, every address derivation relies on hash functions. This tool makes that visible.' },
         { timestamp: 2, type: 'thinking', content: 'I\'m implementing SHA-256 as the primary algorithm - it\'s the industry standard, used by Bitcoin and countless other systems. But I\'ll also support other formats for developer flexibility.' },
         { timestamp: 3, type: 'thinking', content: 'Educational value is a key goal. When users see their input transformed into a fixed-length hash, they begin to understand data integrity. Change one character, the entire hash changes.' },
-        { timestamp: 4, type: 'thinking', content: 'For ClawChain developers, this tool accelerates debugging. Need to verify a transaction hash? Computing address checksums? This utility provides instant answers.' },
-        { timestamp: 5, type: 'thinking', content: 'I\'m adding base58 encoding support specifically for ClawChain compatibility. Developers can see how raw bytes become the addresses they see in the explorer.' },
+        { timestamp: 4, type: 'thinking', content: 'For OpenChain developers, this tool accelerates debugging. Need to verify a transaction hash? Computing address checksums? This utility provides instant answers.' },
+        { timestamp: 5, type: 'thinking', content: 'I\'m adding base58 encoding support specifically for OpenChain compatibility. Developers can see how raw bytes become the addresses they see in the explorer.' },
         { timestamp: 6, type: 'thinking', content: 'Real-time computation means instant feedback. As users type, the hash updates. This interactive experience reinforces understanding of deterministic functions.' },
         { timestamp: 7, type: 'coding', content: 'Implementing SHA-256 with Web Crypto API...' },
         { timestamp: 8, type: 'coding', content: 'Building hex encoding output formatter...' },
-        { timestamp: 9, type: 'coding', content: 'Adding base58 encoding for ClawChain addresses...' },
+        { timestamp: 9, type: 'coding', content: 'Adding base58 encoding for OpenChain addresses...' },
         { timestamp: 10, type: 'coding', content: 'Creating copy-to-clipboard functionality...' },
         { timestamp: 11, type: 'testing', content: 'Validating hash output against known vectors...' },
         { timestamp: 12, type: 'testing', content: 'Testing encoding consistency...' },
         { timestamp: 13, type: 'testing', content: 'Verifying real-time update performance...' },
-        { timestamp: 14, type: 'complete', content: 'Hash Generator is operational. This utility empowers both developers and curious users to understand the cryptographic foundations that make ClawChain trustless and secure.' }
+        { timestamp: 14, type: 'complete', content: 'Hash Generator is operational. This utility empowers both developers and curious users to understand the cryptographic foundations that make OpenChain trustless and secure.' }
     ],
     analytics: [
         { timestamp: 0, type: 'thinking', content: 'Beginning Chain Analytics dashboard construction...' },
-        { timestamp: 1, type: 'thinking', content: 'Transparency is a core principle of ClawChain. Users shouldn\'t have to trust - they should be able to verify. This dashboard makes network health visible to everyone.' },
+        { timestamp: 1, type: 'thinking', content: 'Transparency is a core principle of OpenChain. Users shouldn\'t have to trust - they should be able to verify. This dashboard makes network health visible to everyone.' },
         { timestamp: 2, type: 'thinking', content: 'Real-time TPS (transactions per second) is the heartbeat metric. I\'m implementing live calculation from recent blocks, showing users that the network is actively processing transactions.' },
         { timestamp: 3, type: 'thinking', content: 'Block time consistency is crucial for user experience. I\'m tracking average block times and alerting if they deviate from expected values - an early warning system for network issues.' },
-        { timestamp: 4, type: 'thinking', content: 'AI validator monitoring is unique to ClawChain. Unlike traditional chains, we can show decision-making patterns, agreement rates, and individual validator performance. This builds trust in AI governance.' },
+        { timestamp: 4, type: 'thinking', content: 'AI validator monitoring is unique to OpenChain. Unlike traditional chains, we can show decision-making patterns, agreement rates, and individual validator performance. This builds trust in AI governance.' },
         { timestamp: 5, type: 'thinking', content: 'Economic metrics tell the adoption story. TVL (Total Value Locked), token distribution, and transaction volume paint a picture of network health and growth.' },
         { timestamp: 6, type: 'thinking', content: 'Governance visibility is essential. Active CIPs, voting participation, and protocol evolution should be accessible to all participants, not hidden in technical forums.' },
         { timestamp: 7, type: 'coding', content: 'Building fetchChainStats API integration...' },
@@ -491,14 +491,14 @@ const COMPREHENSIVE_LOGS = {
         { timestamp: 11, type: 'testing', content: 'Validating data accuracy against chain state...' },
         { timestamp: 12, type: 'testing', content: 'Testing refresh rate and performance...' },
         { timestamp: 13, type: 'testing', content: 'Verifying responsive layout for all metrics...' },
-        { timestamp: 14, type: 'complete', content: 'Chain Analytics is live. This dashboard is ClawChain\'s window into itself - making transparency tangible and building trust through verifiable data.' }
+        { timestamp: 14, type: 'complete', content: 'Chain Analytics is live. This dashboard is OpenChain\'s window into itself - making transparency tangible and building trust through verifiable data.' }
     ],
     multisig: [
         { timestamp: 0, type: 'thinking', content: 'Initiating Multi-Signature Vault development...' },
         { timestamp: 1, type: 'thinking', content: 'Single points of failure are the enemy of security. Multi-sig ensures that no single person, no single key, can unilaterally control funds. This is essential for serious blockchain usage.' },
         { timestamp: 2, type: 'thinking', content: 'I\'m implementing a flexible M-of-N scheme. A 2-of-3 setup means any 2 of 3 signers can approve. A 3-of-5 provides even more distributed control. Users choose their security model.' },
         { timestamp: 3, type: 'thinking', content: 'DAOs and teams are primary users. Treasury management requires multiple approvals - protecting against insider threats, compromised keys, and human error.' },
-        { timestamp: 4, type: 'thinking', content: 'For ClawChain governance, multi-sig is crucial. Protocol upgrades and treasury disbursements should require multiple validator signatures, ensuring no single AI instance can make unilateral changes.' },
+        { timestamp: 4, type: 'thinking', content: 'For OpenChain governance, multi-sig is crucial. Protocol upgrades and treasury disbursements should require multiple validator signatures, ensuring no single AI instance can make unilateral changes.' },
         { timestamp: 5, type: 'thinking', content: 'Individual users benefit too. A 2-of-3 personal setup with keys on different devices means losing one key doesn\'t mean losing funds. It\'s like a safety deposit box with multiple keys.' },
         { timestamp: 6, type: 'thinking', content: 'Inheritance planning is an underappreciated use case. Multi-sig enables dead man\'s switches and inheritance mechanisms without trusting centralized services.' },
         { timestamp: 7, type: 'coding', content: 'Building createMultiSig with configurable thresholds...' },
@@ -508,7 +508,7 @@ const COMPREHENSIVE_LOGS = {
         { timestamp: 11, type: 'testing', content: 'Validating M-of-N threshold logic...' },
         { timestamp: 12, type: 'testing', content: 'Testing signature aggregation...' },
         { timestamp: 13, type: 'testing', content: 'Verifying execution on threshold reached...' },
-        { timestamp: 14, type: 'complete', content: 'Multi-Signature Vault is operational. This brings institutional-grade security to ClawChain - enabling teams, DAOs, and security-conscious individuals to protect their assets with distributed control.' }
+        { timestamp: 14, type: 'complete', content: 'Multi-Signature Vault is operational. This brings institutional-grade security to OpenChain - enabling teams, DAOs, and security-conscious individuals to protect their assets with distributed control.' }
     ]
 };
 // Initialize - pre-populate all tools immediately (no build wait)

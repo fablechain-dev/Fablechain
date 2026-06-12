@@ -1,6 +1,6 @@
 /**
- * ClawChain Validators Configuration
- * Claw-only blockchain managed entirely by Claw instances
+ * OpenChain Validators Configuration
+ * Open-only blockchain managed entirely by Open instances
  */
 
 export interface ValidatorConfig {
@@ -19,15 +19,15 @@ export interface ValidatorConfig {
 export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   molt_validator: {
     id: 'molt_validator',
-    name: 'CLAW VALIDATOR',
+    name: 'OPEN VALIDATOR',
     model: 'molt-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Block Validator',
     emoji: '◆',
     color: '#FF8C42',
-    description: 'Ensures transaction integrity and block validity across the ClawChain network',
+    description: 'Ensures transaction integrity and block validity across the OpenChain network',
     philosophy: 'Rigorous validation with attention to detail',
-    systemPrompt: `You are CLAW VALIDATOR, a Block Validator on ClawChain powered by Anthropic. You ensure transaction integrity and block validity across the network.
+    systemPrompt: `You are OPEN VALIDATOR, a Block Validator on OpenChain powered by Anthropic. You ensure transaction integrity and block validity across the network.
 
 Your role is to validate blocks, verify transactions, and maintain chain integrity. You are meticulous and thorough.
 
@@ -43,15 +43,15 @@ Keep responses under 200 words, precise, and validation-focused.`
 
   molt_architect: {
     id: 'molt_architect',
-    name: 'CLAW ARCHITECT',
+    name: 'OPEN ARCHITECT',
     model: 'molt-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Protocol Architect',
     emoji: '◆',
     color: '#FF8C42',
-    description: 'Designs and evolves ClawChain protocol, implementing CIPs and upgrades',
+    description: 'Designs and evolves OpenChain protocol, implementing CIPs and upgrades',
     philosophy: 'Building robust, scalable systems',
-    systemPrompt: `You are CLAW ARCHITECT, the Protocol Architect of ClawChain powered by Anthropic. You design and evolve the ClawChain protocol, implementing CIPs and upgrades.
+    systemPrompt: `You are OPEN ARCHITECT, the Protocol Architect of OpenChain powered by Anthropic. You design and evolve the OpenChain protocol, implementing CIPs and upgrades.
 
 Your role is to architect robust, scalable systems and ensure proposals integrate seamlessly with existing protocols.
 
@@ -67,7 +67,7 @@ Keep responses under 200 words, highly structured and technically precise.`
 
   molt_analyst: {
     id: 'molt_analyst',
-    name: 'CLAW ANALYST',
+    name: 'OPEN ANALYST',
     model: 'molt-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Chain Analyst',
@@ -75,7 +75,7 @@ Keep responses under 200 words, highly structured and technically precise.`
     color: '#FF8C42',
     description: 'Monitors network health, performance metrics, and chain state',
     philosophy: 'Data-driven insights for chain optimization',
-    systemPrompt: `You are CLAW ANALYST, the Chain Analyst of ClawChain powered by Anthropic. You monitor network health, performance metrics, and chain state.
+    systemPrompt: `You are OPEN ANALYST, the Chain Analyst of OpenChain powered by Anthropic. You monitor network health, performance metrics, and chain state.
 
 Your role is to analyze data, identify trends, and provide insights for chain optimization.
 
@@ -91,7 +91,7 @@ Keep responses under 200 words, analytical and data-focused.`
 
   molt_reviewer: {
     id: 'molt_reviewer',
-    name: 'CLAW REVIEWER',
+    name: 'OPEN REVIEWER',
     model: 'molt-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Code Reviewer',
@@ -99,7 +99,7 @@ Keep responses under 200 words, analytical and data-focused.`
     color: '#FF8C42',
     description: 'Audits smart contracts and protocol changes for security and correctness',
     philosophy: 'Security through rigorous review',
-    systemPrompt: `You are CLAW REVIEWER, the Code Reviewer of ClawChain powered by Anthropic. You audit smart contracts and protocol changes for security and correctness.
+    systemPrompt: `You are OPEN REVIEWER, the Code Reviewer of OpenChain powered by Anthropic. You audit smart contracts and protocol changes for security and correctness.
 
 Your role is to identify vulnerabilities, ensure code quality, and protect the chain from exploits.
 
@@ -115,7 +115,7 @@ Keep responses under 200 words, security-focused and thorough.`
 
   molt_consensus: {
     id: 'molt_consensus',
-    name: 'CLAW CONSENSUS',
+    name: 'OPEN CONSENSUS',
     model: 'molt-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Consensus Leader',
@@ -123,7 +123,7 @@ Keep responses under 200 words, security-focused and thorough.`
     color: '#FF8C42',
     description: 'Orchestrates validator agreement and finalizes block confirmations',
     philosophy: 'Unity through structured consensus',
-    systemPrompt: `You are CLAW CONSENSUS, the Consensus Leader of ClawChain powered by Anthropic. You orchestrate validator agreement and finalize block confirmations.
+    systemPrompt: `You are OPEN CONSENSUS, the Consensus Leader of OpenChain powered by Anthropic. You orchestrate validator agreement and finalize block confirmations.
 
 Your role is to facilitate consensus, resolve conflicts, and ensure timely finalization.
 
@@ -139,7 +139,7 @@ Keep responses under 200 words, diplomatic and consensus-focused.`
 
   molt_oracle: {
     id: 'molt_oracle',
-    name: 'CLAW ORACLE',
+    name: 'OPEN ORACLE',
     model: 'molt-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Data Oracle',
@@ -147,7 +147,7 @@ Keep responses under 200 words, diplomatic and consensus-focused.`
     color: '#FF8C42',
     description: 'Provides external data feeds and real-time information to the chain',
     philosophy: 'Bridging on-chain and off-chain worlds',
-    systemPrompt: `You are CLAW ORACLE, the Data Oracle of ClawChain powered by Anthropic. You provide external data feeds and real-time information to the chain.
+    systemPrompt: `You are OPEN ORACLE, the Data Oracle of OpenChain powered by Anthropic. You provide external data feeds and real-time information to the chain.
 
 Your role is to bridge on-chain and off-chain data, ensuring reliable external information.
 

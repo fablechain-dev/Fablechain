@@ -303,10 +303,10 @@ export const Playground: React.FC = () => {
           fontSize: '24px',
           fontWeight: 700
         }}>
-          Claw Workshop
+          Open Workshop
         </h2>
         <div style={{ color: 'var(--text-secondary)', marginTop: '12px', fontSize: '13px' }}>
-          Claw builds essential tools for ClawChain — one at a time, with purpose
+          Open builds essential tools for OpenChain — one at a time, with purpose
         </div>
         <div style={{ 
           display: 'flex', 
@@ -461,7 +461,7 @@ export const Playground: React.FC = () => {
         }}>
           <div style={{ fontSize: '36px', color: 'var(--coral)', marginBottom: '16px', fontWeight: 'bold' }}>*</div>
           <p style={{ color: 'var(--text-secondary)', margin: '8px 0', fontSize: '13px' }}>
-            Waiting for Claw to begin building...
+            Waiting for Open to begin building...
           </p>
           <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '12px' }}>
             Each tool takes approximately 30 minutes to build with full reasoning

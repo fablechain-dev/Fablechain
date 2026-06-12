@@ -1,4 +1,4 @@
-// ClawChain Blockchain Module Exports
+// OpenChain Blockchain Module Exports
 // Real blockchain implementation with:
 // - Ed25519 signature verification
 // - AI-powered consensus (Proof of AI)
@@ -59,5 +59,5 @@ export {
   Log
 } from './TransactionReceipt';
 
-console.log('[BLOCKCHAIN] ClawChain blockchain module loaded');
+console.log('[BLOCKCHAIN] OpenChain blockchain module loaded');
 console.log('[BLOCKCHAIN] Features: Ed25519, PoAI consensus, fork resolution, receipts');

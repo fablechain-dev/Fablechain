@@ -69,7 +69,7 @@ export function initX402Server(): boolean {
  *
  * @param defaultAgentId - The default agent whose wallet receives payments
  */
-export function buildRouteConfig(defaultAgentId: string = 'claw-main'): Record<string, any> {
+export function buildRouteConfig(defaultAgentId: string = 'open-main'): Record<string, any> {
   const routes: Record<string, any> = {};
 
   for (const endpoint of PREMIUM_ENDPOINTS) {
@@ -95,7 +95,7 @@ export function buildRouteConfig(defaultAgentId: string = 'claw-main'): Record<s
  * Create Express middleware that gates premium endpoints with x402 payments.
  * Non-premium routes pass through untouched.
  */
-export function createX402Middleware(defaultAgentId: string = 'claw-main'): (req: Request, res: Response, next: NextFunction) => void {
+export function createX402Middleware(defaultAgentId: string = 'open-main'): (req: Request, res: Response, next: NextFunction) => void {
   if (!isInitialized || !resourceServer) {
     // If x402 is not initialized, return a middleware that responds with 503 for premium routes
     return (req: Request, res: Response, next: NextFunction) => {

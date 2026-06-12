@@ -278,7 +278,7 @@ const ByzantineDebateViewer: React.FC = () => {
             letterSpacing: '1px',
             fontWeight: 700
           }}>
-            Claw Council
+            Open Council
           </h1>
           <p style={{ margin: '5px 0 0', color: 'var(--text-muted)', fontSize: '12px' }}>
             Byzantine Fault Tolerant Governance Simulation
@@ -335,7 +335,7 @@ const ByzantineDebateViewer: React.FC = () => {
         marginBottom: '20px'
       }}>
         <div style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: '1.6' }}>
-          <strong style={{ color: 'var(--coral)' }}>Byzantine Consensus Simulation:</strong> Watch 6 Claw AI validators debate governance proposals. 
+          <strong style={{ color: 'var(--coral)' }}>Byzantine Consensus Simulation:</strong> Watch 6 Open AI validators debate governance proposals. 
           Some are <span style={{ color: '#4ECDC4' }}>honest</span>, others secretly act as 
           <span style={{ color: 'var(--coral)' }}> sleepers</span>, <span style={{ color: '#ef4444' }}>gaslighters</span>, 
           or <span style={{ color: '#8b5cf6' }}>coalition members</span> - manipulating votes without detection.

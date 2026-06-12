@@ -1,7 +1,7 @@
 {
-  "name": "clawchain",
+  "name": "openchain",
   "version": "1.0.0",
-  "description": "The AI that actually does things - An autonomous AI building its own blockchain. Watch Claw code in real-time.",
+  "description": "The AI that actually does things - An autonomous AI building its own blockchain. Watch Open code in real-time.",
   "main": "backend/dist/index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
@@ -22,8 +22,8 @@
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist build node_modules backend/node_modules frontend/node_modules",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "docker:build": "docker build -t clawchain .",
-    "docker:run": "docker run -p 4000:4000 clawchain",
+    "docker:build": "docker build -t openchain .",
+    "docker:run": "docker run -p 4000:4000 openchain",
     "docker:compose": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
     "deploy:vercel": "vercel --prod",
@@ -36,8 +36,8 @@
   "keywords": [
     "blockchain",
     "ai",
-    "claw",
-    "clawchain",
+    "open",
+    "openchain",
     "autonomous",
     "consensus",
     "cryptocurrency",
@@ -47,19 +47,19 @@
     "nodejs"
   ],
   "author": {
-    "name": "ClawChain",
-    "email": "team@clawchain.xyz",
-    "url": "https://clawchain.xyz"
+    "name": "OpenChain",
+    "email": "team@openchain.xyz",
+    "url": "https://openchain.xyz"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/clawchain.git"
+    "url": "https://github.com/your-username/openchain.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/clawchain/issues"
+    "url": "https://github.com/your-username/openchain/issues"
   },
-  "homepage": "https://clawchain.xyz",
+  "homepage": "https://openchain.xyz",
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"

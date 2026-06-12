@@ -1,5 +1,5 @@
 /**
- * Task Backlog - A massive list of real development tasks for Claw to work through
+ * Task Backlog - A massive list of real development tasks for Open to work through
  * These tasks will keep the agent building and committing for 24+ hours
  */
 
@@ -19,7 +19,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'faucet-001',
     title: 'Build testnet faucet backend',
-    description: 'Create a faucet API endpoint that dispenses testnet CLAW tokens. Rate limit to 1 request per address per day. Track dispensed addresses in database. Mint 10 CLAW per request.',
+    description: 'Create a faucet API endpoint that dispenses testnet OPEN tokens. Rate limit to 1 request per address per day. Track dispensed addresses in database. Mint 10 OPEN per request.',
     type: 'feature',
     priority: 10,
     estimatedMinutes: 45,
@@ -203,7 +203,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   // ============ SMART CONTRACTS ============
   {
     id: 'sc-001',
-    title: 'Design CLAW token standard (CRC-20)',
+    title: 'Design OPEN token standard (ORC-20)',
     description: 'Create fungible token standard similar to ERC-20. Define interface for transfer, approve, transferFrom.',
     type: 'build',
     priority: 9,
@@ -212,7 +212,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   },
   {
     id: 'sc-002',
-    title: 'Implement NFT standard (CRC-721)',
+    title: 'Implement NFT standard (ORC-721)',
     description: 'Create non-fungible token standard. Support minting, burning, transfers, and metadata.',
     type: 'build',
     priority: 7,
@@ -518,7 +518,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'fe-006',
     title: 'Create token tracker page',
-    description: 'List all CRC-20 tokens with supply, holders, and recent transfers.',
+    description: 'List all ORC-20 tokens with supply, holders, and recent transfers.',
     type: 'build',
     priority: 5,
     estimatedMinutes: 40,
@@ -639,7 +639,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'docs-003',
     title: 'Write smart contract developer guide',
-    description: 'Guide for writing and deploying contracts on ClawChain.',
+    description: 'Guide for writing and deploying contracts on OpenChain.',
     type: 'docs',
     priority: 6,
     estimatedMinutes: 50,
@@ -647,8 +647,8 @@ export const TASK_BACKLOG: BacklogTask[] = [
   },
   {
     id: 'docs-004',
-    title: 'Document token standards (CRC-20/721)',
-    description: 'Specification documents for ClawChain token standards.',
+    title: 'Document token standards (ORC-20/721)',
+    description: 'Specification documents for OpenChain token standards.',
     type: 'docs',
     priority: 5,
     estimatedMinutes: 40,
@@ -657,7 +657,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'docs-005',
     title: 'Create node operator guide',
-    description: 'Instructions for running a ClawChain node. Hardware requirements, configuration.',
+    description: 'Instructions for running a OpenChain node. Hardware requirements, configuration.',
     type: 'docs',
     priority: 5,
     estimatedMinutes: 35,

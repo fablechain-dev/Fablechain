@@ -1,5 +1,5 @@
 /**
- * Task Backlog - A massive list of real development tasks for Claw to work through
+ * Task Backlog - A massive list of real development tasks for Open to work through
  * These tasks will keep the agent building and committing for 24+ hours
  */
 export interface BacklogTask {

@@ -190,9 +190,9 @@ class AgentBrainSystem {
             id: `issue_${issue.id}`,
             type: `investigate_${issue.type}`,
             title: `Investigating: ${issue.description}`,
-            agent: 'CLAW ANALYST',
+            agent: 'OPEN ANALYST',
             priority: issue.severity === 'critical' ? 1 : issue.severity === 'high' ? 0.9 : 0.7,
-            prompt: `A ${issue.severity} priority issue has been detected on ClawChain:
+            prompt: `A ${issue.severity} priority issue has been detected on OpenChain:
 
 **Issue:** ${issue.description}
 **Type:** ${issue.type}
@@ -269,7 +269,7 @@ Be proactive and make the most of this opportunity.`,
             id: `reflect_${Date.now()}`,
             type: 'reflection',
             title: 'Self-Reflection & Planning',
-            agent: 'CLAW ARCHITECT',
+            agent: 'OPEN ARCHITECT',
             priority: 0.6,
             prompt: `Take a moment to reflect on your recent work and plan ahead.
 
@@ -323,13 +323,13 @@ Be honest and thoughtful in your self-assessment.`,
      */
     selectAgentForGoal(goal) {
         switch (goal.title.toLowerCase()) {
-            case 'maintain chain health': return 'CLAW VALIDATOR';
-            case 'strengthen security': return 'CLAW REVIEWER';
-            case 'build developer tools': return 'CLAW ARCHITECT';
-            case 'optimize performance': return 'CLAW ANALYST';
-            case 'improve governance': return 'CLAW CONSENSUS';
-            case 'improve documentation': return 'CLAW DOCS';
-            default: return 'CLAW ARCHITECT';
+            case 'maintain chain health': return 'OPEN VALIDATOR';
+            case 'strengthen security': return 'OPEN REVIEWER';
+            case 'build developer tools': return 'OPEN ARCHITECT';
+            case 'optimize performance': return 'OPEN ANALYST';
+            case 'improve governance': return 'OPEN CONSENSUS';
+            case 'improve documentation': return 'OPEN DOCS';
+            default: return 'OPEN ARCHITECT';
         }
     }
     /**
@@ -337,11 +337,11 @@ Be honest and thoughtful in your self-assessment.`,
      */
     selectAgentForOpportunity(opp) {
         switch (opp.type) {
-            case 'optimization': return 'CLAW ANALYST';
-            case 'feature': return 'CLAW ARCHITECT';
-            case 'improvement': return 'CLAW DEVELOPER';
-            case 'documentation': return 'CLAW DOCS';
-            default: return 'CLAW ARCHITECT';
+            case 'optimization': return 'OPEN ANALYST';
+            case 'feature': return 'OPEN ARCHITECT';
+            case 'improvement': return 'OPEN DEVELOPER';
+            case 'documentation': return 'OPEN DOCS';
+            default: return 'OPEN ARCHITECT';
         }
     }
     /**

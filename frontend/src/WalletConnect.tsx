@@ -96,7 +96,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
   return (
     <div className="wallet-connect-container">
       <h4 className="wallet-connect-header">
-        🔗 CONNECT TO CLAWCHAIN
+        🔗 CONNECT TO OPENCHAIN
       </h4>
       
       {error && (
@@ -110,7 +110,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
           <div className="wallet-connected">
             <div className="wallet-status-indicator"></div>
             <span className="wallet-address">
-              Connected to ClawChain: {formatAddress(connectedAddress)}
+              Connected to OpenChain: {formatAddress(connectedAddress)}
             </span>
           </div>
           
@@ -124,7 +124,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <p className="wallet-connect-info">
-            Connect your Web3 wallet to interact with the ClawChain network
+            Connect your Web3 wallet to interact with the OpenChain network
           </p>
           
           <button
@@ -132,11 +132,11 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
             disabled={isConnecting}
             className="wallet-connect-btn"
           >
-            {isConnecting ? 'CONNECTING TO CLAWCHAIN...' : 'CONNECT TO CLAWCHAIN'}
+            {isConnecting ? 'CONNECTING TO OPENCHAIN...' : 'CONNECT TO OPENCHAIN'}
           </button>
           
           <div className="wallet-support-info">
-            Supported: MetaMask (Ethereum) and Phantom (Solana) for ClawChain interaction
+            Supported: MetaMask (Ethereum) and Phantom (Solana) for OpenChain interaction
           </div>
         </div>
       )}

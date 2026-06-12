@@ -183,7 +183,7 @@ const LiveDebate: React.FC = () => {
             fontWeight: 700,
             letterSpacing: '1px'
         }}>
-            [LIVE] CLAW COUNCIL
+            [LIVE] OPEN COUNCIL
         </h3>
           {isDebateActive && (
             <span style={{
@@ -346,7 +346,7 @@ const LiveDebate: React.FC = () => {
             </div>
             <div>Waiting for next council session...</div>
             <div style={{ fontSize: '11px', marginTop: '10px', color: 'var(--cc-text-secondary)' }}>
-              Claw Council debates CIPs in real-time. Stay tuned.
+              Open Council debates CIPs in real-time. Stay tuned.
             </div>
               </div>
         )}
@@ -387,7 +387,7 @@ const LiveDebate: React.FC = () => {
                     fontWeight: 700,
                     fontSize: '12px'
                   }}>
-                    CLAW {msg.instanceName.replace('CLAW ', '').toUpperCase()}
+                    OPEN {msg.instanceName.replace('OPEN ', '').toUpperCase()}
                   </span>
                   <span style={{
                     color: 'var(--cc-text-muted)',

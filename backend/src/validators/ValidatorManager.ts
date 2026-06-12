@@ -1,12 +1,12 @@
 import { Block } from '../blockchain/Block';
 import { BaseValidator } from './BaseValidator';
-import { Claw } from './personalities/Claw';
+import { Open } from './personalities/Open';
 import { db } from '../database/db';
 
-// Claw-only validator roles
-const CLAW_ROLES = [
+// Open-only validator roles
+const OPEN_ROLES = [
   { suffix: 'Validator', role: 'Block Validator', philosophy: 'Ensuring transaction integrity and block validity' },
-  { suffix: 'Architect', role: 'Protocol Architect', philosophy: 'Designing and evolving ClawChain protocol' },
+  { suffix: 'Architect', role: 'Protocol Architect', philosophy: 'Designing and evolving OpenChain protocol' },
   { suffix: 'Analyst', role: 'Chain Analyst', philosophy: 'Monitoring network health and performance' },
   { suffix: 'Reviewer', role: 'Code Reviewer', philosophy: 'Auditing smart contracts and protocol changes' },
   { suffix: 'Consensus', role: 'Consensus Leader', philosophy: 'Orchestrating validator agreement' },
@@ -19,12 +19,12 @@ export class ValidatorManager {
   private validatorOrder: string[] = [];
 
   async initialize() {
-    console.log('[VALIDATORS] Initializing Claw validators...');
+    console.log('[VALIDATORS] Initializing Open validators...');
     
-    for (const roleConfig of CLAW_ROLES) {
-      const validator = new Claw();
-      // Customize each Claw instance with different role
-      validator.name = `CLAW ${roleConfig.suffix.toUpperCase()}`;
+    for (const roleConfig of OPEN_ROLES) {
+      const validator = new Open();
+      // Customize each Open instance with different role
+      validator.name = `OPEN ${roleConfig.suffix.toUpperCase()}`;
       validator.role = roleConfig.role;
       validator.philosophy = roleConfig.philosophy;
       validator.address = `C1aude${roleConfig.suffix}${Array.from({length: 28}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789'[Math.floor(Math.random() * 58)]).join('')}`;
@@ -54,7 +54,7 @@ export class ValidatorManager {
       console.log(`   [+] ${validator.symbol} ${validator.name} initialized`);
     }
     
-    console.log(`[VALIDATORS] ${this.validators.size} Claw validators active\n`);
+    console.log(`[VALIDATORS] ${this.validators.size} Open validators active\n`);
   }
 
   async selectProducer(): Promise<BaseValidator | null> {
@@ -66,7 +66,7 @@ export class ValidatorManager {
   }
 
   async getConsensus(block: Block): Promise<boolean> {
-    console.log('   [CONSENSUS] Requesting votes from Claw validators...');
+    console.log('   [CONSENSUS] Requesting votes from Open validators...');
     
     const votes: { validator: string; vote: boolean; reasoning?: string }[] = [];
     

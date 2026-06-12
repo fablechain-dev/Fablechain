@@ -58,7 +58,7 @@ export const Wallet: React.FC = () => {
 
   // Load wallet from localStorage
   useEffect(() => {
-    const savedWallet = localStorage.getItem('clawchain_wallet');
+    const savedWallet = localStorage.getItem('openchain_wallet');
     if (savedWallet) {
       try {
         const parsed = JSON.parse(savedWallet);
@@ -67,7 +67,7 @@ export const Wallet: React.FC = () => {
         }
       } catch (e) {
         console.error('Failed to parse saved wallet:', e);
-        localStorage.removeItem('clawchain_wallet');
+        localStorage.removeItem('openchain_wallet');
       }
     }
   }, []);
@@ -88,18 +88,18 @@ export const Wallet: React.FC = () => {
       if (data.success && data.wallet) {
         setWallet(data.wallet);
         setView('wallet');
-        localStorage.setItem('clawchain_wallet', JSON.stringify({ 
+        localStorage.setItem('openchain_wallet', JSON.stringify({ 
           address: data.wallet.address,
           id: data.wallet.id 
         }));
       } else if (res.status === 404) {
-        localStorage.removeItem('clawchain_wallet');
+        localStorage.removeItem('openchain_wallet');
         setWallet(null);
         setView('connect');
       }
     } catch (error) {
       console.error('Failed to fetch wallet:', error);
-      const saved = localStorage.getItem('clawchain_wallet');
+      const saved = localStorage.getItem('openchain_wallet');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -152,7 +152,7 @@ export const Wallet: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setWallet({ ...data.wallet, transactions: [] });
-        localStorage.setItem('clawchain_wallet', JSON.stringify(data.wallet));
+        localStorage.setItem('openchain_wallet', JSON.stringify(data.wallet));
         setView('wallet');
         setMessage({ type: 'success', text: '[+] Wallet created. Save your private key.' });
         setShowPrivateKey(true);
@@ -181,7 +181,7 @@ export const Wallet: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setWallet(data.wallet);
-        localStorage.setItem('clawchain_wallet', JSON.stringify({ address: importAddress }));
+        localStorage.setItem('openchain_wallet', JSON.stringify({ address: importAddress }));
         setView('wallet');
         setMessage({ type: 'success', text: '[+] Wallet imported' });
       } else {
@@ -206,7 +206,7 @@ export const Wallet: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setWallet(prev => prev ? { ...prev, balance: data.newBalance } : null);
-        setMessage({ type: 'success', text: `[+] Claimed ${data.amount} CLAW` });
+        setMessage({ type: 'success', text: `[+] Claimed ${data.amount} OPEN` });
         fetchFaucetStatus();
         fetchWallet(wallet.address);
       } else {
@@ -234,7 +234,7 @@ export const Wallet: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `[+] Sent ${data.amount} CLAW` });
+        setMessage({ type: 'success', text: `[+] Sent ${data.amount} OPEN` });
         setSendForm({ toAddress: '', amount: '' });
         fetchWallet(wallet.address);
         setView('wallet');
@@ -254,7 +254,7 @@ export const Wallet: React.FC = () => {
   };
 
   const disconnectWallet = () => {
-    localStorage.removeItem('clawchain_wallet');
+    localStorage.removeItem('openchain_wallet');
     setWallet(null);
     setView('connect');
     setShowPrivateKey(false);
@@ -297,7 +297,7 @@ export const Wallet: React.FC = () => {
           {'<>'}
         </div>
         <h1 style={{ color: 'var(--cc-text-primary)', margin: '0 0 10px', fontSize: '20px' }}>
-          CLAWCHAIN WALLET
+          OPENCHAIN WALLET
         </h1>
         <p style={{ color: 'var(--cc-text-muted)', margin: 0, fontSize: '12px' }}>
           Create or import your wallet
@@ -445,7 +445,7 @@ export const Wallet: React.FC = () => {
           TOTAL BALANCE
         </div>
         <div style={{ color: 'var(--cc-text-primary)', fontSize: '36px', fontWeight: 700, marginBottom: '8px' }}>
-          {wallet?.balance.toLocaleString()} <span style={{ color: 'var(--cc-coral)', fontSize: '18px' }}>CLAW</span>
+          {wallet?.balance.toLocaleString()} <span style={{ color: 'var(--cc-coral)', fontSize: '18px' }}>OPEN</span>
         </div>
         <div style={{ 
           color: 'var(--cc-text-muted)', 
@@ -581,7 +581,7 @@ export const Wallet: React.FC = () => {
         <div>
           <div style={{ color: 'var(--cc-text-muted)', fontSize: '9px', letterSpacing: '1px' }}>FAUCET</div>
           <div style={{ color: 'var(--cc-text-primary)', fontSize: '12px', fontWeight: 600 }}>
-            {faucetStatus?.faucetAmount || 100} CLAW / 24h
+            {faucetStatus?.faucetAmount || 100} OPEN / 24h
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -735,7 +735,7 @@ export const Wallet: React.FC = () => {
         padding: '24px'
       }}>
         <h2 style={{ color: 'var(--cc-coral)', margin: '0 0 20px', fontSize: '16px' }}>
-          SEND CLAW
+          SEND OPEN
         </h2>
 
         {message && (
@@ -805,7 +805,7 @@ export const Wallet: React.FC = () => {
               fontSize: '12px',
               fontWeight: 600
             }}>
-              CLAW
+              OPEN
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
@@ -881,7 +881,7 @@ export const Wallet: React.FC = () => {
             LEADERBOARD
           </h2>
           <p style={{ color: 'var(--cc-text-muted)', margin: 0, fontSize: '11px' }}>
-            Top CLAW holders
+            Top OPEN holders
           </p>
         </div>
 

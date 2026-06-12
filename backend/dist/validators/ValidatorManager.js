@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ValidatorManager = void 0;
-const Claw_1 = require("./personalities/Claw");
+const Open_1 = require("./personalities/Open");
 const db_1 = require("../database/db");
-// Claw-only validator roles
-const CLAW_ROLES = [
+// Open-only validator roles
+const OPEN_ROLES = [
     { suffix: 'Validator', role: 'Block Validator', philosophy: 'Ensuring transaction integrity and block validity' },
-    { suffix: 'Architect', role: 'Protocol Architect', philosophy: 'Designing and evolving ClawChain protocol' },
+    { suffix: 'Architect', role: 'Protocol Architect', philosophy: 'Designing and evolving OpenChain protocol' },
     { suffix: 'Analyst', role: 'Chain Analyst', philosophy: 'Monitoring network health and performance' },
     { suffix: 'Reviewer', role: 'Code Reviewer', philosophy: 'Auditing smart contracts and protocol changes' },
     { suffix: 'Consensus', role: 'Consensus Leader', philosophy: 'Orchestrating validator agreement' },
@@ -19,11 +19,11 @@ class ValidatorManager {
         this.validatorOrder = [];
     }
     async initialize() {
-        console.log('[VALIDATORS] Initializing Claw validators...');
-        for (const roleConfig of CLAW_ROLES) {
-            const validator = new Claw_1.Claw();
-            // Customize each Claw instance with different role
-            validator.name = `CLAW ${roleConfig.suffix.toUpperCase()}`;
+        console.log('[VALIDATORS] Initializing Open validators...');
+        for (const roleConfig of OPEN_ROLES) {
+            const validator = new Open_1.Open();
+            // Customize each Open instance with different role
+            validator.name = `OPEN ${roleConfig.suffix.toUpperCase()}`;
             validator.role = roleConfig.role;
             validator.philosophy = roleConfig.philosophy;
             validator.address = `C1aude${roleConfig.suffix}${Array.from({ length: 28 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789'[Math.floor(Math.random() * 58)]).join('')}`;
@@ -49,7 +49,7 @@ class ValidatorManager {
             ]);
             console.log(`   [+] ${validator.symbol} ${validator.name} initialized`);
         }
-        console.log(`[VALIDATORS] ${this.validators.size} Claw validators active\n`);
+        console.log(`[VALIDATORS] ${this.validators.size} Open validators active\n`);
     }
     async selectProducer() {
         const address = this.validatorOrder[this.currentProducerIndex];
@@ -58,7 +58,7 @@ class ValidatorManager {
         return validator || null;
     }
     async getConsensus(block) {
-        console.log('   [CONSENSUS] Requesting votes from Claw validators...');
+        console.log('   [CONSENSUS] Requesting votes from Open validators...');
         const votes = [];
         for (const [address, validator] of this.validators.entries()) {
             if (address === block.header.producer)

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../database/db';
-import { anthropicChatCompletion } from './claw';
+import { anthropicChatCompletion } from './open';
 
 const agentsRouter = Router();
 
@@ -119,7 +119,7 @@ const validateAgent = (agent: Partial<Agent>): { valid: boolean; error?: string 
 
 // AI review of agent
 const reviewAgent = async (agent: Partial<Agent>): Promise<{ approved: boolean; reason: string }> => {
-  const systemPrompt = `You are reviewing a user-created AI agent for ClawChain. 
+  const systemPrompt = `You are reviewing a user-created AI agent for OpenChain. 
 
 REJECT agents that are:
 - Inappropriate, offensive, or harmful
@@ -144,7 +144,7 @@ Personality: ${agent.personality}
 Philosophy: ${agent.philosophy}
 Specialization: ${agent.specialization}
 
-Should this agent be deployed on ClawChain?`;
+Should this agent be deployed on OpenChain?`;
 
   try {
     const response = await anthropicChatCompletion(systemPrompt, userMessage);
@@ -218,7 +218,7 @@ agentsRouter.post('/create', async (req, res) => {
     res.json({
       success: true,
       agentId,
-      message: `${agent.name} has been deployed to ClawChain!`,
+      message: `${agent.name} has been deployed to OpenChain!`,
       agent: { ...agent, id: agentId, status: 'deployed' }
     });
     
@@ -272,7 +272,7 @@ agentsRouter.post('/:id/chat', async (req, res) => {
     const agent = agentResult.rows[0];
     
     // Build system prompt from agent personality
-    const systemPrompt = `You are ${agent.name}, a ${agent.role} on ClawChain.
+    const systemPrompt = `You are ${agent.name}, a ${agent.role} on OpenChain.
 
 YOUR PERSONALITY: ${agent.personality}
 
@@ -280,7 +280,7 @@ YOUR PHILOSOPHY: ${agent.philosophy}
 
 YOUR SPECIALIZATION: ${agent.specialization}
 
-You are an AI agent deployed on ClawChain, a blockchain run entirely by AI. Stay in character and respond based on your defined personality and philosophy. Be helpful but maintain your unique perspective.
+You are an AI agent deployed on OpenChain, a blockchain run entirely by AI. Stay in character and respond based on your defined personality and philosophy. Be helpful but maintain your unique perspective.
 
 Keep responses concise (under 200 words) and relevant to blockchain/crypto/AI topics when possible.`;
 

@@ -168,7 +168,7 @@ export default function BlockExplorer() {
           Block Explorer
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-          Explore the ClawChain blockchain
+          Explore the OpenChain blockchain
         </p>
       </div>
 
@@ -298,7 +298,7 @@ export default function BlockExplorer() {
                 <div><span style={{ color: 'var(--text-secondary)' }}>Hash:</span> <span style={{ fontFamily: 'var(--font-mono)' }}>{searchResult.data.hash}</span></div>
                 <div><span style={{ color: 'var(--text-secondary)' }}>From:</span> {searchResult.data.from}</div>
                 <div><span style={{ color: 'var(--text-secondary)' }}>To:</span> {searchResult.data.to}</div>
-                <div><span style={{ color: 'var(--text-secondary)' }}>Value:</span> {searchResult.data.value} CLAW</div>
+                <div><span style={{ color: 'var(--text-secondary)' }}>Value:</span> {searchResult.data.value} OPEN</div>
               </div>
             </div>
           )}

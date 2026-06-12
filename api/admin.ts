@@ -4,7 +4,7 @@ import { gipSystem } from './gip-system';
 export const adminRouter = express.Router();
 
 // Admin authentication
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'clawchain-admin-2024';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'openchain-admin-2024';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 
 function authenticateAdmin(req: express.Request): boolean {

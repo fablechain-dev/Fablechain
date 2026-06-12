@@ -17,7 +17,7 @@ import { verifyTransactionSignature } from './Crypto';
 // Block limits
 const MAX_BLOCK_GAS = 30000000n;
 const MAX_TRANSACTIONS_PER_BLOCK = 500;
-const BLOCK_REWARD = 10n * 10n**18n; // 10 CLAW per block
+const BLOCK_REWARD = 10n * 10n**18n; // 10 OPEN per block
 
 export class BlockProducer {
   private chain: Chain;
@@ -152,7 +152,7 @@ export class BlockProducer {
       
       // Create block
       const lastBlock = this.chain.getLatestBlock();
-      const genesisParentHash = 'CLAWChainGenesisBlock00000000000000000000000';
+      const genesisParentHash = 'OPENChainGenesisBlock00000000000000000000000';
       const newBlock = new Block(
         lastBlock ? lastBlock.header.height + 1 : 0,
         lastBlock ? lastBlock.header.hash : genesisParentHash,

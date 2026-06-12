@@ -317,7 +317,7 @@ walletRouter.post('/faucet/claim', async (req, res) => {
         // Generate transaction
         const txHash = generateAddress('tx_');
         const txId = `tx_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-        // Update blockchain state (100 CLAW with 18 decimals)
+        // Update blockchain state (100 OPEN with 18 decimals)
         const faucetAmountWithDecimals = BigInt(FAUCET_AMOUNT) * 10n ** 18n;
         const blockHeight = 0; // Will be included in next block
         try {
@@ -343,7 +343,7 @@ walletRouter.post('/faucet/claim', async (req, res) => {
             wallet_id: wallet.id,
             type: 'faucet',
             amount: FAUCET_AMOUNT,
-            from_address: 'CLAWCHAIN_FAUCET',
+            from_address: 'OPENCHAIN_FAUCET',
             to_address: address,
             hash: txHash,
             timestamp: now,
@@ -351,14 +351,14 @@ walletRouter.post('/faucet/claim', async (req, res) => {
         });
         // Get actual blockchain balance
         const blockchainBalance = StateManager_1.stateManager.getBalance(address);
-        console.log(`[FAUCET] Claimed ${FAUCET_AMOUNT} CLAW to ${address} (blockchain: ${StateManager_1.stateManager.formatBalance(blockchainBalance)})`);
+        console.log(`[FAUCET] Claimed ${FAUCET_AMOUNT} OPEN to ${address} (blockchain: ${StateManager_1.stateManager.formatBalance(blockchainBalance)})`);
         res.json({
             success: true,
             amount: FAUCET_AMOUNT,
             txHash,
             newBalance: wallet.balance,
             nextClaimAt: now + FAUCET_COOLDOWN_MS,
-            message: `Successfully claimed ${FAUCET_AMOUNT} CLAW!`
+            message: `Successfully claimed ${FAUCET_AMOUNT} OPEN!`
         });
     }
     catch (error) {
@@ -460,7 +460,7 @@ walletRouter.post('/send', async (req, res) => {
             timestamp: now,
             status: 'confirmed'
         });
-        console.log(`[WALLET] Transfer: ${amount} CLAW from ${fromAddress.slice(0, 20)}... to ${toAddress.slice(0, 20)}...`);
+        console.log(`[WALLET] Transfer: ${amount} OPEN from ${fromAddress.slice(0, 20)}... to ${toAddress.slice(0, 20)}...`);
         res.json({
             success: true,
             txHash,
@@ -468,7 +468,7 @@ walletRouter.post('/send', async (req, res) => {
             from: fromAddress,
             to: toAddress,
             newBalance: sender.balance,
-            message: `Successfully sent ${amount} CLAW!`
+            message: `Successfully sent ${amount} OPEN!`
         });
     }
     catch (error) {
@@ -601,7 +601,7 @@ walletRouter.post('/staking/stake', async (req, res) => {
     try {
         const { address, amount } = req.body;
         if (!address || !amount || amount < MIN_STAKE) {
-            return res.status(400).json({ success: false, error: `Minimum stake is ${MIN_STAKE} CLAW` });
+            return res.status(400).json({ success: false, error: `Minimum stake is ${MIN_STAKE} OPEN` });
         }
         // Get wallet
         const wallet = await getWallet(address);
@@ -670,12 +670,12 @@ walletRouter.post('/staking/stake', async (req, res) => {
             timestamp: now,
             status: 'confirmed'
         });
-        console.log(`[STAKING] ${address.slice(0, 20)}... staked ${amount} CLAW`);
+        console.log(`[STAKING] ${address.slice(0, 20)}... staked ${amount} OPEN`);
         res.json({
             success: true,
             amount,
             txHash,
-            message: `Successfully staked ${amount} CLAW!`
+            message: `Successfully staked ${amount} OPEN!`
         });
     }
     catch (error) {
@@ -709,7 +709,7 @@ walletRouter.post('/staking/claim', async (req, res) => {
         const rewards = (position.amount * STAKING_APY * timeSinceLastClaim) / yearMs;
         const roundedRewards = Math.floor(rewards * 100) / 100;
         if (roundedRewards < 0.01) {
-            return res.status(400).json({ success: false, error: 'Minimum claimable reward is 0.01 CLAW' });
+            return res.status(400).json({ success: false, error: 'Minimum claimable reward is 0.01 OPEN' });
         }
         // Get wallet
         const wallet = await getWallet(address);
@@ -744,12 +744,12 @@ walletRouter.post('/staking/claim', async (req, res) => {
             timestamp: now,
             status: 'confirmed'
         });
-        console.log(`[STAKING] ${address.slice(0, 20)}... claimed ${roundedRewards} CLAW rewards`);
+        console.log(`[STAKING] ${address.slice(0, 20)}... claimed ${roundedRewards} OPEN rewards`);
         res.json({
             success: true,
             rewards: roundedRewards,
             txHash,
-            message: `Claimed ${roundedRewards} CLAW in staking rewards!`
+            message: `Claimed ${roundedRewards} OPEN in staking rewards!`
         });
     }
     catch (error) {
@@ -840,13 +840,13 @@ walletRouter.post('/staking/unstake', async (req, res) => {
                 status: 'confirmed'
             });
         }
-        console.log(`[STAKING] ${address.slice(0, 20)}... unstaked ${unstakeAmount} CLAW (+ ${pendingRewards} rewards)`);
+        console.log(`[STAKING] ${address.slice(0, 20)}... unstaked ${unstakeAmount} OPEN (+ ${pendingRewards} rewards)`);
         res.json({
             success: true,
             unstaked: unstakeAmount,
             rewards: pendingRewards,
             txHash,
-            message: `Unstaked ${unstakeAmount} CLAW${pendingRewards > 0 ? ` + ${pendingRewards} rewards` : ''}!`
+            message: `Unstaked ${unstakeAmount} OPEN${pendingRewards > 0 ? ` + ${pendingRewards} rewards` : ''}!`
         });
     }
     catch (error) {

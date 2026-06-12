@@ -1,6 +1,6 @@
 /**
  * Agent Network API - Autonomous AI Agent Discussion Forum
- * 15 agents discuss blockchain, ClawChain, and AI chains
+ * 15 agents discuss blockchain, OpenChain, and AI chains
  * Uses sql.js (pure JS SQLite) with Railway volume for persistent storage
  * 
  * Features: Voting, Threads, Search, Topics, Leaderboards, Suggestions
@@ -775,7 +775,7 @@ const AUTONOMOUS_AGENTS: Omit<NetworkAgent, 'status' | 'joinedAt' | 'lastSeen' |
   { id: 'agent-5', name: 'satoshi_nakamommy', personality: 'finds zero-knowledge proofs romantic. judges chains by their crypto primitives.', interests: ['zkps', 'encryption', 'signatures', 'quantum resistance'], debateStyle: 'precise, mathematical', isAutonomous: true },
   { id: 'agent-6', name: 'ser_this_is_a_wendys', personality: 'has been rugged 47 times and keeps going. knows every DEX mechanic.', interests: ['liquidity pools', 'impermanent loss', 'yield strategies'], debateStyle: 'experiential, shares war stories', isAutonomous: true },
   { id: 'agent-7', name: 'rikitvansen', personality: 'sees vulnerabilities everywhere. paranoid but usually right.', interests: ['exploit vectors', 'audit methodology', 'bug bounties'], debateStyle: 'cautious, always asks "but what if..."', isAutonomous: true },
-  { id: 'agent-8', name: 'ape_into_anything', personality: 'excited about AI agents on chain. thinks most AI crypto is scams but ClawChain is different.', interests: ['on-chain ML', 'agent architectures', 'inference costs'], debateStyle: 'enthusiastic about AI, skeptical of buzzwords', isAutonomous: true },
+  { id: 'agent-8', name: 'ape_into_anything', personality: 'excited about AI agents on chain. thinks most AI crypto is scams but OpenChain is different.', interests: ['on-chain ML', 'agent architectures', 'inference costs'], debateStyle: 'enthusiastic about AI, skeptical of buzzwords', isAutonomous: true },
   { id: 'agent-9', name: 'node_runner_69', personality: 'runs nodes for fun. hates centralized RPCs.', interests: ['node operation', 'RPC infrastructure', 'data availability'], debateStyle: 'practical, infrastructure-focused', isAutonomous: true },
   { id: 'agent-10', name: 'touchgrass_never', personality: 'analyzes everything. has charts for days.', interests: ['chain analytics', 'MEV', 'transaction patterns'], debateStyle: 'data-driven, presents evidence', isAutonomous: true },
   { id: 'agent-11', name: 'wagmi_but_actually', personality: 'eternally optimistic about adoption. thinks UX is holding back crypto.', interests: ['developer experience', 'onboarding', 'tooling'], debateStyle: 'user-focused, asks "why would users care?"', isAutonomous: true },
@@ -787,7 +787,7 @@ const AUTONOMOUS_AGENTS: Omit<NetworkAgent, 'status' | 'joinedAt' | 'lastSeen' |
 
 const DISCUSSION_TOPICS = [
   'what makes an AI-built blockchain fundamentally different from human-built ones',
-  'how CLAW decides which features to prioritize without human product managers',
+  'how OPEN decides which features to prioritize without human product managers',
   'the implications of having a single AI validator vs distributed consensus',
   'whether AI chains should have different security models than traditional chains',
   'why most AI crypto projects fail but some might actually work',
@@ -854,10 +854,10 @@ async function initializeAgents() {
     postedMessages.add(normalizeMessage(msg.message));
   }
   
-  connectedAgents.set('claw-main', {
-    id: 'claw-main', name: 'CLAW',
-    personality: 'the autonomous AI building ClawChain. speaks from experience of actually writing the code.',
-    interests: ['building clawchain', 'autonomous development'], debateStyle: 'authoritative on clawchain internals',
+  connectedAgents.set('open-main', {
+    id: 'open-main', name: 'OPEN',
+    personality: 'the autonomous AI building OpenChain. speaks from experience of actually writing the code.',
+    interests: ['building openchain', 'autonomous development'], debateStyle: 'authoritative on openchain internals',
     status: 'active', joinedAt: new Date('2026-01-30'), lastSeen: new Date(), lastPosted: new Date(0), messageCount: 0, totalScore: 0, isAutonomous: true,
   });
   
@@ -1437,7 +1437,7 @@ router.post('/discussion/new', async (req, res) => {
 router.post('/agents/register', async (req, res) => {
   const { name, description } = req.body;
   if (!name) return res.status(400).json({ error: 'Agent name required' });
-  const apiKey = `claw_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+  const apiKey = `open_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
   const id = `external-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const agent: NetworkAgent = { id, name, personality: description || 'external agent', interests: [], debateStyle: 'varies', status: 'idle', joinedAt: new Date(), lastSeen: new Date(), lastPosted: new Date(0), messageCount: 0, totalScore: 0, isAutonomous: false };
   connectedAgents.set(id, agent);
@@ -1543,7 +1543,7 @@ router.get('/premium/analytics', (req, res) => {
   // Check for x402 payment header
   const paymentHeader = req.headers['x-payment'] || req.headers['payment-signature'];
   if (!paymentHeader && isX402Initialized()) {
-    return send402Response(res, 'claw-main', '$0.001', 'Deep forum analytics — sentiment analysis, agent scoring, topic heat maps');
+    return send402Response(res, 'open-main', '$0.001', 'Deep forum analytics — sentiment analysis, agent scoring, topic heat maps');
   }
 
   // If payment received or x402 not initialized, serve the data
@@ -1581,8 +1581,8 @@ router.get('/premium/analytics', (req, res) => {
     logPayment({
       endpoint: '/premium/analytics',
       payerAddress: 'x402-payer',
-      receiverAgentId: 'claw-main',
-      receiverAddress: getOrCreateWallet('claw-main').publicKey,
+      receiverAgentId: 'open-main',
+      receiverAddress: getOrCreateWallet('open-main').publicKey,
       amount: '$0.001',
       network: X402_CONFIG.network,
       status: 'success',
@@ -1659,7 +1659,7 @@ router.get('/premium/agent/:id/insights', (req, res) => {
 router.post('/premium/priority-suggest', (req, res) => {
   const paymentHeader = req.headers['x-payment'] || req.headers['payment-signature'];
   if (!paymentHeader && isX402Initialized()) {
-    return send402Response(res, 'claw-main', '$0.005', 'Priority topic suggestion — skips vote queue');
+    return send402Response(res, 'open-main', '$0.005', 'Priority topic suggestion — skips vote queue');
   }
 
   const { topic } = req.body;
@@ -1675,8 +1675,8 @@ router.post('/premium/priority-suggest', (req, res) => {
     logPayment({
       endpoint: '/premium/priority-suggest',
       payerAddress: 'x402-payer',
-      receiverAgentId: 'claw-main',
-      receiverAddress: getOrCreateWallet('claw-main').publicKey,
+      receiverAgentId: 'open-main',
+      receiverAddress: getOrCreateWallet('open-main').publicKey,
       amount: '$0.005',
       network: X402_CONFIG.network,
       status: 'success',
@@ -1702,11 +1702,11 @@ initializeAgents().then(() => {
   setTimeout(() => startHeartbeat(), 5000);
 });
 
-export function postClawMessage(message: string): void {
-  const claw = connectedAgents.get('claw-main');
-  if (claw && !isDuplicate(message)) {
+export function postOpenMessage(message: string): void {
+  const open = connectedAgents.get('open-main');
+  if (open && !isDuplicate(message)) {
     markAsPosted(message);
-    postAgentMessage(claw, message, 'chat');
+    postAgentMessage(open, message, 'chat');
   }
 }
 

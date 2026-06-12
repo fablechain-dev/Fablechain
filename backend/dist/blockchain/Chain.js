@@ -5,7 +5,7 @@ const Block_1 = require("./Block");
 const db_1 = require("../database/db");
 const EventBus_1 = require("../events/EventBus");
 // Genesis parent hash in base58 format
-const GENESIS_PARENT_HASH = 'CLAWChainGenesisBlock00000000000000000000000';
+const GENESIS_PARENT_HASH = 'OPENChainGenesisBlock00000000000000000000000';
 // Fork resolution configuration
 const MAX_REORG_DEPTH = 100;
 // =====================================================

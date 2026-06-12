@@ -35,7 +35,7 @@ export interface GitResult {
 export const AGENT_TOOLS = [
   {
     name: 'read_file',
-    description: 'Read the contents of a file in the ClawChain codebase',
+    description: 'Read the contents of a file in the OpenChain codebase',
     input_schema: {
       type: 'object',
       properties: {
@@ -155,7 +155,7 @@ export const AGENT_TOOLS = [
       properties: {
         name: {
           type: 'string',
-          description: 'Branch name (will be prefixed with claw/)'
+          description: 'Branch name (will be prefixed with open/)'
         }
       },
       required: ['name']
@@ -241,9 +241,9 @@ const BLOCKED_PATHS = [
 // ONLY these directories are allowed for agent writes
 // This prevents the agent from deleting deployment configs
 const ALLOWED_WRITE_DIRS = [
-  'backend/src/claw-generated',
-  'claw-generated',
-  'src/claw-generated'
+  'backend/src/open-generated',
+  'open-generated',
+  'src/open-generated'
 ];
 
 export class AgentExecutor {
@@ -341,11 +341,11 @@ export class AgentExecutor {
       return false;
     }
     
-    // Block commands that write outside claw-generated
+    // Block commands that write outside open-generated
     if ((lowerCommand.includes('echo ') || lowerCommand.includes('cat ')) && 
         lowerCommand.includes('>') && 
-        !lowerCommand.includes('claw-generated')) {
-      console.log('[EXECUTOR] BLOCKED write redirect outside claw-generated');
+        !lowerCommand.includes('open-generated')) {
+      console.log('[EXECUTOR] BLOCKED write redirect outside open-generated');
       return false;
     }
     
@@ -683,8 +683,8 @@ export class AgentExecutor {
         break;
       
       case 'git_commit':
-        // Re-enabled with SAFE MODE - only commits to claw-generated/
-        console.log(`[EXECUTOR] Git commit (SAFE MODE) - only claw-generated/ files`);
+        // Re-enabled with SAFE MODE - only commits to open-generated/
+        console.log(`[EXECUTOR] Git commit (SAFE MODE) - only open-generated/ files`);
         result = await gitIntegration.autoCommitAndPush(args.message, args.taskId);
         break;
       
@@ -695,7 +695,7 @@ export class AgentExecutor {
         console.log(`[EXECUTOR] Git operation ${toolName} DISABLED for safety`);
         result = { 
           success: false, 
-          error: 'This git operation is disabled. Only git_commit is allowed (to claw-generated/ only).' 
+          error: 'This git operation is disabled. Only git_commit is allowed (to open-generated/ only).' 
         };
         break;
       

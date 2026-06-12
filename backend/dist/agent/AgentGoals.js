@@ -31,7 +31,7 @@ exports.GOAL_TEMPLATES = {
     },
     tooling: {
         title: 'Build Developer Tools',
-        description: 'Create utilities that make ClawChain easier to use',
+        description: 'Create utilities that make OpenChain easier to use',
         type: 'medium',
         priority: 0.7,
         subgoals: [
@@ -67,7 +67,7 @@ exports.GOAL_TEMPLATES = {
     },
     documentation: {
         title: 'Improve Documentation',
-        description: 'Make ClawChain easier to understand',
+        description: 'Make OpenChain easier to understand',
         type: 'short',
         priority: 0.5,
         subgoals: [
@@ -155,7 +155,7 @@ class AgentGoalsSystem {
     async setDefaultGoals() {
         console.log('[GOALS] Setting up default goals...');
         // Always have chain health as a goal
-        await this.createGoal(exports.GOAL_TEMPLATES.chain_health.title, exports.GOAL_TEMPLATES.chain_health.description, 'long', 'Core responsibility: Keep ClawChain running smoothly', exports.GOAL_TEMPLATES.chain_health.priority, exports.GOAL_TEMPLATES.chain_health.subgoals);
+        await this.createGoal(exports.GOAL_TEMPLATES.chain_health.title, exports.GOAL_TEMPLATES.chain_health.description, 'long', 'Core responsibility: Keep OpenChain running smoothly', exports.GOAL_TEMPLATES.chain_health.priority, exports.GOAL_TEMPLATES.chain_health.subgoals);
         // Security is always important
         await this.createGoal(exports.GOAL_TEMPLATES.security.title, exports.GOAL_TEMPLATES.security.description, 'long', 'Security is foundational to blockchain trust', exports.GOAL_TEMPLATES.security.priority, exports.GOAL_TEMPLATES.security.subgoals);
         // Start with a tooling goal

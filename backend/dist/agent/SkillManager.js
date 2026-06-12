@@ -152,10 +152,10 @@ const BUILT_IN_SKILLS = [
     {
         id: 'blockchain',
         name: 'Blockchain Operations',
-        description: 'Interact with ClawChain blockchain',
+        description: 'Interact with OpenChain blockchain',
         version: '1.0.0',
         enabled: true,
-        systemPromptAddition: `You have access to ClawChain blockchain operations:
+        systemPromptAddition: `You have access to OpenChain blockchain operations:
 - View chain state and blocks
 - Check account balances
 - Analyze transactions`,

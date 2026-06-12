@@ -55,7 +55,7 @@ async function validateBlockWithAI(block, previousBlock) {
     try {
         const txAnalysis = analyzeTransactions(block.transactions);
         const stateRoot = StateManager_1.stateManager.getStateRoot();
-        const prompt = `You are an AI validator for ClawChain, a Solana-style blockchain. Analyze this block and determine if it should be accepted.
+        const prompt = `You are an AI validator for OpenChain, a Solana-style blockchain. Analyze this block and determine if it should be accepted.
 
 BLOCK DATA:
 - Height: ${block.header.height}

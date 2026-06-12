@@ -40,14 +40,14 @@ const fs = __importStar(require("fs"));
 const EventBus_1 = require("../events/EventBus");
 // Auto-deploy configuration
 const AUTO_PUSH_ENABLED = process.env.AUTO_GIT_PUSH !== 'false';
-const GIT_USER_NAME = process.env.GIT_USER_NAME || 'CLAWchain';
-const GIT_USER_EMAIL = process.env.GIT_USER_EMAIL || 'clawchain@users.noreply.github.com';
+const GIT_USER_NAME = process.env.GIT_USER_NAME || 'OPENchain';
+const GIT_USER_EMAIL = process.env.GIT_USER_EMAIL || 'openchain@users.noreply.github.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPO || 'CLAWchain/clawchain';
+const GITHUB_REPO = process.env.GITHUB_REPO || 'OPENchain/openchain';
 class GitIntegration {
     constructor(projectRoot) {
         this.mainBranch = 'main';
-        this.branchPrefix = 'claw/';
+        this.branchPrefix = 'open/';
         this.initialized = false;
         // Default to /app in production (Docker/Railway), or project root in development
         if (projectRoot) {
@@ -80,7 +80,7 @@ class GitIntegration {
                 const remoteUrl = `https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git`;
                 try {
                     // Clone into a temp location then move .git
-                    const tempDir = '/tmp/clawchain-clone';
+                    const tempDir = '/tmp/openchain-clone';
                     (0, child_process_1.execSync)(`rm -rf ${tempDir}`, { encoding: 'utf-8', stdio: 'pipe' });
                     (0, child_process_1.execSync)(`git clone --depth 1 ${remoteUrl} ${tempDir}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 60000 });
                     // Copy .git directory to project root
@@ -153,14 +153,14 @@ class GitIntegration {
             console.error('[GIT] Failed to configure git:', error);
         }
     }
-    // Auto-commit and push changes - SAFE MODE: only commits to claw-generated/
+    // Auto-commit and push changes - SAFE MODE: only commits to open-generated/
     async autoCommitAndPush(message, taskId) {
         console.log('[GIT] autoCommitAndPush called (SAFE MODE):', message);
         // SAFE DIRECTORIES - agent can ONLY commit files in these paths
         const SAFE_PATHS = [
-            'backend/src/claw-generated',
-            'claw-generated',
-            'src/claw-generated'
+            'backend/src/open-generated',
+            'open-generated',
+            'src/open-generated'
         ];
         try {
             // Get list of changed files
@@ -170,7 +170,7 @@ class GitIntegration {
                 console.log('[GIT] No changes to commit');
                 return { success: true, output: 'No changes to commit' };
             }
-            // Filter to only safe files (in claw-generated directories)
+            // Filter to only safe files (in open-generated directories)
             const safeFiles = [];
             const blockedFiles = [];
             for (const line of changedFiles) {
@@ -187,7 +187,7 @@ class GitIntegration {
                 console.log(`[GIT] BLOCKED ${blockedFiles.length} files outside safe paths:`, blockedFiles.slice(0, 5));
             }
             if (safeFiles.length === 0) {
-                console.log('[GIT] No safe files to commit (all changes are outside claw-generated/)');
+                console.log('[GIT] No safe files to commit (all changes are outside open-generated/)');
                 return { success: true, output: 'No safe files to commit' };
             }
             console.log(`[GIT] Staging ${safeFiles.length} safe files...`);
@@ -200,10 +200,10 @@ class GitIntegration {
                     console.log(`[GIT] Could not stage ${file}`);
                 }
             }
-            // Create commit with CLAW prefix
+            // Create commit with OPEN prefix
             const fullMessage = taskId
-                ? `[CLAW-${taskId}] ${message}`
-                : `[CLAW] ${message}`;
+                ? `[OPEN-${taskId}] ${message}`
+                : `[OPEN] ${message}`;
             this.execGit(`commit -m "${fullMessage.replace(/"/g, '\\"')}"`, true);
             const commitHash = this.execGit('rev-parse --short HEAD', true);
             console.log(`[GIT] Created commit: ${commitHash}`);
@@ -471,8 +471,8 @@ class GitIntegration {
         try {
             // Format commit message with task reference
             const fullMessage = taskId
-                ? `[CLAW-${taskId}] ${message}`
-                : `[CLAW] ${message}`;
+                ? `[OPEN-${taskId}] ${message}`
+                : `[OPEN] ${message}`;
             // Stage all changes first
             this.execGit('add -A', true);
             // Create commit

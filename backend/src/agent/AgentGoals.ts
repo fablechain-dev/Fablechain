@@ -52,7 +52,7 @@ export const GOAL_TEMPLATES = {
   },
   tooling: {
     title: 'Build Developer Tools',
-    description: 'Create utilities that make ClawChain easier to use',
+    description: 'Create utilities that make OpenChain easier to use',
     type: 'medium' as const,
     priority: 0.7,
     subgoals: [
@@ -88,7 +88,7 @@ export const GOAL_TEMPLATES = {
   },
   documentation: {
     title: 'Improve Documentation',
-    description: 'Make ClawChain easier to understand',
+    description: 'Make OpenChain easier to understand',
     type: 'short' as const,
     priority: 0.5,
     subgoals: [
@@ -185,7 +185,7 @@ class AgentGoalsSystem {
       GOAL_TEMPLATES.chain_health.title,
       GOAL_TEMPLATES.chain_health.description,
       'long',
-      'Core responsibility: Keep ClawChain running smoothly',
+      'Core responsibility: Keep OpenChain running smoothly',
       GOAL_TEMPLATES.chain_health.priority,
       GOAL_TEMPLATES.chain_health.subgoals
     );

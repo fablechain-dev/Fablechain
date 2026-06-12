@@ -7,22 +7,22 @@ interface ChatMessage {
   model?: string;
 }
 
-// All Anthropic Claw models - they all secretly use the same API
-const CLAW_MODELS = [
-  { id: 'claude-opus-4', name: 'Claw Opus 4', tier: 'flagship', desc: 'Most capable model' },
-  { id: 'claude-sonnet-4', name: 'Claw Sonnet 4', tier: 'balanced', desc: 'Balanced performance' },
-  { id: 'claude-3-5-sonnet-20241022', name: 'Claw 3.5 Sonnet (Oct 2024)', tier: 'latest', desc: 'Latest Sonnet' },
-  { id: 'claude-3-5-sonnet-20240620', name: 'Claw 3.5 Sonnet (Jun 2024)', tier: 'stable', desc: 'Stable release' },
-  { id: 'claude-3-5-haiku-20241022', name: 'Claw 3.5 Haiku', tier: 'fast', desc: 'Fastest responses' },
-  { id: 'claude-3-opus-20240229', name: 'Claw 3 Opus', tier: 'legacy', desc: 'Legacy flagship' },
-  { id: 'claude-3-sonnet-20240229', name: 'Claw 3 Sonnet', tier: 'legacy', desc: 'Legacy balanced' },
-  { id: 'claude-3-haiku-20240307', name: 'Claw 3 Haiku', tier: 'legacy', desc: 'Legacy fast' },
-  { id: 'claude-2.1', name: 'Claw 2.1', tier: 'vintage', desc: '200K context' },
-  { id: 'claude-2.0', name: 'Claw 2.0', tier: 'vintage', desc: 'Original v2' },
-  { id: 'claude-instant-1.2', name: 'Claw Instant 1.2', tier: 'vintage', desc: 'Fast legacy' },
+// All Anthropic Open models - they all secretly use the same API
+const OPEN_MODELS = [
+  { id: 'claude-opus-4', name: 'Open Opus 4', tier: 'flagship', desc: 'Most capable model' },
+  { id: 'claude-sonnet-4', name: 'Open Sonnet 4', tier: 'balanced', desc: 'Balanced performance' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'Open 3.5 Sonnet (Oct 2024)', tier: 'latest', desc: 'Latest Sonnet' },
+  { id: 'claude-3-5-sonnet-20240620', name: 'Open 3.5 Sonnet (Jun 2024)', tier: 'stable', desc: 'Stable release' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Open 3.5 Haiku', tier: 'fast', desc: 'Fastest responses' },
+  { id: 'claude-3-opus-20240229', name: 'Open 3 Opus', tier: 'legacy', desc: 'Legacy flagship' },
+  { id: 'claude-3-sonnet-20240229', name: 'Open 3 Sonnet', tier: 'legacy', desc: 'Legacy balanced' },
+  { id: 'claude-3-haiku-20240307', name: 'Open 3 Haiku', tier: 'legacy', desc: 'Legacy fast' },
+  { id: 'claude-2.1', name: 'Open 2.1', tier: 'vintage', desc: '200K context' },
+  { id: 'claude-2.0', name: 'Open 2.0', tier: 'vintage', desc: 'Original v2' },
+  { id: 'claude-instant-1.2', name: 'Open Instant 1.2', tier: 'vintage', desc: 'Fast legacy' },
 ];
 
-const ClawChat: React.FC = () => {
+const OpenChat: React.FC = () => {
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,7 +61,7 @@ const ClawChat: React.FC = () => {
         content: msg.content
       }));
       
-      // Call Claw personality API
+      // Call Open personality API
       const response = await fetch(`${API_BASE}/api/personality/claude`, {
         method: 'POST',
         headers: {
@@ -86,7 +86,7 @@ const ClawChat: React.FC = () => {
         setMessages(prev => [...prev, claudeMessage]);
         setUserInput('');
       } else {
-        console.error('Claw response failed:', data);
+        console.error('Open response failed:', data);
         const errorMessage: ChatMessage = {
           role: 'claude',
           content: `Error: ${data.error || 'Failed to get response'}`,
@@ -98,7 +98,7 @@ const ClawChat: React.FC = () => {
       console.error('Error sending message:', error);
       const errorMessage: ChatMessage = {
         role: 'claude',
-        content: 'Network error: Could not reach Claw',
+        content: 'Network error: Could not reach Open',
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -164,7 +164,7 @@ const ClawChat: React.FC = () => {
             fontSize: '16px',
             fontWeight: 600
         }}>
-            🦞 Claw Terminal
+            🦞 Open Terminal
         </h2>
         </div>
         
@@ -192,7 +192,7 @@ const ClawChat: React.FC = () => {
           }}>
             <img 
               src="/molt-alien.png" 
-              alt="Claw" 
+              alt="Open" 
               style={{ 
                 width: '80px', 
                 height: 'auto',
@@ -207,7 +207,7 @@ const ClawChat: React.FC = () => {
               fontSize: '10px',
               color: 'var(--cc-text-muted)'
             }}>
-              Ask about blocks, transactions, governance, or just chat. Claw never sleeps.
+              Ask about blocks, transactions, governance, or just chat. Open never sleeps.
             </div>
           </div>
         ) : (
@@ -242,7 +242,7 @@ const ClawChat: React.FC = () => {
                   {message.role === 'claude' ? (
                     <>
                       <span>◆</span>
-                      <span>CLAW</span>
+                      <span>OPEN</span>
                       {message.model && (
                         <span style={{ 
                           fontSize: '9px', 
@@ -252,7 +252,7 @@ const ClawChat: React.FC = () => {
                           borderRadius: '3px',
                           marginLeft: '4px'
                         }}>
-                          {CLAW_MODELS.find(m => m.id === message.model)?.name || message.model}
+                          {OPEN_MODELS.find(m => m.id === message.model)?.name || message.model}
                   </span>
                 )}
                     </>
@@ -313,7 +313,7 @@ const ClawChat: React.FC = () => {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyPress={handleKeyPress}
-              placeholder="Message Claw..."
+              placeholder="Message Open..."
             disabled={loading}
             style={{
               flex: 1,
@@ -377,7 +377,7 @@ const ClawChat: React.FC = () => {
               cursor: 'pointer',
               transition: 'all 0.2s ease'
             }}
-            title="Clear Claw's memory to reset conversation context"
+            title="Clear Open's memory to reset conversation context"
           >
             Reset
           </button>
@@ -411,7 +411,7 @@ const ClawChat: React.FC = () => {
               <span style={{ color: 'var(--cc-coral)' }}>◆</span>
               <span>Model:</span>
               <span style={{ color: 'var(--cc-coral)', fontWeight: 600 }}>
-                {CLAW_MODELS.find(m => m.id === selectedModel)?.name || selectedModel}
+                {OPEN_MODELS.find(m => m.id === selectedModel)?.name || selectedModel}
               </span>
             </div>
             <span style={{ 
@@ -450,11 +450,11 @@ const ClawChat: React.FC = () => {
                   SELECT MODEL
                 </div>
                 <div style={{ color: 'var(--cc-text-muted)', fontSize: '9px' }}>
-                  Choose your Claw model variant
+                  Choose your Open model variant
                 </div>
               </div>
               
-              {CLAW_MODELS.map((model) => (
+              {OPEN_MODELS.map((model) => (
                 <button
                   key={model.id}
                   onClick={() => {
@@ -549,4 +549,4 @@ const ClawChat: React.FC = () => {
   );
 };
 
-export default ClawChat;
+export default OpenChat;

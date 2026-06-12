@@ -1,4 +1,4 @@
-/* Claw.bot fonts - Clash Display + Satoshi from Fontshare */
+/* Open.bot fonts - Clash Display + Satoshi from Fontshare */
 @import url('https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@300,400,500,700,900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -147,7 +147,7 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Animated shimmer/shine effect like Claw.bot */
+/* Animated shimmer/shine effect like Open.bot */
 .shimmer-text {
   position: relative;
   color: #E85A4F;

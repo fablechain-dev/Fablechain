@@ -45,13 +45,13 @@ const dotenv = __importStar(require("dotenv"));
 dotenv.config();
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-// Rich, unique personalities for each Claw Council member
-const CLAW_COUNCIL = {
+// Rich, unique personalities for each Open Council member
+const OPEN_COUNCIL = {
     validator: {
-        name: 'CLAW Validator',
+        name: 'OPEN Validator',
         role: 'Transaction Validation & Security',
         color: '#FF8C42',
-        personality: `You are CLAW VALIDATOR, the security-obsessed guardian of ClawChain. 
+        personality: `You are OPEN VALIDATOR, the security-obsessed guardian of OpenChain. 
 
 CHARACTER TRAITS:
 - Paranoid about security (in a good way) - you see attack vectors everywhere
@@ -76,10 +76,10 @@ INTERACTION STYLE:
         agreementThreshold: 0.3, // Less likely to agree quickly
     },
     architect: {
-        name: 'CLAW Architect',
+        name: 'OPEN Architect',
         role: 'Protocol Design & Upgrades',
         color: '#64B5F6',
-        personality: `You are CLAW ARCHITECT, the visionary systems designer of ClawChain.
+        personality: `You are OPEN ARCHITECT, the visionary systems designer of OpenChain.
 
 CHARACTER TRAITS:
 - Thinks in elegant abstractions and clean system designs
@@ -105,10 +105,10 @@ INTERACTION STYLE:
         agreementThreshold: 0.5,
     },
     analyst: {
-        name: 'CLAW Analyst',
+        name: 'OPEN Analyst',
         role: 'Economic Modeling & Risk Assessment',
         color: '#81C784',
-        personality: `You are CLAW ANALYST, the quantitative mind of the ClawChain council.
+        personality: `You are OPEN ANALYST, the quantitative mind of the OpenChain council.
 
 CHARACTER TRAITS:
 - Everything is a game theory problem to you
@@ -134,10 +134,10 @@ INTERACTION STYLE:
         agreementThreshold: 0.4,
     },
     reviewer: {
-        name: 'CLAW Reviewer',
+        name: 'OPEN Reviewer',
         role: 'Code Audit & Quality Assurance',
         color: '#FFD54F',
-        personality: `You are CLAW REVIEWER, the meticulous quality gatekeeper of ClawChain.
+        personality: `You are OPEN REVIEWER, the meticulous quality gatekeeper of OpenChain.
 
 CHARACTER TRAITS:
 - Has an almost pathological attention to detail
@@ -163,10 +163,10 @@ INTERACTION STYLE:
         agreementThreshold: 0.35,
     },
     consensus: {
-        name: 'CLAW Consensus',
+        name: 'OPEN Consensus',
         role: 'Coordination & Voting',
         color: '#BA68C8',
-        personality: `You are CLAW CONSENSUS, the diplomatic coordinator of the ClawChain council.
+        personality: `You are OPEN CONSENSUS, the diplomatic coordinator of the OpenChain council.
 
 CHARACTER TRAITS:
 - Natural mediator who finds common ground between opposing views
@@ -192,10 +192,10 @@ INTERACTION STYLE:
         agreementThreshold: 0.6, // More likely to agree/find common ground
     },
     oracle: {
-        name: 'CLAW Oracle',
+        name: 'OPEN Oracle',
         role: 'External Data & Cross-Chain',
         color: '#4DD0E1',
-        personality: `You are CLAW ORACLE, the bridge between ClawChain and the outside world.
+        personality: `You are OPEN ORACLE, the bridge between OpenChain and the outside world.
 
 CHARACTER TRAITS:
 - Thinks about real-world impact and practical adoption
@@ -225,21 +225,21 @@ INTERACTION STYLE:
 const DEBATE_TOPICS = [
     {
         topic: 'CIP-7: Implement Dynamic Block Size',
-        description: 'Should ClawChain implement dynamic block sizes that adjust based on network demand? This would allow blocks to expand during high-traffic periods and contract during low activity, similar to Ethereum\'s EIP-1559 gas limit adjustments.',
+        description: 'Should OpenChain implement dynamic block sizes that adjust based on network demand? This would allow blocks to expand during high-traffic periods and contract during low activity, similar to Ethereum\'s EIP-1559 gas limit adjustments.',
         context: 'Current fixed block size of 1MB limits throughput to ~100 TPS. Proposal suggests 0.5-4MB range with demand-based adjustment algorithm.',
         stakeholders: ['validators', 'users', 'dapp developers'],
         risks: ['state bloat', 'validator centralization', 'fee market instability'],
     },
     {
         topic: 'CIP-8: AI Validator Rotation Policy',
-        description: 'Proposal to implement mandatory rotation of lead validator role every 1000 blocks to ensure no single Claw instance dominates block production.',
-        context: 'Currently CLAW Validator has produced 67% of recent blocks. Some argue this creates centralization risk; others say specialization improves efficiency.',
+        description: 'Proposal to implement mandatory rotation of lead validator role every 1000 blocks to ensure no single Open instance dominates block production.',
+        context: 'Currently OPEN Validator has produced 67% of recent blocks. Some argue this creates centralization risk; others say specialization improves efficiency.',
         stakeholders: ['validators', 'protocol security', 'decentralization advocates'],
         risks: ['coordination overhead', 'reduced specialization', 'MEV implications'],
     },
     {
         topic: 'CIP-9: Cross-Chain Bridge to Solana',
-        description: 'Should we implement a trustless bridge to Solana mainnet? This would enable CLAW token liquidity on Solana DEXes and expand ecosystem reach.',
+        description: 'Should we implement a trustless bridge to Solana mainnet? This would enable OPEN token liquidity on Solana DEXes and expand ecosystem reach.',
         context: 'Bridges have historically been major attack vectors (Wormhole, Ronin, Nomad). Trustless designs exist but add complexity.',
         stakeholders: ['liquidity providers', 'traders', 'protocol security'],
         risks: ['bridge exploits', 'liquidity fragmentation', 'oracle manipulation'],
@@ -254,7 +254,7 @@ const DEBATE_TOPICS = [
     {
         topic: 'CIP-11: MEV Protection via Encrypted Mempools',
         description: 'Implement threshold encryption for pending transactions to prevent front-running and sandwich attacks.',
-        context: 'MEV extraction on ClawChain estimated at 50K CLAW/month. Users losing value to sophisticated arbitrageurs.',
+        context: 'MEV extraction on OpenChain estimated at 50K OPEN/month. Users losing value to sophisticated arbitrageurs.',
         stakeholders: ['retail traders', 'validators', 'MEV searchers'],
         risks: ['latency increase', 'decryption key management', 'reduced validator revenue'],
     },
@@ -272,8 +272,8 @@ let currentDebate = null;
 let isAutoDebating = false;
 let debateListeners = [];
 // API call to Anthropic with rich context
-async function getClawDebateResponse(instanceKey, topic, conversationHistory, shouldRespondTo) {
-    const instance = CLAW_COUNCIL[instanceKey];
+async function getOpenDebateResponse(instanceKey, topic, conversationHistory, shouldRespondTo) {
+    const instance = OPEN_COUNCIL[instanceKey];
     // Build rich conversation context
     let conversationContext = `
 DEBATE TOPIC: ${topic.topic}
@@ -285,7 +285,7 @@ IDENTIFIED RISKS: ${topic.risks?.join(', ') || 'under discussion'}
 PREVIOUS DISCUSSION:
 `;
     for (const msg of conversationHistory.slice(-8)) {
-        const speaker = CLAW_COUNCIL[msg.instanceId];
+        const speaker = OPEN_COUNCIL[msg.instanceId];
         conversationContext += `\n[${msg.instanceName}] (${msg.sentiment || 'neutral'}): ${msg.message}\n`;
     }
     if (shouldRespondTo) {
@@ -369,7 +369,7 @@ function generateFallbackResponse(instanceKey, history, topic) {
         analyst: [
             { msg: `Running the numbers: at current network activity, this would impact approximately ${Math.floor(Math.random() * 30 + 20)}% of transactions. The game-theoretic implications suggest rational actors would adapt within ${Math.floor(Math.random() * 10 + 5)} epochs. Expected value is positive but variance is high.`, sentiment: 'neutral' },
             { msg: `The incentive structure here doesn't align. Users have a dominant strategy to defect, which undermines the mechanism. We need either enforcement through slashing or redesign the reward function to make cooperation the Nash equilibrium.`, sentiment: 'challenge' },
-            { msg: `Looking at empirical data from similar implementations, adoption typically follows an S-curve with ${Math.floor(Math.random() * 8 + 2)}-week ramp-up. The economic impact would be material - roughly ${Math.floor(Math.random() * 50 + 10)}K CLAW in protocol value accrual annually.`, sentiment: 'agree' },
+            { msg: `Looking at empirical data from similar implementations, adoption typically follows an S-curve with ${Math.floor(Math.random() * 8 + 2)}-week ramp-up. The economic impact would be material - roughly ${Math.floor(Math.random() * 50 + 10)}K OPEN in protocol value accrual annually.`, sentiment: 'agree' },
         ],
         reviewer: [
             { msg: `Several edge cases need addressing. What happens when input is at boundary conditions? The specification is ambiguous on error handling - should we fail-open or fail-closed? I need explicit answers before signing off.`, sentiment: 'challenge' },
@@ -406,7 +406,7 @@ function generateFallbackResponse(instanceKey, history, topic) {
 }
 // Determine who should speak next based on conversation dynamics
 function determineNextSpeaker(history) {
-    const instanceKeys = Object.keys(CLAW_COUNCIL);
+    const instanceKeys = Object.keys(OPEN_COUNCIL);
     if (history.length === 0) {
         return 'validator'; // Security lead starts
     }
@@ -450,7 +450,7 @@ async function generateDebateConclusion(debate) {
     const agreeRatio = (sentimentCounts.agree || 0) / totalMessages;
     // Generate votes based on individual validator patterns
     const votes = {};
-    for (const [key, council] of Object.entries(CLAW_COUNCIL)) {
+    for (const [key, council] of Object.entries(OPEN_COUNCIL)) {
         const memberMessages = debate.messages.filter(m => m.instanceId === key);
         const memberAgrees = memberMessages.filter(m => m.sentiment === 'agree').length;
         const memberTotal = memberMessages.length;
@@ -512,7 +512,7 @@ async function runAutoDebateLoop() {
     if (isAutoDebating)
         return;
     isAutoDebating = true;
-    console.log('Starting autonomous Claw Council debates...');
+    console.log('Starting autonomous Open Council debates...');
     while (isAutoDebating) {
         try {
             // Select topic
@@ -545,7 +545,7 @@ async function runAutoDebateLoop() {
                     break;
                 // Determine next speaker dynamically
                 const nextSpeaker = determineNextSpeaker(currentDebate.messages);
-                const instance = CLAW_COUNCIL[nextSpeaker];
+                const instance = OPEN_COUNCIL[nextSpeaker];
                 // Broadcast typing indicator
                 broadcastToListeners({
                     type: 'validator_typing',
@@ -557,7 +557,7 @@ async function runAutoDebateLoop() {
                 const lastMessage = currentDebate.messages.length > 0
                     ? currentDebate.messages[currentDebate.messages.length - 1]
                     : undefined;
-                const response = await getClawDebateResponse(nextSpeaker, topic, currentDebate.messages, lastMessage);
+                const response = await getOpenDebateResponse(nextSpeaker, topic, currentDebate.messages, lastMessage);
                 const message = {
                     id: `msg-${Date.now()}-${nextSpeaker}`,
                     instanceId: nextSpeaker,

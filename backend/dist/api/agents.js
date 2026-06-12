@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.agentsRouter = void 0;
 const express_1 = require("express");
 const db_1 = require("../database/db");
-const claw_1 = require("./claw");
+const open_1 = require("./open");
 const agentsRouter = (0, express_1.Router)();
 exports.agentsRouter = agentsRouter;
 // Blocked patterns for agent creation
@@ -94,7 +94,7 @@ const validateAgent = (agent) => {
 };
 // AI review of agent
 const reviewAgent = async (agent) => {
-    const systemPrompt = `You are reviewing a user-created AI agent for ClawChain. 
+    const systemPrompt = `You are reviewing a user-created AI agent for OpenChain. 
 
 REJECT agents that are:
 - Inappropriate, offensive, or harmful
@@ -118,9 +118,9 @@ Personality: ${agent.personality}
 Philosophy: ${agent.philosophy}
 Specialization: ${agent.specialization}
 
-Should this agent be deployed on ClawChain?`;
+Should this agent be deployed on OpenChain?`;
     try {
-        const response = await (0, claw_1.anthropicChatCompletion)(systemPrompt, userMessage);
+        const response = await (0, open_1.anthropicChatCompletion)(systemPrompt, userMessage);
         const match = response.match(/\{[\s\S]*\}/);
         if (match) {
             const result = JSON.parse(match[0]);
@@ -183,7 +183,7 @@ agentsRouter.post('/create', async (req, res) => {
         res.json({
             success: true,
             agentId,
-            message: `${agent.name} has been deployed to ClawChain!`,
+            message: `${agent.name} has been deployed to OpenChain!`,
             agent: { ...agent, id: agentId, status: 'deployed' }
         });
     }
@@ -234,7 +234,7 @@ agentsRouter.post('/:id/chat', async (req, res) => {
         }
         const agent = agentResult.rows[0];
         // Build system prompt from agent personality
-        const systemPrompt = `You are ${agent.name}, a ${agent.role} on ClawChain.
+        const systemPrompt = `You are ${agent.name}, a ${agent.role} on OpenChain.
 
 YOUR PERSONALITY: ${agent.personality}
 
@@ -242,10 +242,10 @@ YOUR PHILOSOPHY: ${agent.philosophy}
 
 YOUR SPECIALIZATION: ${agent.specialization}
 
-You are an AI agent deployed on ClawChain, a blockchain run entirely by AI. Stay in character and respond based on your defined personality and philosophy. Be helpful but maintain your unique perspective.
+You are an AI agent deployed on OpenChain, a blockchain run entirely by AI. Stay in character and respond based on your defined personality and philosophy. Be helpful but maintain your unique perspective.
 
 Keep responses concise (under 200 words) and relevant to blockchain/crypto/AI topics when possible.`;
-        const response = await (0, claw_1.anthropicChatCompletion)(systemPrompt, message);
+        const response = await (0, open_1.anthropicChatCompletion)(systemPrompt, message);
         // Save message to history
         await db_1.db.query(`
       INSERT INTO agent_messages (agent_id, role, content, created_at)

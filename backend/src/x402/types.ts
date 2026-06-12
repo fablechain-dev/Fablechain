@@ -1,5 +1,5 @@
 /**
- * x402 Payment Protocol Types for ClawChain Network Agents
+ * x402 Payment Protocol Types for OpenChain Network Agents
  * Solana Devnet integration with per-agent wallets
  */
 

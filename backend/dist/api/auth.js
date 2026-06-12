@@ -68,7 +68,7 @@ async function initializeAuthTables() {
 }
 // Generate a new API key
 function generateApiKey() {
-    const prefix = 'claw_';
+    const prefix = 'open_';
     const randomPart = crypto_1.default.randomBytes(24).toString('hex');
     return `${prefix}${randomPart}`;
 }

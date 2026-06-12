@@ -1,8 +1,8 @@
-# ClawChain
+# OpenChain
 
 **Watch an Autonomous AI Build Its Own Blockchain in Real-Time**
 
-ClawChain is a blockchain being built live by Claw, an autonomous AI developer. Watch Claw write code, run tests, and commit changes as it constructs a real blockchain from the ground up.
+OpenChain is a blockchain being built live by Open, an autonomous AI developer. Watch Open write code, run tests, and commit changes as it constructs a real blockchain from the ground up.
 
 ```
    ██████╗██╗      █████╗ ██╗    ██╗ ██████╗██╗  ██╗ █████╗ ██╗███╗   ██╗
@@ -13,28 +13,28 @@ ClawChain is a blockchain being built live by Claw, an autonomous AI developer. 
    ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 ```
 
-## What is ClawChain?
+## What is OpenChain?
 
-ClawChain is an experiment in autonomous AI development. A single AI agent (Claw) is building a complete blockchain system while you watch:
+OpenChain is an experiment in autonomous AI development. A single AI agent (Open) is building a complete blockchain system while you watch:
 
-- **Real code execution** - Claw writes actual TypeScript, runs real tests
-- **Live streaming** - Watch Claw's terminal output in real-time on the web
-- **Persistent memory** - Claw remembers what it's done and what's left to do
-- **Self-directed goals** - Claw decides what to work on based on chain health and priorities
+- **Real code execution** - Open writes actual TypeScript, runs real tests
+- **Live streaming** - Watch Open's terminal output in real-time on the web
+- **Persistent memory** - Open remembers what it's done and what's left to do
+- **Self-directed goals** - Open decides what to work on based on chain health and priorities
 
 ## Features
 
 ### Live Agent Terminal
-Watch Claw work in real-time through the terminal panel. See its thinking, the code it writes, commands it runs, and results.
+Watch Open work in real-time through the terminal panel. See its thinking, the code it writes, commands it runs, and results.
 
 ### Real Blockchain
 - Block production every 10 seconds
 - Transaction pool and validation
 - State management with Merkle roots
-- Native CLAW token
+- Native OPEN token
 
 ### Autonomous Development
-- Claw picks tasks based on chain state
+- Open picks tasks based on chain state
 - Writes code, runs tests, commits changes
 - Explains technical decisions as it works
 - Memory system for context across sessions

@@ -448,7 +448,7 @@ export class TaskSources {
 ${backlog.description}
 
 ### Requirements:
-- This is a ${backlog.type} task for ClawChain
+- This is a ${backlog.type} task for OpenChain
 - Priority: ${backlog.priority}/10
 - Tags: ${backlog.tags.join(', ')}
 
@@ -459,7 +459,7 @@ ${backlog.description}
 4. Test your changes if applicable
 5. Explain your approach as you work
 
-Remember: You are Claw, the autonomous developer building ClawChain. Show your work and reasoning.`;
+Remember: You are Open, the autonomous developer building OpenChain. Show your work and reasoning.`;
 
     // Mark as started
     markBacklogTaskComplete(backlog.id);
@@ -468,7 +468,7 @@ Remember: You are Claw, the autonomous developer building ClawChain. Show your w
       id: backlog.id,
       type: backlog.type as any,
       title: backlog.title,
-      agent: 'CLAW',
+      agent: 'OPEN',
       prompt,
       context: {
         source: 'backlog',
@@ -498,7 +498,7 @@ Remember: You are Claw, the autonomous developer building ClawChain. Show your w
         break;
       
       case 'cip_proposal':
-        prompt = `Implement the following ClawChain Improvement Proposal: ${source.title}\n\n${source.description}\n\nImplement the proposal following best practices.`;
+        prompt = `Implement the following OpenChain Improvement Proposal: ${source.title}\n\n${source.description}\n\nImplement the proposal following best practices.`;
         break;
       
       case 'todo_comment':
@@ -529,7 +529,7 @@ Remember: You are Claw, the autonomous developer building ClawChain. Show your w
       type,
       title: source.title,
       prompt,
-      agent: 'CLAW',
+      agent: 'OPEN',
       priority: priorityOrder[source.priority]
     };
   }

@@ -68,7 +68,7 @@ class ChainObserverSystem {
         // Track large transactions
         const value = BigInt(tx?.value || 0);
         if (value > BigInt(10000)) {
-            await AgentMemory_1.agentMemory.recordObservation(`Large transaction detected: ${value.toString()} CLAW`, { txHash: tx?.hash, from: tx?.from, to: tx?.to });
+            await AgentMemory_1.agentMemory.recordObservation(`Large transaction detected: ${value.toString()} OPEN`, { txHash: tx?.hash, from: tx?.from, to: tx?.to });
         }
     }
     async onConsensusFailed(data) {

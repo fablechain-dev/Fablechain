@@ -154,7 +154,7 @@ const AdminPanel: React.FC = () => {
                 fontSize: '12px',
                 fontFamily: 'JetBrains Mono, monospace'
               }}
-              placeholder="clawchain-admin-2024"
+              placeholder="openchain-admin-2024"
             />
           </div>
           

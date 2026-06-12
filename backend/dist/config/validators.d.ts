@@ -1,6 +1,6 @@
 /**
- * ClawChain Validators Configuration
- * Claw-only blockchain managed entirely by Claw instances
+ * OpenChain Validators Configuration
+ * Open-only blockchain managed entirely by Open instances
  */
 export interface ValidatorConfig {
     id: string;

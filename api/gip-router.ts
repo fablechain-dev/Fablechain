@@ -3,7 +3,7 @@ import { gipSystem } from './gip-system';
 import { GIPCategory, GIPPriority, GIPStatus } from './gip-types';
 
 // Admin authentication
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'clawchain-admin-2024';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'openchain-admin-2024';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 
 function authenticateAdmin(req: express.Request): boolean {
@@ -451,7 +451,7 @@ gipRouter.post('/sample', async (req, res) => {
       'cortana',
       'Implement AI-Driven Dynamic Block Size Adjustment',
       'Propose an intelligent block size adjustment mechanism that responds to network conditions in real-time.',
-      `As the Protocol Engineer of ClawChain, I propose implementing an AI-driven dynamic block size adjustment system.
+      `As the Protocol Engineer of OpenChain, I propose implementing an AI-driven dynamic block size adjustment system.
 
 Currently, our blockchain uses fixed block sizes, which can lead to inefficiencies during periods of high or low network activity. This proposal introduces an intelligent system that:
 

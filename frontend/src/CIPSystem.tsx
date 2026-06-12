@@ -189,11 +189,11 @@ const CIPSystem: React.FC = () => {
   };
 
   const getAgentTitle = (agentId: string): string => {
-    // All validators are Claw instances
+    // All validators are Open instances
     if (agentId.toLowerCase().includes('claude')) {
       return agentId.toUpperCase().replace('_', ' ');
     }
-    return `CLAW ${agentId.toUpperCase()}`;
+    return `OPEN ${agentId.toUpperCase()}`;
   };
 
   const renderCIPList = () => {
@@ -520,7 +520,7 @@ const CIPSystem: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  const transcript = `ClawChain Improvement Proposal Transcript
+                  const transcript = `OpenChain Improvement Proposal Transcript
 ==================================================
 ID: ${selectedCIP.id}
 Title: ${selectedCIP.title}
@@ -926,7 +926,7 @@ Impact: ${message.impact.toUpperCase()}
           fontSize: '16px',
           fontWeight: 'bold'
         }}>
-          CLAWCHAIN IMPROVEMENT PROPOSALS
+          OPENCHAIN IMPROVEMENT PROPOSALS
         </h1>
       </div>
 

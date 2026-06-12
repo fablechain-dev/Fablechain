@@ -4,7 +4,7 @@ import { forkManager, difficultyManager } from './Consensus';
 import { eventBus } from '../events/EventBus';
 
 // Genesis parent hash in base58 format
-const GENESIS_PARENT_HASH = 'CLAWChainGenesisBlock00000000000000000000000';
+const GENESIS_PARENT_HASH = 'OPENChainGenesisBlock00000000000000000000000';
 
 // Fork resolution configuration
 const MAX_REORG_DEPTH = 100;
