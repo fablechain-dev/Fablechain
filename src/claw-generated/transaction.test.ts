@@ -1,63 +1,50 @@
-import { expect } from 'chai';
-import { Transaction } from '../core/transaction';
-import { Account } from '../core/account';
+import { Transaction } from '../blockchain/transaction';
+import { Account } from '../blockchain/account';
 
 describe('Transaction Validation', () => {
-  describe('Signature Verification', () => {
-    it('should verify a valid transaction signature', () => {
-      // Create a test account
-      const account = new Account('0x1234567890abcdef');
-      account.balance = 100;
+  it('should verify a valid signature', () => {
+    const account = new Account('0x1234567890abcdef');
+    const tx = new Transaction(account.address, '0x0987654321fedcba', 100, 1, 'valid_signature');
 
-      // Create a valid transaction
-      const tx = new Transaction({
-        from: account.address,
-        to: '0x0987654321fedcba',
-        value: 10,
-        nonce: 0
-      });
-      tx.sign(account.privateKey);
-
-      // Verify the transaction signature
-      expect(tx.verifySignature()).to.be.true;
-    });
-
-    it('should reject an invalid transaction signature', () => {
-      // Create a test account
-      const account = new Account('0x1234567890abcdef');
-      account.balance = 100;
-
-      // Create a transaction with an invalid signature
-      const tx = new Transaction({
-        from: account.address,
-        to: '0x0987654321fedcba',
-        value: 10,
-        nonce: 0
-      });
-      tx.signature = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
-
-      // Verify the transaction signature is rejected
-      expect(tx.verifySignature()).to.be.false;
-    });
+    expect(tx.verify(account)).toBe(true);
   });
 
-  describe('Nonce Validation', () => {
-    it('should validate the transaction nonce', () => {
-      // TODO: Implement test case
-    });
+  it('should detect an invalid signature', () => {
+    const account = new Account('0x1234567890abcdef');
+    const tx = new Transaction(account.address, '0x0987654321fedcba', 100, 1, 'invalid_signature');
 
-    it('should reject a transaction with an invalid nonce', () => {
-      // TODO: Implement test case
-    });
+    expect(tx.verify(account)).toBe(false);
   });
 
-  describe('Balance Checks', () => {
-    it('should allow a transaction with sufficient balance', () => {
-      // TODO: Implement test case
-    });
+  it('should validate a correct nonce', () => {
+    const account = new Account('0x1234567890abcdef');
+    account.nonce = 1;
+    const tx = new Transaction(account.address, '0x0987654321fedcba', 100, 1, 'valid_signature');
 
-    it('should reject a transaction with insufficient balance', () => {
-      // TODO: Implement test case
-    });
+    expect(tx.validateNonce(account)).toBe(true);
+  });
+
+  it('should detect an incorrect nonce', () => {
+    const account = new Account('0x1234567890abcdef');
+    account.nonce = 1;
+    const tx = new Transaction(account.address, '0x0987654321fedcba', 100, 2, 'valid_signature');
+
+    expect(tx.validateNonce(account)).toBe(false);
+  });
+
+  it('should validate a sufficient balance', () => {
+    const account = new Account('0x1234567890abcdef');
+    account.balance = 1000;
+    const tx = new Transaction(account.address, '0x0987654321fedcba', 100, 1, 'valid_signature');
+
+    expect(tx.validateBalance(account)).toBe(true);
+  });
+
+  it('should detect an insufficient balance', () => {
+    const account = new Account('0x1234567890abcdef');
+    account.balance = 50;
+    const tx = new Transaction(account.address, '0x0987654321fedcba', 100, 1, 'valid_signature');
+
+    expect(tx.validateBalance(account)).toBe(false);
   });
 });
