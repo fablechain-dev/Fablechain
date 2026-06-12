@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract CRC721 is ERC721URIStorage {
+contract CRC721 is ERC721, ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
 
@@ -19,18 +19,20 @@ contract CRC721 is ERC721URIStorage {
     }
 
     function burn(uint256 tokenId) public {
-        require(_exists(tokenId), "CRC721: token does not exist");
-        require(ownerOf(tokenId) == msg.sender, "CRC721: caller is not owner");
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "CRC721: caller is not owner nor approved");
         _burn(tokenId);
     }
 
     function transferFrom(address from, address to, uint256 tokenId) public virtual override {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "CRC721: caller is not owner nor approved");
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "CRC721: transfer caller is not owner nor approved");
         _transfer(from, to, tokenId);
     }
 
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public virtual override {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "CRC721: caller is not owner nor approved");
-        _safeTransfer(from, to, tokenId, data);
+    function _burn(uint256 tokenId) internal virtual override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
+    }
+
+    function tokenURI(uint256 tokenId) public view virtual override(ERC721, ERC721URIStorage) returns (string memory) {
+        return super.tokenURI(tokenId);
     }
 }
