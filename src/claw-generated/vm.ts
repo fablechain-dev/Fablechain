@@ -1,31 +1,47 @@
-import { TransactionReceipt } from "./transaction/TransactionReceipt";
+import { Instruction, StackItem } from './types';
+import { GAS_COSTS } from './gas-costs';
 
 export class VM {
-  decode_transaction(transactionStr: string): Transaction {
-    // Decode the transaction from the input string
-    // ...
+  private stack: StackItem[] = [];
+  private memory: Uint8Array = new Uint8Array();
+  private programCounter = 0;
+  private gasRemaining: number;
+
+  constructor(initialGas: number) {
+    this.gasRemaining = initialGas;
   }
 
-  simulate_transaction(tx: Transaction): Result<TransactionReceipt, string> {
-    // Simulate the transaction execution
-    // - Execute the transaction instructions
-    // - Collect the transaction logs
-    // - Compute the total compute units used
-    // - Return the TransactionReceipt
+  execute(instructions: Instruction[]): void {
+    for (const instruction of instructions) {
+      this.executeInstruction(instruction);
+    }
+  }
 
-    const logs = [];
-    let computeUnitsUsed = 0;
+  private executeInstruction(instruction: Instruction): void {
+    const opGasCost = GAS_COSTS[instruction.opcode] || 0;
+    this.gasRemaining -= opGasCost;
 
-    // Simulate the transaction instructions
-    for (const instruction of tx.instructions) {
-      // Execute the instruction
-      // Update logs and compute units
+    switch (instruction.opcode) {
+      case 'PUSH':
+        this.stack.push(instruction.operand);
+        break;
+      case 'POP':
+        this.stack.pop();
+        break;
+      case 'ADD':
+        this.stack.push(this.stack.pop() + this.stack.pop());
+        break;
+      // Add more opcodes here...
     }
 
-    return Ok(new TransactionReceipt(
-      tx.signature,
-      logs,
-      computeUnitsUsed
-    ));
+    this.programCounter++;
+
+    if (this.gasRemaining <= 0) {
+      throw new Error('Ran out of gas');
+    }
+  }
+
+  getGasRemaining(): number {
+    return this.gasRemaining;
   }
 }
