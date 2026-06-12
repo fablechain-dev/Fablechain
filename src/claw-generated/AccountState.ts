@@ -1,24 +1,48 @@
-import { Account } from '../accounts/Account';
+import { PrivateKey, PublicKey } from '../crypto';
+import { ContractStorage } from './ContractStorage';
 
 export class AccountState {
-  private storage: Map<string, any> = new Map();
+  private publicKey: PublicKey;
+  private balance: number;
+  private nonce: number;
+  private contractStorage: ContractStorage;
 
-  get(account: Account, key: string): any {
-    const accountKey = this.getAccountKey(account);
-    return this.storage.get(accountKey + ':' + key);
+  constructor(publicKey: PublicKey) {
+    this.publicKey = publicKey;
+    this.balance = 0;
+    this.nonce = 0;
+    this.contractStorage = new ContractStorage();
   }
 
-  set(account: Account, key: string, value: any): void {
-    const accountKey = this.getAccountKey(account);
-    this.storage.set(accountKey + ':' + key, value);
+  getPublicKey(): PublicKey {
+    return this.publicKey;
   }
 
-  getBalance(address: string): number {
-    const account = new Account(address);
-    return this.get(account, 'balance') || 0;
+  getBalance(): number {
+    return this.balance;
   }
 
-  private getAccountKey(account: Account): string {
-    return account.address;
+  setBalance(balance: number): void {
+    this.balance = balance;
+  }
+
+  getNonce(): number {
+    return this.nonce;
+  }
+
+  incrementNonce(): void {
+    this.nonce++;
+  }
+
+  getContractStorage(): ContractStorage {
+    return this.contractStorage;
+  }
+
+  createCheckpoint(blockHeight: number): void {
+    this.contractStorage.createContractCheckpoint(this.publicKey.toString(), blockHeight);
+  }
+
+  pruneState(blockHeight: number): void {
+    this.contractStorage.pruneContractState(this.publicKey.toString(), blockHeight);
   }
 }
