@@ -1,22 +1,23 @@
-import { TransactionSignature } from './types';
+export interface AccountInfo {
+  pubkey: string;
+  lamports: number;
+  owner: string;
+  executable: boolean;
+}
 
-export const getSignaturesForAddress = async (
-  address: string,
-  limit: number = 10,
-  offset: number = 0
-): Promise<TransactionSignature[]> => {
-  // Fetch transaction signatures for the given address from the account storage
-  // Paginate the results and return them
-  const signatures = await fetchTransactionSignatures(address, limit, offset);
-  return signatures;
-};
+export class Account {
+  public info: AccountInfo;
 
-const fetchTransactionSignatures = async (
-  address: string,
-  limit: number,
-  offset: number
-): Promise<TransactionSignature[]> => {
-  // Implement the logic to fetch and paginate transaction signatures
-  // This is a placeholder for now
-  return ['signature1', 'signature2', 'signature3'];
-};
+  constructor(info: AccountInfo) {
+    this.info = info;
+  }
+
+  static fromRawData(data: any): Account {
+    return new Account({
+      pubkey: data.pubkey,
+      lamports: data.lamports,
+      owner: data.owner,
+      executable: data.executable,
+    });
+  }
+}
