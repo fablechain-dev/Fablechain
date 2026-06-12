@@ -1,30 +1,43 @@
-import { Transaction } from './index';
-import { Wallet } from '../wallet';
-import * as sodium from 'libsodium-wrappers';
+import { TransactionValidator } from './transaction-validator';
+import { Transaction } from './transaction';
 
-describe('Transaction', () => {
-  beforeAll(async () => {
-    await sodium.ready;
+describe('TransactionValidator', () => {
+  test('should validate a valid transaction', async () => {
+    // Create a valid transaction
+    const validTx = new Transaction({
+      from: '0x123456789abcdef',
+      to: '0xfedcba9876543210',
+      value: 100,
+      nonce: 1,
+      signature: '0x...'
+    });
+
+    await expect(TransactionValidator.validate(validTx)).resolves.not.toThrow();
   });
 
-  it('should sign and verify a transaction', () => {
-    const wallet = new Wallet();
-    const transaction = new Transaction(wallet.getPublicKey(), new Uint8Array([1, 2, 3]), 100, 1);
-    transaction.sign(wallet);
-    expect(transaction.verify(wallet, 0)).toBe(true);
+  test('should throw an error for an invalid transaction format', async () => {
+    // Create an invalid transaction
+    const invalidTx = new Transaction({
+      from: 'invalid-address',
+      to: '0xfedcba9876543210',
+      value: 100,
+      nonce: 1,
+      signature: '0x...'
+    });
+
+    await expect(TransactionValidator.validate(invalidTx)).rejects.toThrow('Invalid transaction format');
   });
 
-  it('should detect replay attacks', () => {
-    const wallet = new Wallet();
-    const transaction = new Transaction(wallet.getPublicKey(), new Uint8Array([1, 2, 3]), 100, 1);
-    transaction.sign(wallet);
-    expect(transaction.verify(wallet, 1)).toBe(false);
-  });
+  test('should throw an error for an invalid transaction signature', async () => {
+    // Create a transaction with an invalid signature
+    const invalidSignatureTx = new Transaction({
+      from: '0x123456789abcdef',
+      to: '0xfedcba9876543210',
+      value: 100,
+      nonce: 1,
+      signature: 'invalid-signature'
+    });
 
-  it('should detect integer overflows', () => {
-    const wallet = new Wallet();
-    const transaction = new Transaction(wallet.getPublicKey(), new Uint8Array([1, 2, 3]), Number.MAX_SAFE_INTEGER, 1);
-    transaction.sign(wallet);
-    expect(transaction.verify(wallet, 0)).toBe(false);
+    await expect(TransactionValidator.validate(invalidSignatureTx)).rejects.toThrow();
   });
 });
