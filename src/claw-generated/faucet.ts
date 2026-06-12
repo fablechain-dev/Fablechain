@@ -1,21 +1,55 @@
-import { NextFunction, Request, Response } from 'express';
-import { Account } from '../models/Account';
-import { Token } from '../models/Token';
+import { Account } from '../account';
+import { CaptchaProvider } from './captcha-provider';
 
-export const faucetEndpoint = async (req: Request, res: Response, next: NextFunction) => {
-  const { address } = req.body;
+export class Faucet {
+  private ipLimits: Map<string, number> = new Map();
+  private addressLimits: Map<string, number> = new Map();
+  private cooldownPeriod = 1000 * 60 * 10; // 10 minutes
+  private maxRequestsPerIP = 10;
+  private maxRequestsPerAddress = 5;
+  private captchaProvider = new CaptchaProvider();
 
-  // Check if address has already received tokens today
-  const alreadyDispensed = await Account.findOne({ address, lastDispensed: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } });
-  if (alreadyDispensed) {
-    return res.status(429).json({ error: 'You can only claim tokens once per day' });
+  async handleRequest(ip: string, address: string): Promise<boolean> {
+    // Check IP rate limit
+    const ipCount = this.ipLimits.get(ip) || 0;
+    if (ipCount >= this.maxRequestsPerIP) {
+      return false;
+    }
+    this.ipLimits.set(ip, ipCount + 1);
+
+    // Check address cooldown
+    const lastRequest = this.addressLimits.get(address);
+    if (lastRequest && Date.now() - lastRequest < this.cooldownPeriod) {
+      return false;
+    }
+    const addressCount = this.addressLimits.get(address) || 0;
+    if (addressCount >= this.maxRequestsPerAddress) {
+      return false;
+    }
+    this.addressLimits.set(address, addressCount + 1);
+    this.addressLimits.set(address, Date.now());
+
+    // Verify captcha or proof-of-work
+    if (!await this.verifyChallenge(ip, address)) {
+      return false;
+    }
+
+    // Dispense funds
+    await Account.fundAddress(address, 1000000);
+    return true;
   }
 
-  // Mint 10 CLAW tokens for the address
-  await Token.mint(address, 10);
+  private async verifyChallenge(ip: string, address: string): Promise<boolean> {
+    // Implement captcha or proof-of-work challenge here
+    const isValid = await this.captchaProvider.verifyChallenge(ip, address);
+    return isValid;
+  }
+}
 
-  // Update the account with the new dispense timestamp
-  await Account.updateOne({ address }, { $set: { lastDispensed: new Date() } }, { upsert: true });
-
-  res.json({ message: 'Tokens dispensed successfully' });
-};
+class CaptchaProvider {
+  async verifyChallenge(ip: string, address: string): Promise<boolean> {
+    // Implement captcha or proof-of-work challenge logic here
+    // Return true if the challenge is successfully completed, false otherwise
+    return true;
+  }
+}
