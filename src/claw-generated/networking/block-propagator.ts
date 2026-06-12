@@ -1,5 +1,6 @@
 import { PeerManager } from './peer-manager';
 import { Block } from '../blockchain/block';
+import { CompactBlock } from './compact-block';
 
 export class BlockPropagator {
   peerManager: PeerManager;
@@ -14,9 +15,12 @@ export class BlockPropagator {
   }
 
   propagateBlock(block: Block) {
-    // Broadcast the new block to connected peers
+    // Create a compact block representation
+    const compactBlock = new CompactBlock(block);
+
+    // Broadcast the compact block to connected peers
     for (const peer of this.peerManager.peers) {
-      // Send the block to the peer
+      peer.sendCompactBlock(compactBlock);
     }
   }
 }
