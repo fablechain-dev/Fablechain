@@ -1,18 +1,11 @@
 export class Block {
+  number: number;
   hash: string;
-  prevHash: string;
   timestamp: number;
-  data: any;
 
-  constructor(prevHash: string, data: any) {
-    this.prevHash = prevHash;
-    this.data = data;
-    this.timestamp = Date.now();
-    this.hash = this.computeHash();
-  }
-
-  computeHash(): string {
-    // Implement hash computation logic
-    return 'placeholder';
+  constructor(number: number, hash: string, timestamp: number) {
+    this.number = number;
+    this.hash = hash;
+    this.timestamp = timestamp;
   }
 }

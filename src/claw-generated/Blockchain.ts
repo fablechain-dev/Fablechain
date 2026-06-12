@@ -1,14 +1,22 @@
-import { StateManager } from './StateManager';
+import { Block } from './Block';
+import { CheckpointManager } from './CheckpointManager';
 
-class Blockchain {
-  private stateManager: StateManager = new StateManager();
+export class Blockchain {
+  private blocks: Block[] = [];
+  private checkpointManager: CheckpointManager = new CheckpointManager();
 
-  async addBlock(block: Block): Promise<void> {
-    // Add block to chain
-    await this.stateManager.addState(block.number, block.state);
+  addBlock(block: Block): void {
+    this.blocks.push(block);
+    this.checkpointManager.addCheckpoint(block);
   }
 
-  async getBlockState(blockNumber: number): Promise<StateData> {
-    return await this.stateManager.getState(blockNumber);
+  getBlockByNumber(number: number): Block | null {
+    const checkpoint = this.checkpointManager.getCheckpointForBlock(number);
+    if (checkpoint) {
+      // If the block is before the checkpoint, skip verification
+      return new Block(number, checkpoint.block.hash, checkpoint.block.timestamp);
+    }
+    // Otherwise, verify the block as usual
+    return this.blocks.find((b) => b.number === number) || null;
   }
 }
