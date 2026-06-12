@@ -12,17 +12,17 @@ class MerklePatriciaTrie {
   }
 
   set(key: string, value: any): void {
-    this.root = this.updateNode(this.root, key, value);
+    this.root = this.updateNode(this.root, key.split(''), value);
   }
 
   get(key: string): any {
-    const node = this.findNode(this.root, key);
+    const node = this.findNode(this.root, key.split(''));
     return node ? node.value : undefined;
   }
 
   getProof(key: string): any[] {
     const proof: any[] = [];
-    this.findProof(this.root, key, proof);
+    this.findProof(this.root, key.split(''), proof);
     return proof;
   }
 
@@ -37,23 +37,68 @@ class MerklePatriciaTrie {
     return node && node.value === value;
   }
 
-  private updateNode(node: Node | null, key: string, value: any): Node {
-    // Implement node update logic
-    return node || { key, value, children: {} };
-  }
+  private updateNode(node: Node | null, key: string[], value: any): Node {
+    if (key.length === 0) {
+      return { key: '', value, children: {} };
+    }
 
-  private findNode(node: Node | null, key: string): Node | null {
-    // Implement node lookup logic
+    const currentKey = key[0];
+    if (!node) {
+      return { key: currentKey, value: null, children: { [key[1] || '']: this.updateNode(null, key.slice(1), value) } };
+    }
+
+    if (node.key === currentKey) {
+      node.children[key[1] || ''] = this.updateNode(node.children[key[1] || ''], key.slice(1), value);
+    } else {
+      const newNode = { key: currentKey, value: null, children: { [key[1] || '']: this.updateNode(null, key.slice(1), value) } };
+      node.children[currentKey] = newNode;
+    }
+
     return node;
   }
 
-  private findProof(node: Node | null, key: string, proof: any[]): void {
-    // Implement proof generation logic
+  private findNode(node: Node | null, key: string[]): Node | null {
+    if (!node) {
+      return null;
+    }
+
+    if (key.length === 0) {
+      return node;
+    }
+
+    const currentKey = key[0];
+    if (node.key === currentKey) {
+      return this.findNode(node.children[key[1] || ''], key.slice(1));
+    }
+
+    return null;
+  }
+
+  private findProof(node: Node | null, key: string[], proof: any[]): void {
+    if (!node) {
+      return;
+    }
+
+    proof.push({ key: node.key, value: node.value, hash: this.hash(node) });
+
+    if (key.length > 0) {
+      const currentKey = key[0];
+      if (node.key === currentKey) {
+        this.findProof(node.children[key[1] || ''], key.slice(1), proof);
+      }
+    }
   }
 
   private verifyProofItem(node: Node | null, item: any): Node | null {
-    // Implement proof verification logic
-    return node;
+    if (!item) {
+      return node;
+    }
+
+    if (!node || this.hash(node) !== item.hash) {
+      return null;
+    }
+
+    return { key: item.key, value: item.value, children: {} };
   }
 
   private hash(node: Node): string {

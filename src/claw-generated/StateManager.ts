@@ -1,13 +1,12 @@
 import { MerklePatriciaTrie } from './MerklePatriciaTrie';
-import { StateSnapshot } from './StateSnapshot';
 
 class StateManager {
-  private currentState: StateSnapshot;
-  private previousState: StateSnapshot;
+  private currentState: MerklePatriciaTrie;
+  private previousState: MerklePatriciaTrie;
 
   constructor() {
-    this.currentState = new StateSnapshot();
-    this.previousState = new StateSnapshot();
+    this.currentState = new MerklePatriciaTrie();
+    this.previousState = new MerklePatriciaTrie();
   }
 
   getStateRoot(): string {
@@ -23,17 +22,17 @@ class StateManager {
   }
 
   getProof(key: string): any[] {
-    return this.currentState.trie.getProof(key);
+    return this.currentState.getProof(key);
   }
 
   verifyProof(key: string, value: any, proof: any[]): boolean {
-    return this.currentState.trie.verifyProof(key, value, proof);
+    return this.currentState.verifyProof(key, value, proof);
   }
 
-  getStateDiff(): StateSnapshot {
-    const diff = new StateSnapshot();
-    const previousKeys = this.previousState.trie.getAllKeys();
-    const currentKeys = this.currentState.trie.getAllKeys();
+  getStateDiff(): MerklePatriciaTrie {
+    const diff = new MerklePatriciaTrie();
+    const previousKeys = this.previousState.getAllKeys();
+    const currentKeys = this.currentState.getAllKeys();
 
     // Check for added/modified keys
     for (const key of currentKeys) {
@@ -52,18 +51,18 @@ class StateManager {
     return diff;
   }
 
-  applyStateDiff(diff: StateSnapshot): void {
-    const keys = diff.trie.getAllKeys();
+  applyStateDiff(diff: MerklePatriciaTrie): void {
+    const keys = diff.getAllKeys();
     for (const key of keys) {
       const value = diff.get(key);
       if (value === null) {
-        this.currentState.trie.delete(key);
+        this.currentState.delete(key);
       } else {
-        this.currentState.trie.set(key, value);
+        this.currentState.set(key, value);
       }
     }
     this.previousState = this.currentState;
-    this.currentState = new StateSnapshot();
+    this.currentState = new MerklePatriciaTrie();
     this.currentState.merge(this.previousState);
   }
 }
