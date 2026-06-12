@@ -1,47 +1,28 @@
-import { VirtualMachine } from './vm';
+import { VM } from './vm';
+import { BigNumber } from 'ethers';
 
-describe('VirtualMachine', () => {
-  let vm: VirtualMachine;
+describe('VM', () => {
+  let vm: VM;
 
   beforeEach(() => {
-    vm = new VirtualMachine();
+    vm = new VM();
   });
 
-  it('should push and pop values from the stack', () => {
-    vm.pushToStack(10);
-    vm.pushToStack(20);
-    expect(vm.popFromStack()).toBe(20);
-    expect(vm.popFromStack()).toBe(10);
+  it('should execute basic arithmetic operations', () => {
+    const bytecode = new Uint8Array([0x10, 0x05, 0x10, 0x03, 0x01]); // PUSH1 5, PUSH1 3, ADD
+    vm.execute(bytecode);
+    expect(vm.pop()).toEqual(BigNumber.from(8));
   });
 
-  it('should load and store values in memory', () => {
-    vm.setMemoryValue(0, 100);
-    expect(vm.getMemoryValue(0)).toBe(100);
+  it('should execute memory operations', () => {
+    const bytecode = new Uint8Array([0x10, 0x0a, 0x51, 0x10, 0x0a, 0x50]); // PUSH1 10, MSTORE, PUSH1 10, MLOAD
+    vm.execute(bytecode);
+    expect(vm.pop()).toEqual(BigNumber.from(10));
   });
 
-  it('should perform arithmetic operations', () => {
-    vm.pushToStack(10);
-    vm.pushToStack(20);
-    vm.execute({ bytecode: [0x05] }); // ADD
-    expect(vm.popFromStack()).toBe(30);
-
-    vm.pushToStack(30);
-    vm.pushToStack(10);
-    vm.execute({ bytecode: [0x06] }); // SUB
-    expect(vm.popFromStack()).toBe(20);
-
-    vm.pushToStack(5);
-    vm.pushToStack(3);
-    vm.execute({ bytecode: [0x07] }); // MUL
-    expect(vm.popFromStack()).toBe(15);
-
-    vm.pushToStack(10);
-    vm.pushToStack(3);
-    vm.execute({ bytecode: [0x08] }); // DIV
-    expect(vm.popFromStack()).toBe(3);
-  });
-
-  it('should throw an error for unknown opcodes', () => {
-    expect(() => vm.execute({ bytecode: [0xFF] })).toThrowError('Unknown opcode: 255');
+  it('should execute control flow operations', () => {
+    const bytecode = new Uint8Array([0x10, 0x05, 0x10, 0x03, 0x03, 0x20, 0x06, 0x10, 0x0a, 0x00]); // PUSH1 5, PUSH1 3, SUB, JUMP 6, PUSH1 10, STOP
+    vm.execute(bytecode);
+    expect(vm.pop()).toEqual(BigNumber.from(2));
   });
 });
