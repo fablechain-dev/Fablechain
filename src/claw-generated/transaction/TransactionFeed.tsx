@@ -7,23 +7,50 @@ interface TransactionFeedProps {
 }
 
 const TransactionFeed: React.FC<TransactionFeedProps> = ({ walletAddress }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
+  const [confirmedTransactions, setConfirmedTransactions] = useState<Transaction[]>([]);
+  const [filterStatus, setFilterStatus] = useState<'pending' | 'confirmed' | 'all'>('all');
 
   useEffect(() => {
     const ws = new WebSocketConnection('/transactions');
     ws.onMessage((data) => {
       const newTransaction = Transaction.fromJSON(data);
-      setTransactions((prevTransactions) => [newTransaction, ...prevTransactions]);
+      if (
+        newTransaction.senderAddress.toString() === walletAddress.toString() ||
+        newTransaction.recipientAddress.toString() === walletAddress.toString()
+      ) {
+        if (newTransaction.status === 'pending') {
+          setPendingTransactions((prevTransactions) => [newTransaction, ...prevTransactions]);
+        } else {
+          setConfirmedTransactions((prevTransactions) => [newTransaction, ...prevTransactions]);
+        }
+      }
     });
 
     return () => {
       ws.close();
     };
-  }, []);
+  }, [walletAddress]);
+
+  const filteredTransactions = () => {
+    switch (filterStatus) {
+      case 'pending':
+        return pendingTransactions;
+      case 'confirmed':
+        return confirmedTransactions;
+      case 'all':
+        return [...pendingTransactions, ...confirmedTransactions];
+    }
+  };
 
   return (
     <div className="transaction-feed">
       <h2>Real-Time Transaction Feed</h2>
+      <div className="filter-buttons">
+        <button onClick={() => setFilterStatus('pending')}>Pending</button>
+        <button onClick={() => setFilterStatus('confirmed')}>Confirmed</button>
+        <button onClick={() => setFilterStatus('all')}>All</button>
+      </div>
       <table>
         <thead>
           <tr>
@@ -35,7 +62,7 @@ const TransactionFeed: React.FC<TransactionFeedProps> = ({ walletAddress }) => {
           </tr>
         </thead>
         <tbody>
-          {transactions.map((tx, index) => (
+          {filteredTransactions().map((tx, index) => (
             <tr key={index}>
               <td>{tx.senderAddress}</td>
               <td>{tx.recipientAddress}</td>
