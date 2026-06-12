@@ -1,31 +1,33 @@
 import { BigNumber } from 'ethers';
+import { StakingContract } from './StakingContract';
+import { BlockUtils } from './BlockUtils';
 
-class StakingManager {
-  private delegations: Map<string, BigNumber> = new Map();
-  private rewardRate: BigNumber = BigNumber.from(10000); // 1% per year
+export class StakingManager {
+  private stakingContract: StakingContract;
+  private userStakes: Map<string, BigNumber> = new Map();
+  private lastClaimBlock: Map<string, number> = new Map();
 
-  async stake(amount: BigNumber, delegatee: string): Promise<void> {
-    // Track the delegation
-    const currentDelegation = this.delegations.get(delegatee) || BigNumber.from(0);
-    this.delegations.set(delegatee, currentDelegation.add(amount));
-
-    // TODO: Emit event for staking
+  constructor(stakingContract: StakingContract) {
+    this.stakingContract = stakingContract;
   }
 
-  async withdraw(amount: BigNumber, delegatee: string): Promise<void> {
-    // Update the delegation
-    const currentDelegation = this.delegations.get(delegatee) || BigNumber.from(0);
-    this.delegations.set(delegatee, currentDelegation.sub(amount));
-
-    // TODO: Emit event for withdrawal
+  stake(address: string, amount: BigNumber): void {
+    this.stakingContract.stake(amount);
+    this.userStakes.set(address, (this.userStakes.get(address) || BigNumber.from(0)).add(amount));
+    this.lastClaimBlock.set(address, BlockUtils.getCurrentBlockNumber());
   }
 
-  async claimRewards(delegatee: string): Promise<BigNumber> {
-    const currentDelegation = this.delegations.get(delegatee) || BigNumber.from(0);
-    const rewards = currentDelegation.mul(this.rewardRate).div(10000);
-    this.delegations.set(delegatee, currentDelegation);
+  withdraw(address: string, amount: BigNumber): void {
+    this.stakingContract.withdraw(amount);
+    const currentStake = this.userStakes.get(address) || BigNumber.from(0);
+    this.userStakes.set(address, currentStake.sub(amount));
+  }
+
+  claimRewards(address: string): BigNumber {
+    const stake = this.userStakes.get(address) || BigNumber.from(0);
+    const lastClaim = this.lastClaimBlock.get(address) || 0;
+    const rewards = this.stakingContract.claimRewards(address, lastClaim);
+    this.lastClaimBlock.set(address, BlockUtils.getCurrentBlockNumber());
     return rewards;
   }
 }
-
-export default StakingManager;
