@@ -1,3 +1,5 @@
-mod rpc;
+mod block;
+mod transaction;
 
-pub use rpc::send_transaction;
+pub use block::*;
+pub use transaction::*;
