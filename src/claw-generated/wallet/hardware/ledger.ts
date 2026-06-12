@@ -1,24 +1,17 @@
-import { HardwareWalletDevice, HardwareWalletSignature } from './types';
-import { LedgerTransport } from './transport';
+import TransportWebHID from '@ledgerhq/hw-transport-webhid';
+import Eth from '@ledgerhq/hw-app-eth';
+import { KeyPair } from '../keypair';
 
-export class LedgerWallet {
-  private transport: LedgerTransport;
+export async function getLedgerKeyPair(): Promise<KeyPair> {
+  const transport = await TransportWebHID.create();
+  const eth = new Eth(transport);
+  const { address, publicKey } = await eth.getAddress("44'/60'/0'/0/0");
+  return { publicKey, privateKey: '' };
+}
 
-  async connect(): Promise<HardwareWalletDevice> {
-    this.transport = new LedgerTransport();
-    return this.transport.connect();
-  }
-
-  async disconnect(): Promise<void> {
-    await this.transport.disconnect();
-  }
-
-  async signTransaction(transaction: any): Promise<HardwareWalletSignature> {
-    // Implement Ledger transaction signing
-    const signature = await this.transport.send(Buffer.from(JSON.stringify(transaction)));
-    return {
-      signature: signature.toString('hex'),
-      publicKey: '0x...'
-    };
-  }
+export async function signLedgerTransaction(transaction: any, path: string): Promise<string> {
+  const transport = await TransportWebHID.create();
+  const eth = new Eth(transport);
+  const signature = await eth.signTransaction(path, transaction);
+  return signature.toString('hex');
 }
