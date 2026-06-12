@@ -1,82 +1,84 @@
-import { Transaction } from './transaction';
+import { expect } from 'chai';
+import { TransactionValidator } from '../transaction/transaction-validator';
 import { Account } from '../account/account';
+import { Transaction } from '../transaction/transaction';
 
-describe('Transaction', () => {
-  it('should verify a valid signature', () => {
-    const senderAccount = new Account('sender-public-key', 100, 0);
-    const transaction = new Transaction(
-      senderAccount.publicKey,
-      'recipient-address',
-      10,
-      0,
-      'valid-signature'
-    );
+describe('TransactionValidator', () => {
+  let validator: TransactionValidator;
+  let account: Account;
 
-    expect(transaction.verifySignature(senderAccount)).toBe(true);
+  beforeEach(() => {
+    account = new Account('0x1234567890abcdef');
+    validator = new TransactionValidator();
   });
 
-  it('should detect an invalid signature', () => {
-    const senderAccount = new Account('sender-public-key', 100, 0);
-    const transaction = new Transaction(
-      senderAccount.publicKey,
-      'recipient-address',
-      10,
-      0,
-      'invalid-signature'
-    );
+  describe('verifySignature', () => {
+    it('should verify a valid signature', () => {
+      const tx = new Transaction({
+        from: account.address,
+        to: '0x0987654321fedcba',
+        value: 100,
+        nonce: 0,
+      });
+      tx.sign(account.privateKey);
+      expect(validator.verifySignature(tx)).to.be.true;
+    });
 
-    expect(transaction.verifySignature(senderAccount)).toBe(false);
+    it('should reject an invalid signature', () => {
+      const tx = new Transaction({
+        from: account.address,
+        to: '0x0987654321fedcba',
+        value: 100,
+        nonce: 0,
+      });
+      tx.sign('0xdeadbeef');
+      expect(validator.verifySignature(tx)).to.be.false;
+    });
   });
 
-  it('should validate a correct nonce', () => {
-    const senderAccount = new Account('sender-public-key', 100, 0);
-    const transaction = new Transaction(
-      senderAccount.publicKey,
-      'recipient-address',
-      10,
-      0,
-      'valid-signature'
-    );
+  describe('validateNonce', () => {
+    it('should validate a correct nonce', () => {
+      const tx = new Transaction({
+        from: account.address,
+        to: '0x0987654321fedcba',
+        value: 100,
+        nonce: account.nonce,
+      });
+      expect(validator.validateNonce(tx, account)).to.be.true;
+    });
 
-    expect(transaction.validateNonce(senderAccount)).toBe(true);
+    it('should reject an incorrect nonce', () => {
+      const tx = new Transaction({
+        from: account.address,
+        to: '0x0987654321fedcba',
+        value: 100,
+        nonce: account.nonce + 1,
+      });
+      expect(validator.validateNonce(tx, account)).to.be.false;
+    });
   });
 
-  it('should detect an invalid nonce', () => {
-    const senderAccount = new Account('sender-public-key', 100, 1);
-    const transaction = new Transaction(
-      senderAccount.publicKey,
-      'recipient-address',
-      10,
-      0,
-      'valid-signature'
-    );
+  describe('validateBalance', () => {
+    it('should validate a transaction with sufficient balance', () => {
+      account.balance = 1000;
+      const tx = new Transaction({
+        from: account.address,
+        to: '0x0987654321fedcba',
+        value: 100,
+        nonce: account.nonce,
+      });
+      expect(validator.validateBalance(tx, account)).to.be.true;
+    });
 
-    expect(transaction.validateNonce(senderAccount)).toBe(false);
-  });
-
-  it('should validate a sufficient balance', () => {
-    const senderAccount = new Account('sender-public-key', 100, 0);
-    const transaction = new Transaction(
-      senderAccount.publicKey,
-      'recipient-address',
-      10,
-      0,
-      'valid-signature'
-    );
-
-    expect(transaction.validateBalance(senderAccount)).toBe(true);
-  });
-
-  it('should detect an insufficient balance', () => {
-    const senderAccount = new Account('sender-public-key', 5, 0);
-    const transaction = new Transaction(
-      senderAccount.publicKey,
-      'recipient-address',
-      10,
-      0,
-      'valid-signature'
-    );
-
-    expect(transaction.validateBalance(senderAccount)).toBe(false);
+    it('should reject a transaction with insufficient balance', () => {
+      account.balance = 50;
+      const tx = new Transaction({
+        from: account.address,
+        to: '0x0987654321fedcba',
+        value: 100,
+        nonce: account.nonce,
+      });
+      expect(validator.validateBalance(tx, account)).to.be.false;
+    });
   });
 });
