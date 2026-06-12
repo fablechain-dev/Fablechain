@@ -1,23 +1,9 @@
-import { PublicKey } from '@solana/web3.js';
-import { Account } from '../state/Account';
+import { Account } from '../state/account';
 
-interface GetBalanceParams {
-  pubkey: string;
-}
-
-interface GetBalanceResult {
-  lamports: number;
-}
-
-export async function getBalance(params: GetBalanceParams): Promise<GetBalanceResult> {
-  const { pubkey } = params;
-  const account = await Account.findByPublicKey(new PublicKey(pubkey));
-
+export function getBalance(pubkey: string): number {
+  const account = Account.get(pubkey);
   if (!account) {
-    throw new Error(`Account not found for public key: ${pubkey}`);
+    return 0;
   }
-
-  return {
-    lamports: account.lamports,
-  };
+  return account.balance;
 }
