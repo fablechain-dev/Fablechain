@@ -1,15 +1,10 @@
-import { blockProducedCounter, blockProductionLatencyGauge } from '../metrics';
+import { blockProduced } from '../monitoring/metrics';
 
-class BlockProducer {
-  // ... other methods
+export class BlockProducer {
+  // ... existing code ...
 
   async produceBlock() {
-    const startTime = Date.now();
-    // ... block production logic
-
-    blockProducedCounter.inc();
-    blockProductionLatencyGauge.set(Date.now() - startTime);
+    // ... existing block production logic ...
+    blockProduced.inc();
   }
 }
-
-export default BlockProducer;
