@@ -1,27 +1,37 @@
-import { Block } from '../Block';
+import { Transaction } from '@solana/web3.js';
+import { SimulateTransactionResponse } from '../rpc/types';
+import { Connection, clusterApiUrl, Keypair } from '@solana/web3.js';
+import { BpfLoader, deserializeUnchecked } from '@solana/spl-token';
 
-export async function getBlock(slot: number, options: { 
-  encoding?: 'json' | 'binary'
-  transactionDetails?: 'full' | 'partial' | 'none'
-}): Promise<Block> {
-  // Fetch the block from the chain by slot number
-  const block = await Chain.getBlockBySlot(slot);
+export class RpcServer {
+  async simulateTransaction(
+    tx: string
+  ): Promise<SimulateTransactionResponse> {
+    // Decode the transaction
+    const transaction = Transaction.from(Buffer.from(tx, 'base64'));
 
-  // Apply the requested encoding and transaction details
-  if (options.encoding === 'binary') {
-    block.encodeTransactions('binary');
-  } else {
-    block.encodeTransactions('json');
+    // Execute the transaction in a test environment
+    const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+    const payer = Keypair.generate();
+    await connection.confirmTransaction(
+      await connection.requestAirdrop(payer.publicKey, 1e9)
+    );
+
+    const logs: string[] = [];
+    const computeUnits: number = await connection.simulateTransaction(transaction, [payer], {
+      commitment: 'confirmed',
+      accounts: {
+        deserialized: true
+      },
+      replaceRecentBlockhash: true,
+      logsCallback: (logs) => {
+        this.logs.push(...logs);
+      }
+    }).then(result => result.value.computeUnitsConsumed);
+
+    return {
+      logs,
+      computeUnits
+    };
   }
-
-  if (options.transactionDetails === 'partial') {
-    block.transactions = block.transactions.map(tx => ({
-      signature: tx.signature,
-      message: tx.message
-    }));
-  } else if (options.transactionDetails === 'none') {
-    block.transactions = [];
-  }
-
-  return block;
 }
