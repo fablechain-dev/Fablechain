@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+message Account {
+  string address = 1;
+  uint64 balance = 2;
+  bytes code = 3;
+  bytes storage = 4;
+}
+
+message Contract {
+  string address = 1;
+  bytes code = 2;
+  bytes storage = 3;
+}
+
+message StateSnapshot {
+  repeated Account accounts = 1;
+  repeated Contract contracts = 2;
+}
