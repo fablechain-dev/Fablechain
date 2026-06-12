@@ -1,25 +1,36 @@
-import { Transaction } from './transaction';
 import { Account } from '../blockchain/account';
+import { Transaction } from './transaction';
 
 describe('Transaction', () => {
-  let account: Account;
+  it('should validate a valid transaction', () => {
+    const sender = new Account('sender', 1000);
+    const recipient = new Account('recipient', 0);
+    const transaction = new Transaction(sender, recipient, 100, 1, 'valid_signature');
 
-  beforeEach(() => {
-    account = new Account('0x1234', 100, 0);
+    expect(transaction.validate()).toBe(true);
   });
 
-  it('should calculate the correct fee', () => {
-    const tx = new Transaction('0x1234', '0x5678', 10, 0, 'signature', 0.01);
-    expect(tx.fee).toEqual(0.01);
+  it('should invalidate a transaction with incorrect signature', () => {
+    const sender = new Account('sender', 1000);
+    const recipient = new Account('recipient', 0);
+    const transaction = new Transaction(sender, recipient, 100, 1, 'invalid_signature');
+
+    expect(transaction.validate()).toBe(false);
   });
 
-  it('should validate the balance with the fee', () => {
-    const tx = new Transaction('0x1234', '0x5678', 10, 0, 'signature', 0.01);
-    expect(tx.validateBalance(account)).toBe(true);
+  it('should invalidate a transaction with incorrect nonce', () => {
+    const sender = new Account('sender', 1000);
+    const recipient = new Account('recipient', 0);
+    const transaction = new Transaction(sender, recipient, 100, 2, 'valid_signature');
+
+    expect(transaction.validate()).toBe(false);
   });
 
-  it('should fail to validate the balance if the fee is too high', () => {
-    const tx = new Transaction('0x1234', '0x5678', 100, 0, 'signature', 1);
-    expect(tx.validateBalance(account)).toBe(false);
+  it('should invalidate a transaction with insufficient balance', () => {
+    const sender = new Account('sender', 50);
+    const recipient = new Account('recipient', 0);
+    const transaction = new Transaction(sender, recipient, 100, 1, 'valid_signature');
+
+    expect(transaction.validate()).toBe(false);
   });
 });

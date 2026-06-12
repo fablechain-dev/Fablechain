@@ -1,40 +1,36 @@
 import { Account } from '../blockchain/account';
 
 export class Transaction {
-  from: string;
-  to: string;
-  value: number;
+  sender: Account;
+  recipient: Account;
+  amount: number;
   nonce: number;
   signature: string;
-  fee: number;
 
-  constructor(from: string, to: string, value: number, nonce: number, signature: string, fee: number) {
-    this.from = from;
-    this.to = to;
-    this.value = value;
+  constructor(sender: Account, recipient: Account, amount: number, nonce: number, signature: string) {
+    this.sender = sender;
+    this.recipient = recipient;
+    this.amount = amount;
     this.nonce = nonce;
     this.signature = signature;
-    this.fee = fee;
   }
 
-  verify(account: Account): boolean {
-    // Implement signature verification logic
-    return account.verifySignature(this.from, this.signature);
-  }
+  validate(): boolean {
+    // Signature verification
+    if (!this.sender.verifySignature(this.signature)) {
+      return false;
+    }
 
-  validateNonce(account: Account): boolean {
-    // Implement nonce validation logic
-    return account.nonce === this.nonce;
-  }
+    // Nonce validation
+    if (this.sender.nonce !== this.nonce) {
+      return false;
+    }
 
-  validateBalance(account: Account): boolean {
-    // Implement balance check logic
-    return account.balance >= this.value + this.fee;
-  }
+    // Balance check
+    if (this.sender.balance < this.amount) {
+      return false;
+    }
 
-  calculateFee(): number {
-    // Calculate the fee based on transaction size and complexity
-    // For now, let's use a simple fixed fee
-    return 0.01;
+    return true;
   }
 }
