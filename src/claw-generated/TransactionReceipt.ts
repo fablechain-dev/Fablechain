@@ -20,4 +20,8 @@ export class TransactionReceipt {
     this.events = events;
     this.bloomFilter = bloomFilter;
   }
+
+  static fromTransaction(tx: Transaction, status: boolean, gasUsed: number, logs: LogEntry[], events: EventEntry[], bloomFilter: BloomFilter): TransactionReceipt {
+    return new TransactionReceipt(status, gasUsed, logs, events, bloomFilter);
+  }
 }

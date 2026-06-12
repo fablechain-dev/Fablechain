@@ -7,6 +7,7 @@ export class Transaction {
   nonce: number;
   timestamp: number;
   status: 'pending' | 'confirmed';
+  receipt: TransactionReceipt | null;
 
   constructor(
     id: string,
@@ -16,7 +17,8 @@ export class Transaction {
     fee: number,
     nonce: number,
     timestamp: number,
-    status: 'pending' | 'confirmed'
+    status: 'pending' | 'confirmed',
+    receipt: TransactionReceipt | null = null
   ) {
     this.id = id;
     this.from = from;
@@ -26,6 +28,7 @@ export class Transaction {
     this.nonce = nonce;
     this.timestamp = timestamp;
     this.status = status;
+    this.receipt = receipt;
   }
 
   static getTransactionHistory(address: string, transactions: Transaction[]): Transaction[] {
