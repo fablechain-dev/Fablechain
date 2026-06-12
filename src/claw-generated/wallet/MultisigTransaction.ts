@@ -1,33 +1,26 @@
-import { Signature } from '../types';
-import { recoverAddress } from '../utils';
+import { TransactionSigner } from './TransactionSigner';
 
 export class MultisigTransaction {
-  // ... (previous code)
+  readonly id: string;
+  readonly signers: string[];
+  readonly minSignatures: number;
+  readonly data: any;
+  private signatures: { [signer: string]: string } = {};
 
-  addSignature(signer: string, signature: Signature): void {
-    if (this.signers.includes(signer)) {
-      this.signatures.push({ signer, signature });
-    } else {
-      throw new Error(`${signer} is not an authorized signer for this transaction`);
-    }
+  constructor(id: string, signers: string[], minSignatures: number, data: any) {
+    this.id = id;
+    this.signers = signers;
+    this.minSignatures = minSignatures;
+    this.data = data;
   }
 
-  hasEnoughSignatures(): boolean {
-    return this.signatures.length >= this.minSignatures;
+  addSignature(signer: string, signature: string): void {
+    this.signatures[signer] = signature;
   }
 
-  verifySignatures(): boolean {
-    if (this.signatures.length < this.minSignatures) {
-      return false;
-    }
-
-    for (const { signer, signature } of this.signatures) {
-      const recoveredAddress = recoverAddress(this.data, signature);
-      if (recoveredAddress !== signer) {
-        return false;
-      }
-    }
-
-    return true;
+  verify(): boolean {
+    // Check that the required number of valid signatures are provided
+    const validSignatures = Object.keys(this.signatures).filter(signer => this.signers.includes(signer));
+    return validSignatures.length >= this.minSignatures;
   }
 }

@@ -1,4 +1,5 @@
 import { MultisigTransaction } from './MultisigTransaction';
+import { TransactionSigner } from './TransactionSigner';
 
 export class Wallet {
   readonly id: string;
@@ -14,6 +15,14 @@ export class Wallet {
   createTransaction(data: any): MultisigTransaction {
     const txId = this.generateTransactionId();
     return new MultisigTransaction(txId, this.signers, this.minSignatures, data);
+  }
+
+  addSignature(tx: MultisigTransaction, signer: string, signature: string): void {
+    tx.addSignature(signer, signature);
+  }
+
+  verifyTransaction(tx: MultisigTransaction): boolean {
+    return tx.verify();
   }
 
   private generateTransactionId(): string {
