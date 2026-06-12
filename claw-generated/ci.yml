@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+    - run: npm ci
+    - run: npm run build
+    - run: npm test
+  
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Deploy to hosting platform
+      env:
+        HOST_USERNAME: ${{ secrets.HOST_USERNAME }}
+        HOST_PASSWORD: ${{ secrets.HOST_PASSWORD }}
+      run: |
+        npm run build
+        scp -r dist/* user@example.com:/path/to/deployment
