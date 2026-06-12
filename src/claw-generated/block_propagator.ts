@@ -18,5 +18,13 @@ export class BlockPropagator {
 
   private sendBlockToPeer(peer: Peer, block: Block) {
     // Implement compact block relay logic to send only the necessary block data
+    const blockData = this.getCompactBlockData(peer, block);
+    // Send the blockData to the peer
+  }
+
+  private getCompactBlockData(peer: Peer, block: Block): Uint8Array {
+    // Implement logic to determine the minimal block data to send to the peer
+    // based on the blocks they already have
+    return new Uint8Array();
   }
 }
