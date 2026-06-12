@@ -1,5 +1,5 @@
 import { parse, Response, JsonRpcError } from 'jsonrpc-lite';
-import { getBalance, sendTransaction } from '../blockchain';
+import { getBalance, sendTransaction, getTransaction } from '../blockchain';
 
 export class JsonRpcServer {
   async handleRequest(rawRequest: string): Promise<string> {
@@ -36,6 +36,13 @@ export class JsonRpcServer {
             jsonrpc: '2.0',
             id: request.id,
             result: txHash
+          };
+        case 'eth_getTransaction':
+          const transaction = await getTransaction(request.params[0]);
+          return {
+            jsonrpc: '2.0',
+            id: request.id,
+            result: transaction || null
           };
         default:
           return {
