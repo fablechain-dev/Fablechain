@@ -1,10 +1,60 @@
-import { Transaction } from '../transaction/Transaction';
-import { Signature } from '../crypto/Signature';
+import { Address, Transaction } from './types';
 
-abstract class Account {
-  abstract getBalance(): Promise<number>;
-  abstract sign(tx: Transaction): Promise<Signature>;
-  abstract verify(tx: Transaction, signature: Signature): Promise<boolean>;
+export interface Account {
+  address: Address;
+  nonce: number;
+  validateTransaction(tx: Transaction): Promise<boolean>;
+  incrementNonce(): void;
 }
 
-export { Account };
+export class EOAAccount implements Account {
+  address: Address;
+  nonce: number = 0;
+
+  constructor(address: Address) {
+    this.address = address;
+  }
+
+  async validateTransaction(tx: Transaction): Promise<boolean> {
+    if (tx.from !== this.address) {
+      return false;
+    }
+
+    if (tx.nonce !== this.nonce) {
+      return false;
+    }
+
+    this.incrementNonce();
+    return true;
+  }
+
+  incrementNonce(): void {
+    this.nonce++;
+  }
+}
+
+export class SmartContractAccount implements Account {
+  address: Address;
+  nonce: number = 0;
+
+  constructor(address: Address) {
+    this.address = address;
+  }
+
+  async validateTransaction(tx: Transaction): Promise<boolean> {
+    if (tx.to !== this.address) {
+      return false;
+    }
+
+    if (tx.nonce !== this.nonce) {
+      return false;
+    }
+
+    this.incrementNonce();
+    return true;
+  }
+
+  incrementNonce(): void {
+    this.nonce++;
+  }
+}
