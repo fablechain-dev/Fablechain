@@ -1,43 +1,47 @@
 // Sync logic for ClawChain
 import { Block } from './block';
-import { Checkpoint } from './checkpoint';
+import { Checkpoint, CheckpointManager } from './checkpoint';
+import { Blockchain } from './blockchain';
 
 export class SyncManager {
-  private checkpoints: Checkpoint[] = [];
+  private blockchain: Blockchain;
+  private checkpointManager: CheckpointManager;
+
+  constructor(blockchain: Blockchain) {
+    this.blockchain = blockchain;
+    this.checkpointManager = new CheckpointManager();
+  }
 
   async syncToLatestCheckpoint(startBlock: number): Promise<void> {
-    // Fetch blocks from startBlock up to the latest checkpoint
-    // Verify blocks before the checkpoint
-    // Apply checkpoint to skip verification of earlier blocks
-    const latestCheckpoint = this.checkpoints[this.checkpoints.length - 1];
-    const blocks = await this.fetchBlocks(startBlock, latestCheckpoint.blockNumber);
-    for (const block of blocks) {
-      await this.verifyBlock(block);
+    const latestCheckpoint = this.checkpointManager.getCheckpointByNumber(startBlock);
+    if (latestCheckpoint) {
+      await this.syncFromCheckpoint(latestCheckpoint);
+    } else {
+      await this.syncFromGenesis(startBlock);
     }
-    this.applyCheckpoint(latestCheckpoint);
   }
 
   async syncFromCheckpoint(checkpoint: Checkpoint): Promise<void> {
-    // Fetch blocks from checkpoint to latest
-    // Verify blocks
-    // Update chain state
     const blocks = await this.fetchBlocks(checkpoint.blockNumber + 1, 'latest');
     for (const block of blocks) {
       await this.verifyBlock(block);
-      // Apply block to chain state
+      this.blockchain.addBlock(block);
+    }
+  }
+
+  async syncFromGenesis(startBlock: number): Promise<void> {
+    const blocks = await this.fetchBlocks(startBlock, 'latest');
+    for (const block of blocks) {
+      await this.verifyBlock(block);
+      this.blockchain.addBlock(block);
+      this.checkpointManager.addCheckpoint(block);
     }
   }
 
   async createCheckpoint(): Promise<Checkpoint> {
-    // Generate new checkpoint based on latest block
-    // Add checkpoint to the list
     const latestBlock = await this.getLatestBlock();
-    const newCheckpoint = new Checkpoint(
-      latestBlock.number,
-      latestBlock.hash,
-      latestBlock.timestamp
-    );
-    this.checkpoints.push(newCheckpoint);
+    const newCheckpoint = new Checkpoint(latestBlock);
+    this.checkpointManager.checkpoints.push(newCheckpoint);
     return newCheckpoint;
   }
 
@@ -56,9 +60,5 @@ export class SyncManager {
   private async getLatestBlock(): Promise<Block> {
     // Fetch the latest block from the blockchain
     // Return the latest block
-  }
-
-  private applyCheckpoint(checkpoint: Checkpoint): void {
-    // Update the chain state to the checkpoint
   }
 }
