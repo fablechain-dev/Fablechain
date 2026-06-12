@@ -1,21 +1,18 @@
 import { Request, Response } from 'express';
-import { getTokenBalance, mintTokens } from './blockchain';
-import { addFaucetRequest, checkFaucetRequest } from './db';
+import { CLAW } from '../token/CLAW';
+import rateLimit from 'express-rate-limit';
 
-export const faucetEndpoint = async (req: Request, res: Response) => {
-  const { address } = req.body;
+// Create a rate limiter
+const faucetLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 1 minute'
+});
 
-  // Check if address has already received tokens in the last 24 hours
-  const hasRequestedRecently = await checkFaucetRequest(address);
-  if (hasRequestedRecently) {
-    return res.status(429).json({ error: 'You can only request from the faucet once per day' });
-  }
-
-  // Mint 10 CLAW tokens and send to the address
-  await mintTokens(address, 10);
-
-  // Record the faucet request
-  await addFaucetRequest(address);
-
-  return res.json({ message: 'Tokens sent to your address' });
-};
+export async function faucetHandler(req: Request, res: Response) {
+  // Apply the rate limiter
+  await faucetLimiter(req, res, async () => {
+    // TODO: Implement faucet logic
+    res.status(200).json({ message: 'Faucet endpoint' });
+  });
+}

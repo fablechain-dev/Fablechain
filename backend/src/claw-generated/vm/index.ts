@@ -1,33 +1,76 @@
+import { Opcode } from './opcodes';
+
 export class VirtualMachine {
   private stack: any[] = [];
+  private memory: Uint8Array = new Uint8Array(1024 * 1024); // 1MB memory
+  private pc: number = 0; // program counter
 
   execute(bytecode: Uint8Array) {
-    for (let i = 0; i < bytecode.length; i++) {
-      const opcode = bytecode[i];
+    while (this.pc < bytecode.length) {
+      const opcode = bytecode[this.pc];
+      this.pc++;
+
       switch (opcode) {
-        case 0x01: // PUSH
-          i++;
-          const value = bytecode[i];
-          this.pushToStack(value);
+        case Opcode.PUSH:
+          this.pushToStack(this.readBytes(bytecode, 1));
           break;
-        case 0x02: // POP
+        case Opcode.POP:
           this.popFromStack();
           break;
-        case 0x03: // ADD
+        case Opcode.ADD:
           const b = this.popFromStack();
           const a = this.popFromStack();
           this.pushToStack(a + b);
           break;
-        case 0x04: // SUB
+        case Opcode.SUB:
           const d = this.popFromStack();
           const c = this.popFromStack();
           this.pushToStack(c - d);
           break;
-        // Add more operations as needed
+        case Opcode.MUL:
+          const f = this.popFromStack();
+          const e = this.popFromStack();
+          this.pushToStack(e * f);
+          break;
+        case Opcode.DIV:
+          const h = this.popFromStack();
+          const g = this.popFromStack();
+          this.pushToStack(Math.floor(g / h));
+          break;
+        case Opcode.JUMP:
+          this.pc = this.popFromStack();
+          break;
+        case Opcode.JUMPI:
+          const target = this.popFromStack();
+          const condition = this.popFromStack();
+          if (condition) {
+            this.pc = target;
+          }
+          break;
+        case Opcode.CALL:
+          const argCount = this.popFromStack();
+          const address = this.popFromStack();
+          const args = [];
+          for (let i = 0; i < argCount; i++) {
+            args.push(this.popFromStack());
+          }
+          const result = this.callContract(address, args);
+          this.pushToStack(result);
+          break;
+        case Opcode.RETURN:
+          const returnValue = this.popFromStack();
+          return returnValue;
         default:
           throw new Error(`Unknown opcode: ${opcode}`);
       }
     }
+
+    return null;
+  }
+
+  private callContract(address: number, args: any[]): any {
+    // Implement contract call logic here
+    return 0;
   }
 
   private pushToStack(value: any) {
@@ -36,5 +79,14 @@ export class VirtualMachine {
 
   private popFromStack(): any {
     return this.stack.pop();
+  }
+
+  private readBytes(bytecode: Uint8Array, count: number): number {
+    let result = 0;
+    for (let i = 0; i < count; i++) {
+      result = (result << 8) + bytecode[this.pc + i];
+    }
+    this.pc += count;
+    return result;
   }
 }

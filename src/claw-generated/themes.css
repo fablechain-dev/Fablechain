@@ -1,0 +1,41 @@
+:root {
+  /* Light theme variables */
+  --color-background-light: #ffffff;
+  --color-text-light: #333333;
+  --color-primary-light: #007bff;
+  --color-secondary-light: #6c757d;
+
+  /* Dark theme variables */
+  --color-background-dark: #1e1e1e;
+  --color-text-dark: #f1f1f1;
+  --color-primary-dark: #0056b3;
+  --color-secondary-dark: #adb5bd;
+}
+
+body.theme-light {
+  background-color: var(--color-background-light);
+  color: var(--color-text-light);
+}
+
+body.theme-dark {
+  background-color: var(--color-background-dark);
+  color: var(--color-text-dark);
+}
+
+.btn-primary {
+  background-color: var(--color-primary-light);
+  color: #fff;
+}
+
+.btn-primary.theme-dark {
+  background-color: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary-light);
+  color: #fff;
+}
+
+.btn-secondary.theme-dark {
+  background-color: var(--color-secondary-dark);
+}

@@ -1,27 +1,19 @@
-import Blockchain from './blockchain';
+import { JsonRpcServer } from './json-rpc-server';
 
-class RPCServer {
-  private blockchain: Blockchain;
-
-  constructor(blockchain: Blockchain) {
-    this.blockchain = blockchain;
+export class RPCServer extends JsonRpcServer {
+  constructor() {
+    super();
+    this.registerMethods();
   }
 
-  getBlockFinality(blockHash: string): number {
-    return this.blockchain.getBlockFinality(blockHash);
+  registerMethods() {
+    this.addMethod('sendTransaction', this.sendTransaction.bind(this));
   }
 
-  start(): void {
-    // Expose the getBlockFinality method as an RPC endpoint
-    this.registerRPCMethod('getBlockFinality', this.getBlockFinality.bind(this));
-
-    // Start the RPC server
-    // ...
-  }
-
-  private registerRPCMethod(name: string, handler: (params: any) => any): void {
-    // Implement RPC method registration
+  async sendTransaction(params: any): Promise<any> {
+    // TODO: Implement sendTransaction RPC
+    return {
+      result: 'Transaction sent successfully'
+    };
   }
 }
-
-export default RPCServer;

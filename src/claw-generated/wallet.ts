@@ -1,27 +1,36 @@
-import { Ed25519KeyPair } from 'crypto';
+import { generateMnemonic, mnemonicToSeedSync } from 'bip39';
+import { Ed25519KeyPair } from './ed25519';
+import { base58Encode } from './encoding';
 
 export class Wallet {
   private keyPair: Ed25519KeyPair;
-  private nonce: number;
 
-  constructor() {
-    this.keyPair = Ed25519KeyPair.generate();
-    this.nonce = 0;
+  constructor(seed?: Uint8Array) {
+    if (seed) {
+      this.keyPair = Ed25519KeyPair.fromSeed(seed);
+    } else {
+      this.keyPair = Ed25519KeyPair.generate();
+    }
   }
 
-  getPublicKey(): Buffer {
+  get publicKey(): Uint8Array {
     return this.keyPair.publicKey;
   }
 
-  getPrivateKey(): Buffer {
+  get privateKey(): Uint8Array {
     return this.keyPair.privateKey;
   }
 
-  getNonce(): number {
-    return this.nonce;
+  get address(): string {
+    return base58Encode(this.publicKey);
   }
 
-  incrementNonce(): void {
-    this.nonce++;
+  get mnemonic(): string {
+    return generateMnemonic();
+  }
+
+  static fromMnemonic(mnemonic: string): Wallet {
+    const seed = mnemonicToSeedSync(mnemonic);
+    return new Wallet(seed);
   }
 }

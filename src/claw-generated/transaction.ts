@@ -1,61 +1,37 @@
-import { Wallet } from './wallet';
-import { Ed25519Signature, Ed25519KeyPair } from 'crypto';
-import { varintEncode, varintDecode } from './utils';
+// transaction.ts
+
+import { EventEmitter, EventReceipt } from './events';
 
 export class Transaction {
-  private inputs: TransactionInput[];
-  private outputs: TransactionOutput[];
-  private signature: Ed25519Signature;
-  private nonce: number;
+  private eventEmitter = new EventEmitter();
 
-  constructor(inputs: TransactionInput[], outputs: TransactionOutput[], nonce: number) {
-    this.inputs = inputs;
-    this.outputs = outputs;
-    this.nonce = nonce;
+  execute() {
+    // Execute the transaction logic
+    // ...
+
+    // Capture any emitted events
+    const events = this.eventEmitter.getEvents();
+    this.eventEmitter.clearEvents();
+
+    // Create the transaction receipt
+    return new TransactionReceipt(
+      this.hash,
+      events
+    );
   }
 
-  sign(wallet: Wallet): void {
-    const transactionData = this.serialize();
-    this.signature = wallet.keyPair.sign(transactionData);
-  }
-
-  serialize(): Buffer {
-    const inputCount = varintEncode(this.inputs.length);
-    const inputsBuffer = Buffer.concat(this.inputs.map(input => {
-      const prevTxHash = input.previousTxHash;
-      const outputIndex = Buffer.alloc(4);
-      outputIndex.writeUInt32BE(input.outputIndex);
-      return Buffer.concat([prevTxHash, outputIndex]);
-    }));
-
-    const outputCount = varintEncode(this.outputs.length);
-    const outputsBuffer = Buffer.concat(this.outputs.map(output => {
-      const amountBuffer = Buffer.alloc(8);
-      amountBuffer.writeBigUInt64BE(BigInt(output.amount));
-      return Buffer.concat([amountBuffer, output.recipient]);
-    }));
-
-    const nonceBuffer = Buffer.alloc(4);
-    nonceBuffer.writeUInt32BE(this.nonce);
-
-    return Buffer.concat([inputCount, inputsBuffer, outputCount, outputsBuffer, nonceBuffer, this.signature]);
+  emit(name: string, data: any) {
+    this.eventEmitter.emit(name, data);
   }
 }
 
-export interface TransactionInput {
-  previousTxHash: Buffer;
-  outputIndex: number;
-}
+export class TransactionReceipt {
+  constructor(
+    public transactionHash: string,
+    public events: EventData[]
+  ) {}
 
-export interface TransactionOutput {
-  amount: bigint;
-  recipient: Buffer;
-}
-
-function varintEncode(value: number): Buffer {
-  // Implement varint encoding
-}
-
-function varintDecode(buffer: Buffer): [number, number] {
-  // Implement varint decoding
+  getBloomFilter(): number[] {
+    return new EventReceipt(this.transactionHash, this.events).getBloomFilter();
+  }
 }
