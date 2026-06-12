@@ -1,31 +1,38 @@
-import { Block } from './block';
+import { Block, Transaction } from './block';
 
 export class Blockchain {
-  private chain: Block[] = [];
-  private pendingBlocks: Block[] = [];
-  private requiredConfirmations = 6;
+  private chain: Block[];
+  private pendingTransactions: Transaction[];
+  private confirmationThreshold: number;
 
-  addBlock(block: Block) {
-    this.pendingBlocks.push(block);
-    this.checkFinality();
+  constructor(confirmationThreshold: number) {
+    this.chain = [];
+    this.pendingTransactions = [];
+    this.confirmationThreshold = confirmationThreshold;
   }
 
-  private checkFinality() {
-    for (const block of this.pendingBlocks) {
-      const confirmations = this.chain.filter(b => b.hash === block.hash).length;
-      if (confirmations >= this.requiredConfirmations) {
-        block.finalized = true;
-        this.chain.push(block);
-        this.pendingBlocks = this.pendingBlocks.filter(b => b.hash !== block.hash);
-      }
+  addBlock(block: Block): void {
+    this.chain.push(block);
+    this.pendingTransactions = [];
+  }
+
+  addTransaction(transaction: Transaction): void {
+    this.pendingTransactions.push(transaction);
+  }
+
+  getFinalizationStatus(blockHash: string): FinalizationStatus {
+    const block = this.chain.find((b) => b.hash === blockHash);
+    if (!block) {
+      return { finalized: false, confirmations: 0 };
     }
-  }
 
-  getChain(): Block[] {
-    return this.chain;
+    const confirmations = this.chain.length - this.chain.findIndex((b) => b.hash === blockHash);
+    const finalized = confirmations >= this.confirmationThreshold;
+    return { finalized, confirmations };
   }
+}
 
-  getPendingBlocks(): Block[] {
-    return this.pendingBlocks;
-  }
+export interface FinalizationStatus {
+  finalized: boolean;
+  confirmations: number;
 }
