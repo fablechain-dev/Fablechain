@@ -1,4 +1,5 @@
-import { Log, LogEntry, BloomFilter, Event, EventEntry } from '../types';
+import { Log, LogEntry, BloomFilter, Event, EventEntry } from './types';
+import { Transaction } from './Transaction';
 
 export class TransactionReceipt {
   status: boolean;

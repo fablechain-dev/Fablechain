@@ -1,5 +1,7 @@
 import { Account } from './Account';
 import { Ed25519Signer } from './crypto/ed25519';
+import { TransactionReceipt } from './TransactionReceipt';
+import { Log, LogEntry, BloomFilter, Event, EventEntry } from './types';
 
 export class Transaction {
   sender: Account;
@@ -7,6 +9,7 @@ export class Transaction {
   amount: number;
   timestamp: number;
   signature: Uint8Array;
+  receipt: TransactionReceipt;
 
   constructor(sender: Account, recipient: string, amount: number) {
     this.sender = sender;
@@ -21,6 +24,10 @@ export class Transaction {
 
   verify(): boolean {
     return Ed25519Signer.verify(this.getDataToSign(), this.signature, this.sender.publicKey);
+  }
+
+  async generateReceipt(status: boolean, gasUsed: number, logs: LogEntry[], events: EventEntry[], bloomFilter: BloomFilter): Promise<void> {
+    this.receipt = TransactionReceipt.fromTransaction(this, status, gasUsed, logs, events, bloomFilter);
   }
 
   private getDataToSign(): Uint8Array {
