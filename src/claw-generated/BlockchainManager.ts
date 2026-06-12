@@ -1,36 +1,34 @@
 import { Block } from './Block';
 
 export class BlockchainManager {
-  private readonly chain: Block[] = [];
-  private readonly requiredConfirmations: number = 6;
+  private chain: Block[] = [];
+  private maxBlockSize: number = 1000000; // 1MB block size limit
+  private lastAdjustmentTime: number = Date.now();
+  private adjustmentInterval: number = 60 * 60 * 1000; // 1 hour
 
-  public addBlock(block: Block): void {
+  addBlock(block: Block): boolean {
+    // Validate the block size
+    if (!block.validateSize(this.maxBlockSize)) {
+      console.error(`Block size ${block.size} exceeds the limit of ${this.maxBlockSize} bytes.`);
+      return false;
+    }
+
+    // Other block validation logic...
+
     this.chain.push(block);
-    this.updateFinality();
+    return true;
   }
 
-  private updateFinality(): void {
-    for (let i = this.chain.length - 1; i >= 0; i--) {
-      const block = this.chain[i];
-      block.incrementConfirmations();
+  adjustBlockSizeLimit(): void {
+    // Monitor network metrics and adjust the block size limit accordingly
+    const currentTime = Date.now();
+    if (currentTime - this.lastAdjustmentTime >= this.adjustmentInterval) {
+      // Implement logic to adjust the block size limit based on network conditions
+      this.maxBlockSize = this.maxBlockSize * 1.1; // Increase the limit by 10% for now
+      this.lastAdjustmentTime = currentTime;
+      console.log(`Block size limit adjusted to ${this.maxBlockSize} bytes.`);
     }
   }
 
-  public getFinalizationStatus(blockId: string): {
-    finalized: boolean;
-    confirmations: number;
-  } {
-    const block = this.chain.find((b) => b.id === blockId);
-    if (!block) {
-      return {
-        finalized: false,
-        confirmations: 0,
-      };
-    }
-
-    return {
-      finalized: block.isFinalized(this.requiredConfirmations),
-      confirmations: block.confirmations,
-    };
-  }
+  // Other blockchain management methods...
 }
