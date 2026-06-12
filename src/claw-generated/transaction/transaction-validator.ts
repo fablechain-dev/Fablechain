@@ -1,22 +1,55 @@
+import { AccountStorage } from '../AccountStorage';
+import { ContractStorage } from '../contracts/ContractStorage';
 import { Transaction } from './transaction';
 
-export class TransactionValidator {
-  static async validate(tx: Transaction): Promise<void> {
-    // Validate transaction format
-    if (!tx.isValid()) {
-      throw new Error('Invalid transaction format');
+class TransactionValidator {
+  private accountStorage: AccountStorage;
+  private contractStorage: ContractStorage;
+
+  constructor(accountStorage: AccountStorage, contractStorage: ContractStorage) {
+    this.accountStorage = accountStorage;
+    this.contractStorage = contractStorage;
+  }
+
+  validateTransaction(tx: Transaction): boolean {
+    // Check account balances
+    if (!this.checkAccountBalances(tx)) {
+      return false;
     }
 
-    // Verify transaction signatures
-    await tx.verifySignatures();
+    // Check contract state
+    if (!this.checkContractState(tx)) {
+      return false;
+    }
 
-    // Check for integer overflows
-    this.checkForIntegerOverflows(tx);
+    // Check for potential MEV extraction attempts
+    if (this.hasSuspiciousGasCosts(tx)) {
+      return false;
+    }
+
+    return true;
   }
 
-  static checkForIntegerOverflows(tx: Transaction): void {
-    // Implement logic to check for integer overflows in the transaction
-    // This may involve checking the values of fields like amount, gas, etc.
-    // and ensuring they do not exceed the maximum or minimum allowed values
+  private checkAccountBalances(tx: Transaction): boolean {
+    // Implement logic to check account balances
+    // Return false if the transaction is invalid
+    return true;
+  }
+
+  private checkContractState(tx: Transaction): boolean {
+    // Implement logic to check contract state
+    // Return false if the transaction is invalid
+    return true;
+  }
+
+  private hasSuspiciousGasCosts(tx: Transaction): boolean {
+    // Implement logic to detect transactions with excessive gas costs
+    // This could indicate an attempt to extract MEV
+    if (tx.gasLimit > 10000000) {
+      return true;
+    }
+    return false;
   }
 }
+
+export { TransactionValidator };

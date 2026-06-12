@@ -7,6 +7,7 @@ import { zlib } from 'zlib';
 import { fs } from 'fs';
 import { path } from 'path';
 import { validateBlockTransactions } from './block-validator';
+import { shuffle } from '../utils';
 
 export class Blockchain {
   private blocks: Block[] = [];
@@ -105,6 +106,11 @@ export class Blockchain {
   }
 
   private validateBlockTransactions(block: Block): boolean {
+    // Randomly reorder the transactions in the block
+    const transactions = Array.from(block.transactions);
+    shuffle(transactions);
+    block.transactions = transactions;
+
     return validateBlockTransactions(block, this.accountStorage, this.contractStorage);
   }
 

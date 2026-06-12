@@ -1,6 +1,7 @@
 import { TransactionMempool } from '../transaction_mempool';
 import { Peer } from './peer_connection';
 import { Transaction } from '../transaction';
+import { shuffle } from '../utils';
 
 class TransactionGossipProtocol {
   private mempool: TransactionMempool;
@@ -34,6 +35,11 @@ class TransactionGossipProtocol {
     if (!this.knownTransactions.has(txHash)) {
       this.knownTransactions.set(txHash, new Set());
     }
+
+    // Randomly reorder the transactions in the mempool
+    const mempoolTransactions = Array.from(this.mempool.getTransactions());
+    shuffle(mempoolTransactions);
+    this.mempool.setTransactions(mempoolTransactions);
 
     for (const peer of this.peers) {
       if (!this.knownTransactions.get(txHash)?.has(peer)) {
