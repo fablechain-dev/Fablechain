@@ -1,1 +1,6 @@
-export const STATE_PRUNING_PERIOD = 10_000; // Keep 10,000 blocks of state data in live store
+export const config = {
+  rateLimiter: {
+    maxRequests: 10,
+    windowMs: 60000, // 1 minute
+  },
+};
