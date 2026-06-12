@@ -1,60 +1,19 @@
-import { Address, Transaction } from './types';
-
-export interface Account {
-  address: Address;
+export class Account {
+  balance: number;
   nonce: number;
-  validateTransaction(tx: Transaction): Promise<boolean>;
-  incrementNonce(): void;
-}
+  storageSlots: Map<string, any>;
 
-export class EOAAccount implements Account {
-  address: Address;
-  nonce: number = 0;
-
-  constructor(address: Address) {
-    this.address = address;
+  constructor(balance: number, nonce: number) {
+    this.balance = balance;
+    this.nonce = nonce;
+    this.storageSlots = new Map();
   }
 
-  async validateTransaction(tx: Transaction): Promise<boolean> {
-    if (tx.from !== this.address) {
-      return false;
-    }
-
-    if (tx.nonce !== this.nonce) {
-      return false;
-    }
-
-    this.incrementNonce();
-    return true;
+  getStorageSlot(key: string): any {
+    return this.storageSlots.get(key);
   }
 
-  incrementNonce(): void {
-    this.nonce++;
-  }
-}
-
-export class SmartContractAccount implements Account {
-  address: Address;
-  nonce: number = 0;
-
-  constructor(address: Address) {
-    this.address = address;
-  }
-
-  async validateTransaction(tx: Transaction): Promise<boolean> {
-    if (tx.to !== this.address) {
-      return false;
-    }
-
-    if (tx.nonce !== this.nonce) {
-      return false;
-    }
-
-    this.incrementNonce();
-    return true;
-  }
-
-  incrementNonce(): void {
-    this.nonce++;
+  setStorageSlot(key: string, value: any): void {
+    this.storageSlots.set(key, value);
   }
 }

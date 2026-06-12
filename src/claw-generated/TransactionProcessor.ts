@@ -2,19 +2,34 @@ import { Account } from './Account';
 import { Transaction } from './Transaction';
 
 export class TransactionProcessor {
-  private accounts: Map<string, Account>;
+  processTransaction(tx: Transaction, accounts: Map<string, Account>): void {
+    const senderAccount = accounts.get(tx.from);
+    const receiverAccount = accounts.get(tx.to);
 
-  constructor(accounts: Map<string, Account>) {
-    this.accounts = accounts;
+    if (!senderAccount || !receiverAccount) {
+      throw new Error('Invalid transaction: sender or receiver account does not exist');
+    }
+
+    if (senderAccount.nonce !== tx.nonce) {
+      throw new Error('Invalid transaction: incorrect nonce');
+    }
+
+    if (senderAccount.balance < tx.value) {
+      throw new Error('Invalid transaction: insufficient funds');
+    }
+
+    senderAccount.balance -= tx.value;
+    receiverAccount.balance += tx.value;
+    senderAccount.nonce += 1;
+
+    // Process storage slot updates
+    this.processStorageSlots(tx, senderAccount, receiverAccount);
+
+    accounts.set(tx.from, senderAccount);
+    accounts.set(tx.to, receiverAccount);
   }
 
-  processTransaction(tx: Transaction): void {
-    const senderAccount = this.accounts.get(tx.from);
-    if (senderAccount && senderAccount.validateTransaction(tx)) {
-      senderAccount.executeTransaction(tx);
-      // Update blockchain state
-    } else {
-      // Reject invalid transaction
-    }
+  processStorageSlots(tx: Transaction, senderAccount: Account, receiverAccount: Account): void {
+    // TODO: Implement storage slot processing logic
   }
 }
