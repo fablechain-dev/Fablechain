@@ -1,49 +1,54 @@
-import { Delegation, RewardInfo } from './types';
+import { Account } from '../accounts/account';
 
-export class StakingModule {
-  private delegations: Delegation[] = [];
-  private rewardInfo: Map<string, RewardInfo> = new Map();
+export class Staking {
+  private delegations: Map<string, Account[]> = new Map();
+  private stakedBalances: Map<string, { amount: number, timestamp: number }> = new Map();
+  private rewardsRate = 0.05; // 5% annual rewards rate
 
-  // Track new delegation
-  addDelegation(delegatorAddress: string, validatorAddress: string, amount: number): void {
-    const delegation: Delegation = {
-      delegatorAddress,
-      validatorAddress,
+  stakeTokens(account: Account, amount: number) {
+    // Add tokens to account's staked balance
+    this.stakedBalances.set(account.address, {
+      amount: (this.stakedBalances.get(account.address)?.amount || 0) + amount,
+      timestamp: Date.now()
+    });
+
+    // Update delegations map
+    let delegators = this.delegations.get(account.address) || [];
+    delegators.push(account);
+    this.delegations.set(account.address, delegators);
+  }
+
+  claimRewards(account: Account) {
+    // Calculate rewards based on staked balance and time
+    const { amount, timestamp } = this.stakedBalances.get(account.address) || { amount: 0, timestamp: 0 };
+    const timeDelta = Date.now() - timestamp;
+    const rewards = amount * this.rewardsRate * (timeDelta / (1000 * 60 * 60 * 24 * 365)); // Assuming 5% annual rate
+
+    // Transfer rewards to account's balance
+    account.balance += rewards;
+    this.stakedBalances.set(account.address, {
       amount,
       timestamp: Date.now()
-    };
-    this.delegations.push(delegation);
-    this.initRewardInfo(delegatorAddress);
+    });
   }
 
-  // Calculate rewards for a delegator
-  getRewards(delegatorAddress: string): number {
-    this.updateRewardInfo(delegatorAddress);
-    const rewardInfo = this.rewardInfo.get(delegatorAddress);
-    return rewardInfo?.totalRewards || 0;
+  withdraw(account: Account, amount: number) {
+    // Reduce account's staked balance
+    const { amount: stakedAmount, timestamp } = this.stakedBalances.get(account.address) || { amount: 0, timestamp: 0 };
+    this.stakedBalances.set(account.address, {
+      amount: stakedAmount - amount,
+      timestamp
+    });
+
+    // Remove account from delegators list
+    const delegators = this.delegations.get(account.address) || [];
+    this.delegations.set(account.address, delegators.filter(d => d.address !== account.address));
+
+    // Transfer withdrawn tokens to account's balance
+    account.balance += amount;
   }
 
-  private initRewardInfo(delegatorAddress: string): void {
-    if (!this.rewardInfo.has(delegatorAddress)) {
-      this.rewardInfo.set(delegatorAddress, {
-        totalRewards: 0,
-        lastRewardTimestamp: Date.now()
-      });
-    }
-  }
-
-  private updateRewardInfo(delegatorAddress: string): void {
-    const rewardInfo = this.rewardInfo.get(delegatorAddress);
-    if (rewardInfo) {
-      const timeSinceLastReward = Date.now() - rewardInfo.lastRewardTimestamp;
-      const newRewards = this.calculateRewards(delegatorAddress, timeSinceLastReward);
-      rewardInfo.totalRewards += newRewards;
-      rewardInfo.lastRewardTimestamp = Date.now();
-    }
-  }
-
-  private calculateRewards(delegatorAddress: string, timeSinceLastReward: number): number {
-    // Implement reward calculation logic here
-    return 0;
+  getDelegators(account: Account): Account[] {
+    return this.delegations.get(account.address) || [];
   }
 }
