@@ -1,28 +1,20 @@
-import { Transaction } from './Transaction';
 import { Account } from './Account';
-import { VirtualMachine } from './VirtualMachine';
-import { ContractDeploymentManager } from './ContractDeploymentManager';
+import { Transaction } from './Transaction';
 
 export class TransactionProcessor {
-  private virtualMachine: VirtualMachine;
-  private contractDeploymentManager: ContractDeploymentManager;
+  private accounts: Map<string, Account>;
 
-  constructor(virtualMachine: VirtualMachine, contractDeploymentManager: ContractDeploymentManager) {
-    this.virtualMachine = virtualMachine;
-    this.contractDeploymentManager = contractDeploymentManager;
+  constructor(accounts: Map<string, Account>) {
+    this.accounts = accounts;
   }
 
-  async processTransaction(transaction: Transaction): Promise<void> {
-    // Check if the transaction is a contract deployment
-    if (transaction.to === '0x0') {
-      const { from, data, nonce } = transaction;
-      const account = await Account.fromAddress(from);
-      const contractAddress = await this.contractDeploymentManager.deployContract(account, data, []);
-      // Update the transaction to include the contract address
-      transaction.to = contractAddress;
+  processTransaction(tx: Transaction): void {
+    const senderAccount = this.accounts.get(tx.from);
+    if (senderAccount && senderAccount.validateTransaction(tx)) {
+      senderAccount.executeTransaction(tx);
+      // Update blockchain state
+    } else {
+      // Reject invalid transaction
     }
-
-    // Process the transaction through the virtual machine
-    await this.virtualMachine.processTransaction(transaction);
   }
 }

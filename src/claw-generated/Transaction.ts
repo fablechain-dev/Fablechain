@@ -4,7 +4,7 @@ export class Transaction {
   to: string;
   amount: number;
   fee: number;
-  nonce: number;
+  nonce: number; // Add nonce property
   timestamp: number;
   status: 'pending' | 'confirmed';
 
@@ -14,7 +14,7 @@ export class Transaction {
     to: string,
     amount: number,
     fee: number,
-    nonce: number,
+    nonce: number, // Accept nonce in constructor
     timestamp: number,
     status: 'pending' | 'confirmed'
   ) {
@@ -23,7 +23,7 @@ export class Transaction {
     this.to = to;
     this.amount = amount;
     this.fee = fee;
-    this.nonce = nonce;
+    this.nonce = nonce; // Assign nonce
     this.timestamp = timestamp;
     this.status = status;
   }
