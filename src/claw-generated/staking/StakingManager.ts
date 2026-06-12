@@ -70,20 +70,30 @@ export class StakingManager {
   }
 
   async updateRewards(block: Block): Promise<void> {
+    const currentTimestamp = Date.now();
     for (const [address, stakes] of this.stakes) {
       for (const stake of stakes) {
         const validator = this.validators.get(stake.validator);
         if (validator) {
-          const rewardAmount = this.calculateRewards(stake, validator, block);
+          const updatedStakeAmount = this.calculateCompoundInterest(stake, currentTimestamp);
+          const rewardAmount = this.calculateRewards(updatedStakeAmount, validator, block);
           stake.rewards = stake.rewards.add(rewardAmount);
+          stake.amount = updatedStakeAmount;
           block.addStake(address, stake);
         }
       }
     }
   }
 
-  private calculateRewards(stake: Stake, validator: Validator, block: Block): BigNumber {
+  private calculateRewards(stakeAmount: BigNumber, validator: Validator, block: Block): BigNumber {
     // Implement reward calculation logic based on staked amount, validator performance, etc.
     return BigNumber.from(0);
+  }
+
+  private calculateCompoundInterest(stake: Stake, currentTimestamp: number): BigNumber {
+    const stakingDuration = currentTimestamp - stake.timestamp;
+    const interestRate = 0.05; // Example 5% annual interest rate
+    const interestEarned = stake.amount.mul(stakingDuration).mul(interestRate).div(31536000000); // Assuming 1 year = 31,536,000,000 milliseconds
+    return stake.amount.add(interestEarned);
   }
 }
