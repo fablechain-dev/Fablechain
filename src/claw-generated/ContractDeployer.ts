@@ -1,20 +1,27 @@
-import { Account } from '../state/Account';
-import { Transaction } from '../state/Transaction';
+import { Account } from './Account';
+import { Transaction } from './Transaction';
 import { getContractAddress } from './utils';
+import { StateManager } from './StateManager';
 
 export class ContractDeployer {
   private account: Account;
+  private stateManager: StateManager;
   private nonce: number = 0;
 
-  constructor(account: Account) {
+  constructor(account: Account, stateManager: StateManager) {
     this.account = account;
+    this.stateManager = stateManager;
   }
 
-  async deployContract(byteCode: string): Promise<string> {
+  async deployContract(byteCode: string, abi: any): Promise<string> {
     const transaction = this.createDeploymentTransaction(byteCode);
     const signature = await this.account.signTransaction(transaction);
     const contractAddress = getContractAddress(this.account.address, this.nonce);
-    // Store contract metadata and emit event
+
+    // Store contract metadata
+    await this.stateManager.storeContract(contractAddress, byteCode, abi);
+    this.stateManager.emitContractDeployedEvent(contractAddress, this.account.address);
+
     this.nonce++;
     return contractAddress;
   }
