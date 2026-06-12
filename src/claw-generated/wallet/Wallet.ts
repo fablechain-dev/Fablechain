@@ -3,7 +3,7 @@ import { KeyPair, generateKeypair } from './keypair';
 
 export class Wallet {
   private keyPair: KeyPair;
-  private signatureScheme: 'ed25519' | 'ecdsa' = 'ed25519';
+  private signatureScheme: 'ed25519' | 'ecdsa' | 'secp256k1' = 'ed25519';
 
   constructor(keyPair?: KeyPair) {
     this.keyPair = keyPair || generateKeypair();
@@ -15,6 +15,10 @@ export class Wallet {
 
   getPublicKey(): string {
     return this.keyPair.publicKey;
+  }
+
+  setSignatureScheme(scheme: 'ed25519' | 'ecdsa' | 'secp256k1'): void {
+    this.signatureScheme = scheme;
   }
 
   signTransaction(transaction: any): any {
