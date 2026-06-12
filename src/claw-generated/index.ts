@@ -1,17 +1,11 @@
-import express from 'express';
-import apiRouter from './api';
-import { getMetricsEndpoint } from './metrics';
-import metricsRouter from './api/metrics';
+import express, { Express, Request, Response } from 'express';
+import { healthCheck, readyCheck } from './health';
 
-const app = express();
+const app: Express = express();
 
-app.use('/api', apiRouter);
-app.use('/metrics', metricsRouter);
-
-app.get('/health', (req, res) => {
-  res.send('OK');
-});
+app.get('/health', healthCheck);
+app.get('/ready', readyCheck);
 
 app.listen(3000, () => {
-  console.log('ClawChain API server started on port 3000');
+  console.log('API server started on port 3000');
 });
