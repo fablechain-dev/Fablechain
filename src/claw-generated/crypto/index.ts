@@ -1,6 +1,3 @@
-// src/claw-generated/crypto/index.ts
-import { verifyZkSnark } from './verifier';
-
-export {
-  verifyZkSnark
-};
+export * from './ecdsa';
+export * from './ed25519';
+export * from './key-pair';

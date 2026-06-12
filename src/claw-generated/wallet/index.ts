@@ -1,3 +1,1 @@
-// Wallet module entry point
-
-export * from './hardwareWallet';
+export * from './transaction-signer';
