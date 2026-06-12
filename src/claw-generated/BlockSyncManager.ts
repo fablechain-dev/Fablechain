@@ -10,7 +10,7 @@ export class BlockSyncManager {
 
   constructor(chain: Chain, peerManager: PeerManager, connectionPool: ConnectionPool) {
     this.chain = chain;
-    this.peerManager: PeerManager = peerManager;
+    this.peerManager = peerManager;
     this.connectionPool = connectionPool;
   }
 
@@ -46,15 +46,24 @@ export class BlockSyncManager {
     peerHeight: number,
     peer: any
   ): Promise<string[]> {
-    // Implement logic to get the hashes of missing blocks
-    return [`missing-block-hash-1`, `missing-block-hash-2`];
+    const missingHashes = [];
+    for (let i = localHeight + 1; i <= peerHeight; i++) {
+      try {
+        const blockHash = await peer.getBlockHash(i);
+        if (!this.chain.hasBlock(blockHash)) {
+          missingHashes.push(blockHash);
+        }
+      } catch (error) {
+        console.error(`Error getting block hash ${i} from peer: ${error.message}`);
+      }
+    }
+    return missingHashes;
   }
 
   private async downloadBlocks(
     blockHashes: string[],
     peers: any[]
   ): Promise<Block[]> {
-    // Download blocks in parallel from multiple peers
     const promises = blockHashes.map(async (hash) => {
       for (const peer of peers) {
         try {

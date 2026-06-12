@@ -1,29 +1,47 @@
+import { Chain } from '../Chain';
+import { Block } from '../Block';
+import { PeerManager } from '../networking/PeerManager';
+import { ConnectionPool } from '../ConnectionPool';
 import { BlockSyncManager } from '../BlockSyncManager';
-import { Peer } from '../../networking/Peer';
-import { Block } from '../../chain/Block';
 
 describe('BlockSyncManager', () => {
-  test('detects missing blocks', async () => {
-    const localChainHead = new Block({ height: 99, hash: 'abc123' });
-    const syncManager = new BlockSyncManager(localChainHead);
+  let chain: Chain;
+  let peerManager: PeerManager;
+  let connectionPool: ConnectionPool;
+  let blockSyncManager: BlockSyncManager;
 
-    syncManager.addPeer(new Peer({ chainHead: new Block({ height: 200, hash: 'def456' }) }));
-    syncManager.addPeer(new Peer({ chainHead: new Block({ height: 400, hash: 'ghi789' }) }));
-
-    const missingRanges = await syncManager.detectMissingBlocks();
-    expect(missingRanges).toEqual([[100, 200], [300, 400]]);
+  beforeEach(() => {
+    chain = new Chain();
+    peerManager = new PeerManager();
+    connectionPool = new ConnectionPool();
+    blockSyncManager = new BlockSyncManager(chain, peerManager, connectionPool);
   });
 
-  test('requests and integrates blocks', async () => {
-    const localChainHead = new Block({ height: 99, hash: 'abc123' });
-    const syncManager = new BlockSyncManager(localChainHead);
+  test('syncBlocks', async () => {
+    // Mock the peer manager and connection pool
+    const peer1 = {
+      getBlockHeight: jest.fn().mockResolvedValue(100),
+      getBlockHash: jest.fn().mockResolvedValue('block-hash-1'),
+    };
+    const peer2 = {
+      getBlockHeight: jest.fn().mockResolvedValue(101),
+      getBlockHash: jest.fn().mockResolvedValue('block-hash-2'),
+    };
+    peerManager.getConnectedPeers = jest.fn().mockReturnValue([peer1, peer2]);
 
-    syncManager.addPeer(new Peer());
+    connectionPool.downloadBlock = jest.fn()
+      .mockResolvedValueOnce(new Block({ hash: 'block-hash-1' }))
+      .mockResolvedValueOnce(new Block({ hash: 'block-hash-2' }));
 
-    const downloadedBlocks = await syncManager.requestBlocks([[100, 200]]);
-    expect(downloadedBlocks.length).toBe(101);
+    // Run the sync
+    await blockSyncManager.syncBlocks();
 
-    await syncManager.validateAndIntegrateBlocks(downloadedBlocks);
-    // Verify the local chain has been updated correctly
+    // Verify the expected behavior
+    expect(chain.getBlocks().length).toBe(2);
+    expect(chain.hasBlock('block-hash-1')).toBe(true);
+    expect(chain.hasBlock('block-hash-2')).toBe(true);
+    expect(peer1.getBlockHeight).toHaveBeenCalled();
+    expect(peer2.getBlockHeight).toHaveBeenCalled();
+    expect(connectionPool.downloadBlock).toHaveBeenCalledTimes(2);
   });
 });
