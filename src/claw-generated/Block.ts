@@ -1,27 +1,37 @@
+import { Transaction } from './Transaction';
+
 export class Block {
-  public readonly index: number;
+  public readonly number: number;
   public readonly timestamp: number;
-  public readonly transactions: any[];
+  public readonly transactions: Transaction[];
   public readonly previousHash: string;
-  public hash: string;
-  public isFinalized: boolean;
+  public readonly hash: string;
 
   constructor(
-    index: number,
+    number: number,
     timestamp: number,
-    transactions: any[],
+    transactions: Transaction[],
     previousHash: string
   ) {
-    this.index = index;
+    this.number = number;
     this.timestamp = timestamp;
     this.transactions = transactions;
     this.previousHash = previousHash;
     this.hash = this.calculateHash();
-    this.isFinalized = false;
   }
 
   private calculateHash(): string {
     // Implement hash calculation logic here
     return '';
+  }
+
+  public isValid(): boolean {
+    // Implement block validation logic here
+    return true;
+  }
+
+  public serialize(): string {
+    // Implement block serialization logic here
+    return JSON.stringify(this);
   }
 }
