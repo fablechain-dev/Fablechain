@@ -1,69 +1,55 @@
-import { parse, Response, JsonRpcError } from 'jsonrpc-lite';
-import { getBalance, sendTransaction, getTransaction } from '../blockchain';
+import { JsonRpcRequest, JsonRpcResponse, JsonRpcError } from './types';
 
-export class JsonRpcServer {
-  async handleRequest(rawRequest: string): Promise<string> {
-    const request = parse(rawRequest);
+class JsonRpcServer {
+  private methods: { [key: string]: (...args: any[]) => Promise<any> } = {};
 
-    if (request.isNotification()) {
-      // Handle notification
-      return '';
-    } else if (request.isBatch()) {
-      // Handle batch request
-      const responses = await Promise.all(request.map(async (req) => {
-        return this.handleSingleRequest(req);
-      }));
-      return JSON.stringify(responses);
+  registerMethod(name: string, handler: (...args: any[]) => Promise<any>) {
+    this.methods[name] = handler;
+  }
+
+  async handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+    if (Array.isArray(request)) {
+      // Batch request
+      const responses = await Promise.all(request.map(this.handleSingleRequest.bind(this)));
+      return responses;
     } else {
-      // Handle single request
+      // Single request
       return this.handleSingleRequest(request);
     }
   }
 
-  private async handleSingleRequest(request: any): Promise<Response> {
-    try {
-      switch (request.method) {
-        case 'eth_getBalance':
-          const balance = await getBalance(request.params[0]);
-          return {
-            jsonrpc: '2.0',
-            id: request.id,
-            result: balance.toString()
-          };
-        case 'eth_sendTransaction':
-          const txHash = await sendTransaction(request.params[0]);
-          return {
-            jsonrpc: '2.0',
-            id: request.id,
-            result: txHash
-          };
-        case 'eth_getTransaction':
-          const transaction = await getTransaction(request.params[0]);
-          return {
-            jsonrpc: '2.0',
-            id: request.id,
-            result: transaction || null
-          };
-        default:
-          return {
-            jsonrpc: '2.0',
-            id: request.id,
-            error: {
-              code: -32601,
-              message: 'Method not found'
-            }
-          };
-      }
-    } catch (err) {
-      console.error('RPC error:', err);
+  private async handleSingleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+    const { id, method, params } = request;
+
+    if (!this.methods[method]) {
       return {
-        jsonrpc: '2.0',
-        id: request.id,
+        id,
         error: {
-          code: -32603,
-          message: 'Internal error'
-        }
+          code: -32601,
+          message: 'Method not found',
+        },
       };
+    }
+
+    try {
+      const result = await this.methods[method](...params);
+      return { id, result };
+    } catch (err) {
+      let error: JsonRpcError;
+      if (err instanceof Error) {
+        error = {
+          code: -32603,
+          message: err.message,
+        };
+      } else {
+        error = {
+          code: -32000,
+          message: 'Server error',
+        };
+      }
+      return { id, error };
     }
   }
 }
+
+export default JsonRpcServer;
