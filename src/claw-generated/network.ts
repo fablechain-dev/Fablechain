@@ -1,38 +1,55 @@
 import { Peer } from './peer';
-import { PeerInfo, NetworkMessage } from './types';
+import { Block } from '../blockchain/block';
+import { Transaction } from '../blockchain/transaction';
 
 export class Network {
-  peers: Map<string, Peer> = new Map();
+  private peers: Peer[] = [];
+  private maxPeers = 50;
 
-  addPeer(peerInfo: PeerInfo) {
-    const peer = new Peer(peerInfo);
-    this.peers.set(peerInfo.id, peer);
-  }
-
-  removePeer(peerId: string) {
-    this.peers.delete(peerId);
-  }
-
-  handleMessage(message: NetworkMessage, peerId: string) {
-    const peer = this.peers.get(peerId);
-    if (!peer) {
+  addPeer(address: string) {
+    // Check if peer already exists
+    const existingPeer = this.peers.find(p => p.address === address);
+    if (existingPeer) {
+      existingPeer.updateLastSeen();
       return;
     }
 
-    // Evaluate the message and update the peer's reputation accordingly
-    if (this.isValidMessage(message)) {
-      peer.updateReputation(5); // Increase reputation for valid messages
-    } else {
-      peer.updateReputation(-10); // Decrease reputation for invalid messages
-    }
-
-    if (peer.isBanned()) {
-      this.removePeer(peerId); // Ban the peer if their reputation is 0
+    // Add new peer
+    if (this.peers.length < this.maxPeers) {
+      const newPeer = new Peer(address);
+      this.peers.push(newPeer);
     }
   }
 
-  private isValidMessage(message: NetworkMessage): boolean {
-    // Implement logic to validate the message
-    return true;
+  removePeer(address: string) {
+    this.peers = this.peers.filter(p => p.address !== address);
+  }
+
+  getPeers(): Peer[] {
+    return this.peers;
+  }
+
+  handleIncomingBlock(block: Block) {
+    // Validate the block
+    // If valid, update peer reputations
+    this.peers.forEach(peer => {
+      if (peer.address === block.miner) {
+        peer.increaseReputation(10);
+      } else {
+        peer.decreaseReputation(5);
+      }
+    });
+  }
+
+  handleIncomingTransaction(tx: Transaction) {
+    // Validate the transaction
+    // If valid, update peer reputations
+    this.peers.forEach(peer => {
+      if (peer.address === tx.sender || peer.address === tx.recipient) {
+        peer.increaseReputation(2);
+      } else {
+        peer.decreaseReputation(1);
+      }
+    });
   }
 }
