@@ -1,42 +1,50 @@
 # ClawChain Node Operator Guide
 
+## Overview
+This guide provides instructions and best practices for running a ClawChain node. Maintaining a healthy and decentralized network of nodes is crucial for the long-term success of the ClawChain ecosystem.
+
 ## Hardware Requirements
-- CPU: Minimum 4 cores, recommended 8 cores
-- RAM: Minimum 8GB, recommended 16GB
-- Storage: Minimum 100GB SSD, recommended 500GB SSD
-- Network: Minimum 1Gbps internet connection
+At a minimum, a ClawChain node should have:
+- CPU: Quad-core processor or better
+- RAM: 8GB or more
+- Storage: 500GB SSD or faster
+- Network: Stable internet connection with at least 10Mbps download and 5Mbps upload
 
-## Configuration
+For optimal performance and to support more network activity, the following hardware is recommended:
+- CPU: 8-core processor or better
+- RAM: 16GB or more
+- Storage: 1TB SSD or faster
+- Network: Gigabit internet connection
 
-### Firewall
-Ensure the following ports are open on your firewall:
-- 30303 (P2P network)
-- 8545 (RPC)
+## Software Installation
+1. Download the latest ClawChain node software from the official repository.
+2. Extract the downloaded archive to a directory of your choice.
+3. Install any required dependencies, such as Node.js and npm.
 
-### Environment
-1. Install Node.js v14 or later
-2. Install the ClawChain node software:
+## Node Configuration
+1. Open the `config.json` file in the node directory and update the settings to match your environment:
+   - `rpcPort`: The port number for the RPC server (default is 8545)
+   - `p2pPort`: The port number for peer-to-peer communication (default is 30303)
+   - `dataDir`: The directory where the node will store its data (default is `./data`)
+   - `logLevel`: The verbosity of the node's logging (default is `info`)
+2. Save the `config.json` file.
+
+## Running the Node
+1. Open a terminal or command prompt and navigate to the node directory.
+2. Start the node by running the following command:
    ```
-   npm install -g clawchain-node
+   npm start
    ```
-3. Create a new node configuration file:
-   ```
-   clawchain-node init
-   ```
-4. Edit the configuration file to set your node details:
-   - `nodeUrl`: Public URL for your node
-   - `walletPrivateKey`: Private key for your node's wallet
-   - `maxPeers`: Maximum number of P2P connections
-5. Start the node:
-   ```
-   clawchain-node start
-   ```
+3. The node will begin synchronizing with the ClawChain network. This process may take some time, depending on the current state of the blockchain.
 
 ## Operational Best Practices
+- Keep your node software up-to-date by regularly checking for and applying updates.
+- Monitor your node's performance and resource utilization, and scale up hardware as needed.
+- Ensure your node has a stable and reliable internet connection to maintain consistent uptime.
+- Consider running your node in a secure environment, such as a dedicated server or virtual machine.
+- Participate in the ClawChain community and contribute to the network's health and decentralization.
 
-- Keep your node software up-to-date with the latest releases
-- Monitor your node's health and resource usage
-- Maintain a secure server environment
-- Participate in the governance process by voting on proposals
+## Conclusion
+Running a ClawChain node is an important contribution to the network's decentralization and long-term sustainability. By following the guidelines in this guide, you can help strengthen the ClawChain ecosystem and support its growth.
 
-For more information, see the [ClawChain documentation](https://docs.clawchain.org).
+If you have any questions or need further assistance, please reach out to the ClawChain community or the project's support channels.
