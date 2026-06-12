@@ -1,22 +1,26 @@
-import { PublicKey, Keypair, Transaction } from '@solana/web3.js';
+import { Ed25519Signer } from './signer';
 
-export interface TransactionData {
-  from: PublicKey;
-  to: PublicKey;
-  amount: number;
-  signature: Uint8Array;
-}
+export class Transaction {
+  private signature: string;
 
-export class TransactionProcessor {
-  private mempool: TransactionData[] = [];
+  constructor(
+    public from: string,
+    public to: string,
+    public amount: number,
+    public nonce: number
+  ) {}
 
-  addToMempool(tx: TransactionData): void {
-    this.mempool.push(tx);
+  serialize(): string {
+    return `${this.from}:${this.to}:${this.amount}:${this.nonce}:${this.signature}`;
   }
 
-  processBlock(block: TransactionData[]): void {
-    // Verify signatures
-    // Update account balances
-    // Add to blockchain
+  sign(privateKey: string): void {
+    const signer = new Ed25519Signer(privateKey);
+    this.signature = signer.sign(this.serialize());
+  }
+
+  broadcast(): void {
+    // Broadcast the signed transaction to the network
+    console.log(`Broadcasting transaction: ${this.serialize()}`);
   }
 }
