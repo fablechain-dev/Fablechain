@@ -1,24 +1,21 @@
-import { Transaction } from '../transaction';
+import { Block } from '../blockchain/block';
+import { CompactBlock } from './compact_block';
+import { Connection } from './connection';
 
-class Peer {
-  private transactions: Set<string>;
+export class Peer {
+  private connection: Connection;
 
-  constructor() {
-    this.transactions = new Set();
+  constructor(connection: Connection) {
+    this.connection = connection;
   }
 
-  hasTransaction(txHash: string): boolean {
-    return this.transactions.has(txHash);
+  sendBlock(block: Block) {
+    const blockData = block.serialize();
+    this.connection.send(blockData);
   }
 
-  addTransaction(txHash: string): void {
-    this.transactions.add(txHash);
-  }
-
-  sendTransaction(tx: Transaction): void {
-    // TODO: Implement actual network communication
-    console.log(`Sending transaction ${tx.hash()} to peer`);
+  sendCompactBlock(compactBlock: CompactBlock) {
+    const compactData = compactBlock.serialize();
+    this.connection.send(compactData);
   }
 }
-
-export { Peer };
