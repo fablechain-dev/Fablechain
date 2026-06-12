@@ -1,19 +1,37 @@
+import { Transaction } from './transaction';
+
 export class Block {
-  hash: string;
-  prevHash: string;
+  version: number;
   timestamp: number;
   transactions: Transaction[];
-  finalized: boolean = false;
+  previousHash: string;
+  hash: string;
 
   constructor(
-    hash: string,
-    prevHash: string,
+    version: number,
     timestamp: number,
-    transactions: Transaction[]
+    transactions: Transaction[],
+    previousHash: string
   ) {
-    this.hash = hash;
-    this.prevHash = prevHash;
+    this.version = version;
     this.timestamp = timestamp;
     this.transactions = transactions;
+    this.previousHash = previousHash;
+    this.hash = this.calculateHash();
+  }
+
+  calculateHash(): string {
+    // Implement hash calculation logic
+    return 'placeholder_hash';
+  }
+
+  isValid(): boolean {
+    // Implement block validation logic
+    return true;
+  }
+
+  serialize(): string {
+    // Implement block serialization
+    return JSON.stringify(this);
   }
 }
