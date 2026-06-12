@@ -1,51 +1,34 @@
-import { Transaction } from './Transaction';
+import { Transaction } from '../blockchain/Transaction';
+import { BlockHeader } from '../blockchain/BlockHeader';
 
 export class Block {
-  readonly blockNumber: number;
-  readonly blockHash: string;
-  readonly parentBlockHash: string;
-  readonly timestamp: number;
-  readonly transactions: Transaction[];
-  readonly minerAddress: string;
-  readonly difficulty: number;
-  readonly nonce: number;
-  readonly uncleBlockHashes: string[];
-  readonly uncleBlockMinerAddresses: string[];
-  readonly uncleBlockTimestamps: number[];
+  header: BlockHeader;
+  transactions: Transaction[];
+  hash: string;
 
-  constructor(
-    blockNumber: number,
-    blockHash: string,
-    parentBlockHash: string,
-    timestamp: number,
-    transactions: Transaction[],
-    minerAddress: string,
-    difficulty: number,
-    nonce: number,
-    uncleBlockHashes: string[],
-    uncleBlockMinerAddresses: string[],
-    uncleBlockTimestamps: number[]
-  ) {
-    this.blockNumber = blockNumber;
-    this.blockHash = blockHash;
-    this.parentBlockHash = parentBlockHash;
-    this.timestamp = timestamp;
+  constructor(header: BlockHeader, transactions: Transaction[]) {
+    this.header = header;
     this.transactions = transactions;
-    this.minerAddress = minerAddress;
-    this.difficulty = difficulty;
-    this.nonce = nonce;
-    this.uncleBlockHashes = uncleBlockHashes;
-    this.uncleBlockMinerAddresses = uncleBlockMinerAddresses;
-    this.uncleBlockTimestamps = uncleBlockTimestamps;
+    this.hash = this.computeHash();
+  }
+
+  computeHash(): string {
+    // Implement hash calculation logic
+    return '';
   }
 
   isValid(): boolean {
-    // Implement block validation logic here
+    // Implement validation logic
     return true;
   }
 
-  calculateReward(): number {
-    // Implement reward calculation logic here, including partial rewards for uncles
-    return 5;
+  serialize(): string {
+    // Implement serialization logic
+    return '';
+  }
+
+  static deserialize(serializedBlock: string): Block {
+    // Implement deserialization logic
+    return new Block(new BlockHeader(), []);
   }
 }
