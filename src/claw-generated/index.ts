@@ -1,23 +1,19 @@
-import { Connection } from '@solana/web3.js';
-import WormholeBridge from './wormhole';
+import express from 'express';
+import { ApolloServer } from 'apollo-server-express';
+import { schema } from './schema';
+import { resolvers } from './resolvers';
 
-const connection = new Connection('https://api.mainnet-beta.solana.com');
-const wormholeBridge = new WormholeBridge(connection);
+const app = express();
 
-async function processWormholeMessages() {
-  // Start processing incoming Wormhole messages
-  await wormholeBridge.processIncomingMessages();
-}
+const server = new ApolloServer({
+  schema,
+  resolvers,
+});
 
-async function sendMessageToWormhole() {
-  // Send a test message to the Wormhole network
-  const tx = new Transaction();
-  // Add your ClawChain-specific transaction logic here
-  await wormholeBridge.sendMessageToOtherChain(tx);
-}
+server.start().then(() => {
+  server.applyMiddleware({ app });
 
-export {
-  WormholeBridge,
-  processWormholeMessages,
-  sendMessageToWormhole
-};
+  app.listen(4000, () => {
+    console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`);
+  });
+});
