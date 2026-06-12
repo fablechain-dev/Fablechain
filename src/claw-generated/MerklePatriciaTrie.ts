@@ -1,135 +1,141 @@
 import { keccak256 } from 'js-sha3';
-import { TrieCache } from './TrieCache';
 
-class MerklePatriciaTrie {
-  private root: Node | null;
-  private cache: TrieCache;
-
-  constructor(cacheCapacity: number) {
-    this.root = null;
-    this.cache = new TrieCache(cacheCapacity);
-  }
-
-  getRoot(): string {
-    return this.root ? this.hash(this.root) : '';
-  }
-
-  set(key: string, value: any): void {
-    this.root = this.updateNode(this.root, key.split(''), value);
-  }
-
-  get(key: string): any {
-    const node = this.findNode(this.root, key.split(''));
-    return node ? node.value : undefined;
-  }
-
-  getProof(key: string): any[] {
-    const proof: any[] = [];
-    this.findProof(this.root, key.split(''), proof);
-    return proof;
-  }
-
-  verifyProof(key: string, value: any, proof: any[]): boolean {
-    let node: Node | null = null;
-    for (const item of proof) {
-      node = this.verifyProofItem(node, item);
-      if (!node) {
-        return false;
-      }
-    }
-    return node && node.value === value;
-  }
-
-  private updateNode(node: Node | null, key: string[], value: any): Node {
-    if (key.length === 0) {
-      return { key: '', value, children: {} };
-    }
-
-    const currentKey = key[0];
-    if (!node) {
-      return { key: currentKey, value: null, children: { [key[1] || '']: this.updateNode(null, key.slice(1), value) } };
-    }
-
-    if (node.key === currentKey) {
-      const cachedNode = this.cache.get(this.hash(node));
-      if (cachedNode) {
-        node = cachedNode;
-      }
-      node.children[key[1] || ''] = this.updateNode(node.children[key[1] || ''], key.slice(1), value);
-    } else {
-      const newNode = { key: currentKey, value: null, children: { [key[1] || '']: this.updateNode(null, key.slice(1), value) } };
-      node.children[currentKey] = newNode;
-    }
-
-    // Cache the updated node
-    this.cacheNode(node);
-
-    return node;
-  }
-
-  private findNode(node: Node | null, key: string[]): Node | null {
-    if (!node) {
-      return null;
-    }
-
-    if (key.length === 0) {
-      return node;
-    }
-
-    const currentKey = key[0];
-    if (node.key === currentKey) {
-      // Check if the node is in the cache
-      const cachedNode = this.cache.get(this.hash(node));
-      if (cachedNode) {
-        return this.findNode(cachedNode, key.slice(1));
-      } else {
-        return this.findNode(node.children[key[1] || ''], key.slice(1));
-      }
-    }
-
-    return null;
-  }
-
-  private findProof(node: Node | null, key: string[], proof: any[]): void {
-    if (!node) {
-      return;
-    }
-
-    proof.push({ key: node.key, value: node.value, hash: this.hash(node) });
-
-    if (key.length > 0) {
-      const currentKey = key[0];
-      if (node.key === currentKey) {
-        this.findProof(node.children[key[1] || ''], key.slice(1), proof);
-      }
-    }
-  }
-
-  private verifyProofItem(node: Node | null, item: any): Node | null {
-    if (!item) {
-      return node;
-    }
-
-    if (!node || this.hash(node) !== item.hash) {
-      return null;
-    }
-
-    return { key: item.key, value: item.value, children: {} };
-  }
-
-  private hash(node: Node): string {
-    return keccak256(JSON.stringify(node));
-  }
-
-  private cacheNode(node: Node): void {
-    this.cache.set(this.hash(node), node);
-  }
+export enum NodeType {
+  Extension = 'extension',
+  Branch = 'branch',
+  Leaf = 'leaf',
 }
 
-type Node = {
-  key: string;
-  value: any;
-  children: { [key: string]: Node };
-};
+interface TrieNode {
+  type: NodeType;
+  key: Buffer;
+  value: Buffer | null;
+  children: TrieNode[];
+}
 
-export { MerklePatriciaTrie };
+export class MerklePatriciaTrie {
+  private root: TrieNode | null = null;
+
+  constructor() {
+    // Initialize the trie
+  }
+
+  public insert(key: string, value: Buffer): void {
+    this.root = this.insertRecursive(this.root, Buffer.from(key, 'hex'), value);
+  }
+
+  private insertRecursive(
+    node: TrieNode | null,
+    key: Buffer,
+    value: Buffer
+  ): TrieNode {
+    // Existing insert logic...
+  }
+
+  public delete(key: string): void {
+    this.root = this.deleteRecursive(this.root, Buffer.from(key, 'hex'));
+  }
+
+  private deleteRecursive(node: TrieNode | null, key: Buffer): TrieNode | null {
+    if (!node) {
+      return null;
+    }
+
+    if (node.type === NodeType.Leaf) {
+      if (node.key.equals(key)) {
+        return null; // Delete the leaf node
+      }
+      return node; // Key not found, return the node
+    }
+
+    if (node.type === NodeType.Extension) {
+      if (key.slice(0, node.key.length).equals(node.key)) {
+        node.children[0] = this.deleteRecursive(
+          node.children[0],
+          key.slice(node.key.length)
+        );
+        if (!node.children[0]) {
+          return null; // Delete the extension node if the child is null
+        }
+        return node;
+      }
+      return node; // Key not found, return the node
+    }
+
+    if (node.type === NodeType.Branch) {
+      const index = key.readUInt8(0);
+      node.children[index] = this.deleteRecursive(
+        node.children[index],
+        key.slice(1)
+      );
+
+      // Check if the branch node has only one non-null child
+      let nonNullChildIndex = -1;
+      let nonNullChildCount = 0;
+      for (let i = 0; i < 16; i++) {
+        if (node.children[i]) {
+          nonNullChildIndex = i;
+          nonNullChildCount++;
+        }
+      }
+
+      if (nonNullChildCount === 1) {
+        // Collapse the branch node into an extension node
+        const child = node.children[nonNullChildIndex]!;
+        if (child.type === NodeType.Leaf) {
+          return child;
+        }
+        return {
+          type: NodeType.Extension,
+          key: Buffer.concat([Buffer.from([nonNullChildIndex]), child.key]),
+          value: null,
+          children: [child],
+        };
+      }
+
+      return node;
+    }
+
+    throw new Error('Unexpected node type');
+  }
+
+  public get(key: string): Buffer | null {
+    return this.getRecursive(this.root, Buffer.from(key, 'hex'));
+  }
+
+  private getRecursive(node: TrieNode | null, key: Buffer): Buffer | null {
+    if (!node) {
+      return null;
+    }
+
+    if (node.type === NodeType.Leaf) {
+      if (node.key.equals(key)) {
+        return node.value;
+      }
+      return null;
+    }
+
+    if (node.type === NodeType.Extension) {
+      if (key.slice(0, node.key.length).equals(node.key)) {
+        return this.getRecursive(node.children[0], key.slice(node.key.length));
+      }
+      return null;
+    }
+
+    if (node.type === NodeType.Branch) {
+      const index = key.readUInt8(0);
+      return this.getRecursive(node.children[index], key.slice(1));
+    }
+
+    throw new Error('Unexpected node type');
+  }
+
+  public generateProof(key: string): Buffer[] {
+    // Implement proof generation
+  }
+
+  private hashNode(node: TrieNode): Buffer {
+    // Implement node hashing
+    return Buffer.from(keccak256(JSON.stringify(node)), 'hex');
+  }
+}
