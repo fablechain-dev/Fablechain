@@ -1,29 +1,14 @@
-import { keccak256 } from 'js-sha3';
-import { Transaction } from './Transaction';
+import { AbstractAccount } from './AbstractAccount';
 
-export class Account {
+export class Account implements AbstractAccount {
   address: string;
-  private privateKey: string;
 
-  constructor(privateKey: string) {
-    this.privateKey = privateKey;
-    this.address = this.getAddress();
+  constructor(address: string) {
+    this.address = address;
   }
 
-  private getAddress(): string {
-    const publicKey = this.getPublicKey();
-    const address = `0x${publicKey.slice(64 - 40)}`;
-    return address;
-  }
-
-  private getPublicKey(): string {
-    // Implement public key derivation from private key
-    const publicKey = keccak256(this.privateKey);
-    return publicKey;
-  }
-
-  async signTransaction(tx: Transaction): Promise<string> {
-    // Implement transaction signing logic
-    return '0x1234567890abcdef';
+  validate(tx: Transaction): boolean {
+    // Implement standard account validation logic
+    return true;
   }
 }
