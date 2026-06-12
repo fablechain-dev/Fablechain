@@ -1,21 +1,15 @@
-import { Block } from '../blockchain/block';
-import { CompactBlock } from './compact_block';
-import { Connection } from './connection';
-
 export class Peer {
-  private connection: Connection;
+  id: string;
+  address: string;
+  port: number;
 
-  constructor(connection: Connection) {
-    this.connection = connection;
+  constructor(id: string, address: string, port: number) {
+    this.id = id;
+    this.address = address;
+    this.port = port;
   }
 
-  sendBlock(block: Block) {
-    const blockData = block.serialize();
-    this.connection.send(blockData);
-  }
-
-  sendCompactBlock(compactBlock: CompactBlock) {
-    const compactData = compactBlock.serialize();
-    this.connection.send(compactData);
+  disconnect() {
+    // Implement peer disconnection logic
   }
 }
