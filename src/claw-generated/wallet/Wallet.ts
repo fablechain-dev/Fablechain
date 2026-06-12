@@ -16,6 +16,10 @@ export class Wallet {
     this.minSignatures = minSignatures;
   }
 
+  createMultisigWallet(id: string, signers: string[], minSignatures: number): Wallet {
+    return new Wallet(id, 'multi-sig', signers, minSignatures);
+  }
+
   createTransaction(data: any): MultisigTransaction {
     if (this.type === 'multi-sig') {
       const txId = this.generateTransactionId();
