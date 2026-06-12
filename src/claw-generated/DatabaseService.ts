@@ -1,23 +1,18 @@
 import { ConnectionPool } from './ConnectionPool';
 import { Connection, QueryResult } from 'your-database-client';
+import { CacheManager } from './CacheManager';
 
 class DatabaseService {
   private connectionPool: ConnectionPool;
+  private cacheManager: CacheManager;
 
   constructor(maxConnections: number, connectionOptions: any) {
     this.connectionPool = ConnectionPool.getInstance(maxConnections, connectionOptions);
+    this.cacheManager = new CacheManager(this);
   }
 
   public async query(sql: string, params?: any[]): Promise<QueryResult> {
-    const connection = await this.connectionPool.getConnection();
-    try {
-      const result = await connection.query(sql, params);
-      this.connectionPool.releaseConnection(connection);
-      return result;
-    } catch (err) {
-      this.connectionPool.releaseConnection(connection);
-      throw err;
-    }
+    return this.cacheManager.query(sql, params);
   }
 
   public async transaction(callback: (connection: Connection) => Promise<void>): Promise<void> {
