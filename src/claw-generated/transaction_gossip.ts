@@ -1,40 +1,23 @@
 import { Transaction } from '../core/transaction';
 import { Peer } from './peer';
-import { MempoolManager } from '../mempool/mempool_manager';
 
-class TransactionGossipProtocol {
-  private broadcastedTransactions: Set<string> = new Set();
-  private mempoolManager: MempoolManager;
+export class TransactionGossip {
+  private knownTransactions: Set<string> = new Set();
 
-  constructor(mempoolManager: MempoolManager) {
-    this.mempoolManager = mempoolManager;
+  /**
+   * Broadcast a transaction to all connected peers.
+   * @param tx The transaction to broadcast
+   */
+  broadcastTransaction(tx: Transaction): void {
+    // TODO: Implement transaction broadcasting logic
   }
 
-  handleNewTransaction(transaction: Transaction, fromPeer: Peer) {
-    // Add transaction to mempool
-    this.mempoolManager.addTransaction(transaction);
-
-    // Broadcast transaction to peers, except the one that sent it
-    this.broadcastTransaction(transaction, fromPeer);
-  }
-
-  broadcastTransaction(transaction: Transaction, excludePeer: Peer) {
-    // Check if transaction has already been broadcast
-    const txHash = transaction.hash();
-    if (this.broadcastedTransactions.has(txHash)) {
-      return;
-    }
-
-    // Add transaction to broadcast set
-    this.broadcastedTransactions.add(txHash);
-
-    // Broadcast transaction to all peers, except the one that sent it
-    for (const peer of this.mempoolManager.getPeers()) {
-      if (peer !== excludePeer) {
-        peer.sendTransaction(transaction);
-      }
-    }
+  /**
+   * Handle an incoming transaction from a peer.
+   * @param tx The received transaction
+   * @param peer The peer that sent the transaction
+   */
+  handleIncomingTransaction(tx: Transaction, peer: Peer): void {
+    // TODO: Implement transaction handling logic
   }
 }
-
-export { TransactionGossipProtocol };
