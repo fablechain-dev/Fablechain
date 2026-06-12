@@ -1,28 +1,25 @@
-use crate::rpc_methods;
+use crate::rpc::rpc_methods;
 use jsonrpc_core::{IoHandler, Params};
-use jsonrpc_core::types::error::{ErrorCode, Error};
+use jsonrpc_derive::rpc;
 
-pub fn start_rpc_server() {
-    let mut io = IoHandler::default();
+#[rpc]
+pub trait RpcApi {
+    #[rpc(name = "simulateTransaction")]
+    fn simulate_transaction(&self, params: Params) -&gt; Result&lt;rpc_methods::TransactionSimulationResult, jsonrpc_core::Error&gt;;
+}
 
-    io.add_method("simulateTransaction", |params: Params| {
-        let tx: String = params.parse()?;
-        match rpc_methods::simulate_transaction(&tx) {
-            Ok((logs, compute_units)) => {
-                Ok(json!({
-                    "logs": logs,
-                    "computeUnits": compute_units
-                }))
-            }
-            Err(e) => {
-                Err(Error {
-                    code: ErrorCode::InternalError,
-                    message: e,
-                    data: None,
-                })
-            }
-        }
-    });
+pub struct RpcServer;
 
-    // Start RPC server and listen for requests
+impl RpcApi for RpcServer {
+    fn simulate_transaction(&self, params: Params) -&gt; Result&lt;rpc_methods::TransactionSimulationResult, jsonrpc_core::Error&gt; {
+        let transaction: Transaction = params.parse()?;
+        rpc_methods::simulateTransaction(transaction)
+            .map_err(|err| jsonrpc_core::Error::new(jsonrpc_core::ErrorCode::InternalError, err.to_string()))
+    }
+}
+
+pub fn start_rpc_server() -&gt; IoHandler {
+    let mut io = IoHandler::new();
+    io.extend_with(RpcServer.to_delegate());
+    io
 }

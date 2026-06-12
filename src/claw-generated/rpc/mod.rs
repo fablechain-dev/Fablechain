@@ -1,9 +1,5 @@
-mod account;
-mod block;
-mod transaction;
-mod signatures;
+mod rpc_server;
+mod rpc_methods;
 
-pub use account::*;
-pub use block::*;
-pub use transaction::*;
-pub use signatures::*;
+pub use rpc_server::*;
+pub use rpc_methods::*;

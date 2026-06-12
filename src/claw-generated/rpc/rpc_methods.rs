@@ -1,8 +1,31 @@
-use crate::transaction::TransactionProcessor;
+use crate::state::*;
+use crate::transaction::*;
 
-pub fn simulate_transaction(tx: &str) -> Result<(Vec<String>, u64), String> {
-    let tx_bytes = base64::decode(tx).map_err(|e| format!("Failed to decode transaction: {}", e))?;
-    let mut tx_processor = TransactionProcessor::new();
-    let (logs, compute_units) = tx_processor.simulate_transaction(&tx_bytes)?;
-    Ok((logs, compute_units))
+pub async fn simulateTransaction(
+    transaction: Transaction,
+) -> Result&lt;TransactionSimulationResult, RpcError&gt; {
+    let mut account_state = AccountState::default();
+    let result = simulate_transaction(&transaction, &mut account_state)?;
+    Ok(TransactionSimulationResult {
+        logs: result.logs,
+        compute_units: result.compute_units,
+    })
+}
+
+pub struct TransactionSimulationResult {
+    pub logs: Vec&lt;String&gt;,
+    pub compute_units: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simulate_transaction() {
+        let transaction = Transaction::default();
+        let result = simulateTransaction(transaction).unwrap();
+        assert!(!result.logs.is_empty());
+        assert_ne!(result.compute_units, 0);
+    }
 }
