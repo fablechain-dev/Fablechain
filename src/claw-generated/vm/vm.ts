@@ -1,8 +1,10 @@
 import { Instruction } from './instruction';
+import { ExecutionContext } from './types';
 
 export class VirtualMachine {
   private stack: number[] = [];
   private pc: number = 0;
+  private callStack: ExecutionContext[] = [];
 
   constructor() {}
 
@@ -58,9 +60,70 @@ export class VirtualMachine {
       case Instruction.STOP:
         this.pc = this.bytecode.length;
         break;
+      case Instruction.CALL:
+        this.handleCall();
+        break;
+      case Instruction.RETURN:
+        this.handleReturn();
+        break;
       default:
         throw new Error(`Unknown instruction: ${instruction}`);
     }
+  }
+
+  private handleCall() {
+    // 1. Pop the call parameters (contract address, function selector, etc.) from the stack
+    const contractAddress = this.stack.pop();
+    const functionSelector = this.stack.pop();
+    const numArgs = this.stack.pop();
+    const args = [];
+    for (let i = 0; i < numArgs; i++) {
+      args.push(this.stack.pop());
+    }
+
+    // 2. Create a new execution context with the call parameters
+    const context: ExecutionContext = {
+      contractAddress,
+      functionSelector,
+      args,
+      gas: 0, // TODO: Handle gas forwarding
+      returnAddress: this.pc,
+    };
+
+    // 3. Push the current execution context to the call stack
+    this.callStack.push(this.currentContext);
+
+    // 4. Load the called contract's bytecode and execute it using the new context
+    this.currentContext = context;
+    this.execute(this.getContractBytecode(contractAddress));
+
+    // 5. When the called contract returns, pop the previous context from the call stack and resume
+    this.currentContext = this.callStack.pop();
+  }
+
+  private handleReturn() {
+    // 1. Pop the return value from the stack
+    const returnValue = this.stack.pop();
+
+    // 2. Restore the previous execution context from the call stack
+    this.currentContext = this.callStack.pop();
+
+    // 3. Resume execution at the calling contract
+    this.stack.push(returnValue);
+    this.pc = this.currentContext.returnAddress;
+  }
+
+  private getContractBytecode(address: number): Instruction[] {
+    // TODO: Implement contract storage lookup to fetch the bytecode
+    return [];
+  }
+
+  private get currentContext(): ExecutionContext {
+    return this.callStack[this.callStack.length - 1];
+  }
+
+  private set currentContext(context: ExecutionContext) {
+    this.callStack[this.callStack.length - 1] = context;
   }
 
   private bytecode: Instruction[] = [];
