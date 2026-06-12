@@ -1,34 +1,28 @@
-import { MerklePatriciaTrie } from './merkle_patricia_trie';
-import { Account } from './Account';
-import { lz4 } from 'lz4-wasm';
+import { MerklePatriciaTrie } from './MerklePatriciaTrie';
 
 export class StateSnapshot {
-  blockNumber: number;
-  stateRoot: string;
-  stateDiff: Map<string, Account>;
+  private trie: MerklePatriciaTrie;
 
-  constructor(blockNumber: number, stateRoot: string, stateDiff: Map<string, Account>) {
-    this.blockNumber = blockNumber;
-    this.stateRoot = stateRoot;
-    this.stateDiff = stateDiff;
+  constructor() {
+    this.trie = new MerklePatriciaTrie();
   }
 
-  async compress(): Promise<Uint8Array> {
-    const diffData = Array.from(this.stateDiff.entries()).flatMap(([address, account]) => [
-      address,
-      ...account.toData(),
-    ]);
-    return await lz4.compress(new Uint8Array(diffData));
+  set(key: string, value: any): void {
+    this.trie.set(key, value);
   }
 
-  static async decompress(data: Uint8Array): Promise<StateSnapshot> {
-    const decompressed = await lz4.decompress(data);
-    const entries = [];
-    for (let i = 0; i < decompressed.length; i += 68) {
-      const address = new TextDecoder().decode(decompressed.slice(i, i + 40));
-      const account = Account.fromData(decompressed.slice(i + 40, i + 68));
-      entries.push([address, account]);
+  get(key: string): any {
+    return this.trie.get(key);
+  }
+
+  getRoot(): string {
+    return this.trie.getRoot();
+  }
+
+  merge(other: StateSnapshot): void {
+    const keys = other.trie.getAllKeys();
+    for (const key of keys) {
+      this.trie.set(key, other.trie.get(key));
     }
-    return new StateSnapshot(0, '', new Map(entries));
   }
 }
