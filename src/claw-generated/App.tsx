@@ -1,23 +1,29 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
-import Navigation from './Navigation';
-import DashboardPage from './DashboardPage';
+import { BrowserRouter as Router, Route, Switch, Link } from 'react-router-dom';
 import BlockExplorer from './BlockExplorer';
-import TransactionExplorer from './TransactionExplorer';
-import ContractVerificationPage from './ContractVerification';
-import WalletConnectionPage from './pages/WalletConnectionPage';
 
 const App: React.FC = () => {
   return (
     <Router>
-      <div className="app">
-        <Navigation />
+      <div>
+        <nav>
+          <ul>
+            <li>
+              <Link to="/">Home</Link>
+            </li>
+            <li>
+              <Link to="/explorer">Block Explorer</Link>
+            </li>
+          </ul>
+        </nav>
+
         <Switch>
-          <Route path="/" exact component={DashboardPage} />
-          <Route path="/block-explorer" component={BlockExplorer} />
-          <Route path="/transaction-explorer" component={TransactionExplorer} />
-          <Route path="/contract-verification" component={ContractVerificationPage} />
-          <Route path="/wallet-connection" component={WalletConnectionPage} />
+          <Route path="/explorer">
+            <BlockExplorer />
+          </Route>
+          <Route path="/">
+            <div>Welcome to ClawChain!</div>
+          </Route>
         </Switch>
       </div>
     </Router>
