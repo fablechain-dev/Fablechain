@@ -1,36 +1,19 @@
 export class Block {
-  public size: number;
-  public transactions: any[];
-  public timestamp: number;
-  public previousHash: string;
-  public hash: string;
+  // Block properties and methods
 
-  private static MAX_BLOCK_SIZE = 1 * 1024 * 1024; // 1 MB
-  private static SIZE_ADJUSTMENT_INTERVAL = 1000 * 60 * 60; // 1 hour
+  static CHECKPOINT_INTERVAL = 10_000; // Checkpoint every 10,000 blocks
+  static CHECKPOINTS: { [blockNumber: number]: { hash: string, timestamp: number } } = {
+    0: { hash: '0x...', timestamp: 1620000000 },
+    10000: { hash: '0x...', timestamp: 1620010000 },
+    20000: { hash: '0x...', timestamp: 1620020000 },
+    // Add more checkpoints here
+  };
 
-  constructor(transactions: any[], previousHash: string) {
-    this.transactions = transactions;
-    this.previousHash = previousHash;
-    this.timestamp = Date.now();
-    this.hash = this.calculateHash();
-    this.size = this.calculateSize();
+  static isAtCheckpoint(blockNumber: number): boolean {
+    return blockNumber in this.CHECKPOINTS;
   }
 
-  private calculateHash(): string {
-    // Implement hash calculation logic
-    return ''; 
-  }
-
-  private calculateSize(): number {
-    // Implement block size calculation logic
-    return 0;
-  }
-
-  public validateSize(): boolean {
-    return this.size <= Block.MAX_BLOCK_SIZE;
-  }
-
-  public static adjustMaxBlockSize(avgBlockSize: number): void {
-    // Implement dynamic block size adjustment logic
+  static getCheckpointData(blockNumber: number): { hash: string, timestamp: number } | null {
+    return this.CHECKPOINTS[blockNumber] || null;
   }
 }
