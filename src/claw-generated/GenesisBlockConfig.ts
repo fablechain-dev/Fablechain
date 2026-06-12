@@ -1,8 +1,23 @@
-import { Account, AccountData } from '../account/Account';
+import { Account, AccountData } from './Account';
+import { ContractDeployment } from './ContractDeployer';
+import { StakingConfig } from './StakingManager';
+import { GovernanceConfig } from './GovernanceManager';
 
 export interface GenesisBlockConfig {
   chainId: string;
   initialAccounts: AccountData[];
+  initialTokenAllocations: {
+    [address: string]: {
+      [tokenAddress: string]: number;
+    };
+  };
+  initialContractDeployments: ContractDeployment[];
+  stakingConfig: StakingConfig;
+  governanceConfig: GovernanceConfig;
+  networkSettings: {
+    bootstrapNodes: string[];
+    consensusType: 'proof-of-stake' | 'proof-of-authority';
+  };
   initialParameters: {
     blockTime: number;
     blockReward: number;
@@ -23,6 +38,29 @@ export class GenesisBlockConfigurator {
 
   getInitialAccounts(): Account[] {
     return this.config.initialAccounts.map(data => new Account(data));
+  }
+
+  getInitialTokenAllocations(): { [address: string]: { [tokenAddress: string]: number } } {
+    return this.config.initialTokenAllocations;
+  }
+
+  getInitialContractDeployments(): ContractDeployment[] {
+    return this.config.initialContractDeployments;
+  }
+
+  getStakingConfig(): StakingConfig {
+    return this.config.stakingConfig;
+  }
+
+  getGovernanceConfig(): GovernanceConfig {
+    return this.config.governanceConfig;
+  }
+
+  getNetworkSettings(): {
+    bootstrapNodes: string[];
+    consensusType: 'proof-of-stake' | 'proof-of-authority';
+  } {
+    return this.config.networkSettings;
   }
 
   getInitialParameters(): {
