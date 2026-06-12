@@ -1,9 +1,10 @@
 import { processBlockForFinality } from './block-finality';
 import { Block, Transaction, TransactionReceipt } from '../types';
-import { Bloom } from './bloom-filter';
+import { BloomFilter } from './bloom_filter';
 import { StateManager } from './state-manager';
 import { Registry, Counter, Histogram } from 'prom-client';
 import { TransactionMempool } from './transaction_mempool';
+import { EventEmitter } from './events';
 
 // Set up Prometheus metrics registry
 const registry = new Registry();
@@ -73,9 +74,15 @@ function processTransaction(tx: Transaction, block: Block): TransactionReceipt {
   const { status, gasUsed, logs } = executeTransaction(tx);
 
   // Generate the logs bloom filter
-  const logsBloom = new Bloom();
+  const logsBloomFilter = new BloomFilter();
   for (const log of logs) {
-    logsBloom.add(log);
+    logsBloomFilter.add(log);
+  }
+
+  // Emit the events and update the bloom filters
+  const eventEmitter = new EventEmitter();
+  for (const log of logs) {
+    eventEmitter.emit(log.contractAddress, log.name, log.indexedParams, log.unindexedParams);
   }
 
   // Create the transaction receipt
@@ -87,7 +94,7 @@ function processTransaction(tx: Transaction, block: Block): TransactionReceipt {
     status,
     gasUsed,
     logs,
-    logsBloom
+    logsBloomFilter
   );
 
   return receipt;
@@ -99,6 +106,13 @@ function executeTransaction(tx: Transaction): { status: boolean, gasUsed: number
   return {
     status: true,
     gasUsed: 21000,
-    logs: []
+    logs: [
+      {
+        contractAddress: '0x1234567890abcdef',
+        name: 'Transfer',
+        indexedParams: ['0x0123456789abcdef', '0xfedcba9876543210'],
+        unindexedParams: ['100']
+      }
+    ]
   };
 }
