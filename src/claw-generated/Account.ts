@@ -1,19 +1,15 @@
+import { PublicKey } from '@solana/web3.js';
+
 export class Account {
-  balance: number;
-  nonce: number;
-  storageSlots: Map<string, any>;
+  public pubkey: PublicKey;
+  public lamports: number;
+  public owner: PublicKey;
+  public executable: boolean;
 
-  constructor(balance: number, nonce: number) {
-    this.balance = balance;
-    this.nonce = nonce;
-    this.storageSlots = new Map();
-  }
-
-  getStorageSlot(key: string): any {
-    return this.storageSlots.get(key);
-  }
-
-  setStorageSlot(key: string, value: any): void {
-    this.storageSlots.set(key, value);
+  constructor(pubkey: PublicKey, lamports: number, owner: PublicKey, executable: boolean) {
+    this.pubkey = pubkey;
+    this.lamports = lamports;
+    this.owner = owner;
+    this.executable = executable;
   }
 }
