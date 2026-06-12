@@ -1,39 +1,19 @@
-import { PrivateKey, PublicKey } from '../crypto';
-import { StateTree } from './StateTree';
-
 export class AccountStorage {
-  private stateTree: StateTree;
+  private static instance: AccountStorage;
 
-  constructor() {
-    this.stateTree = new StateTree();
+  private constructor() {
+    // Initialize account storage
   }
 
-  getAccountState(publicKey: PublicKey, key: string): any {
-    return this.stateTree.get(publicKey, key);
+  public static getInstance(): AccountStorage {
+    if (!AccountStorage.instance) {
+      AccountStorage.instance = new AccountStorage();
+    }
+    return AccountStorage.instance;
   }
 
-  setAccountState(publicKey: PublicKey, key: string, value: any): void {
-    this.stateTree.set(publicKey, key, value);
-  }
-
-  getAccountKeys(publicKey: PublicKey): string[] {
-    return this.stateTree.getKeys(publicKey);
-  }
-
-  getAccountCheckpoint(publicKey: PublicKey, blockHeight: number): Map<string, any> {
-    return this.stateTree.getCheckpoint(publicKey, blockHeight);
-  }
-
-  createAccountCheckpoint(publicKey: PublicKey, blockHeight: number): void {
-    this.stateTree.createCheckpoint(publicKey, blockHeight);
-  }
-
-  pruneAccountState(publicKey: PublicKey, blockHeight: number): void {
-    this.stateTree.pruneState(publicKey, blockHeight);
-  }
-
-  getCurrentBlockHeight(): number {
-    // Implement logic to retrieve the current block height
+  public async getBalance(pubkey: string): Promise&lt;number&gt; {
+    // Look up and return account balance
     return 0;
   }
 }

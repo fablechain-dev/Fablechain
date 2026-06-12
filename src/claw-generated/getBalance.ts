@@ -1,6 +1,7 @@
-import { AccountState } from '../state/account';
+import { AccountStorage } from './AccountStorage';
 
-export async function getBalance(pubkey: string): Promise<number> {
-  const account = await AccountState.get(pubkey);
-  return account?.balance || 0;
+export async function getBalanceHandler(pubkey: string): Promise&lt;number&gt; {
+  const accountStorage = AccountStorage.getInstance();
+  const balance = await accountStorage.getBalance(pubkey);
+  return balance;
 }
