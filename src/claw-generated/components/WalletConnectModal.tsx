@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ethers } from 'ethers';
 
 interface WalletConnectModalProps {
   onConnect: (address: string) => void;
@@ -6,48 +7,39 @@ interface WalletConnectModalProps {
 }
 
 const WalletConnectModal: React.FC<WalletConnectModalProps> = ({ onConnect, onCancel }) => {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleConnect = async () => {
-    setIsConnecting(true);
-
+  const connectWallet = async () => {
+    setLoading(true);
     try {
-      // Check if MetaMask is installed and enabled
+      // Check if MetaMask is installed
       if (!window.ethereum) {
-        alert('Please install MetaMask to connect your wallet.');
+        setError('Please install MetaMask to connect your wallet.');
         return;
       }
 
-      // Request access to the user's MetaMask wallet
+      // Request user authorization
       await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-      // Get the user's wallet address
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      const address = accounts[0];
-      setWalletAddress(address);
-
-      // Notify the parent component that the wallet is connected
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const address = await signer.getAddress();
       onConnect(address);
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-      alert('Failed to connect wallet. Please try again.');
+    } catch (err) {
+      setError('Failed to connect wallet. Please try again.');
     } finally {
-      setIsConnecting(false);
+      setLoading(false);
     }
   };
 
   return (
     <div className="wallet-connect-modal">
       <h2>Connect Wallet</h2>
-      <p>Please connect your MetaMask wallet to continue.</p>
-      {isConnecting ? (
-        <div>Connecting...</div>
-      ) : (
-        <button onClick={handleConnect}>Connect Wallet</button>
-      )}
+      {error && <div className="error">{error}</div>}
+      <button onClick={connectWallet} disabled={loading}>
+        {loading ? 'Loading...' : 'Connect with MetaMask'}
+      </button>
       <button onClick={onCancel}>Cancel</button>
-      {walletAddress && <p>Connected wallet: {walletAddress}</p>}
     </div>
   );
 };
