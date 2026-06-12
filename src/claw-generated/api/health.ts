@@ -32,8 +32,18 @@ export class HealthCheckController {
     // - Verify validator is actively producing blocks
     // - Check for any critical errors or issues
 
-    res.status(200).json({
-      status: 'ready'
-    });
+    const isChainSynced = await this.chain.isSynced();
+    const isValidatorActive = await this.validatorManager.isValidatorActive();
+
+    if (isChainSynced && isValidatorActive) {
+      res.status(200).json({
+        status: 'ready'
+      });
+    } else {
+      res.status(503).json({
+        status: 'not_ready',
+        message: 'Chain not synced or validator not active'
+      });
+    }
   }
 }
