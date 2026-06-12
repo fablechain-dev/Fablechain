@@ -5,6 +5,7 @@ import { TransactionReceipt } from '../TransactionReceipt';
 
 class WebSocketServer {
   private wss: WebSocket.Server;
+  private subscriptions: Map<WebSocket, Set<string>> = new Map();
 
   constructor(
     private blockManager: BlockManager,
@@ -17,6 +18,7 @@ class WebSocketServer {
   private initializeWebSocketServer() {
     this.wss.on('connection', (ws: WebSocket) => {
       console.log('WebSocket client connected');
+      this.subscriptions.set(ws, new Set());
 
       ws.on('message', (message) => {
         this.handleWebSocketMessage(ws, message);
@@ -24,6 +26,7 @@ class WebSocketServer {
 
       ws.on('close', () => {
         console.log('WebSocket client disconnected');
+        this.subscriptions.delete(ws);
       });
     });
   }
@@ -49,36 +52,52 @@ class WebSocketServer {
 
   private handleSubscription(ws: WebSocket, request: any) {
     const { topic } = request;
+    const subscriptions = this.subscriptions.get(ws) || new Set();
+
     switch (topic) {
       case 'newHeads':
         this.subscribeToNewHeads(ws);
+        subscriptions.add('newHeads');
         break;
       case 'logs':
         this.subscribeToLogs(ws);
+        subscriptions.add('logs');
         break;
       case 'pendingTransactions':
         this.subscribeToPendingTransactions(ws);
+        subscriptions.add('pendingTransactions');
         break;
       default:
         ws.send(JSON.stringify({ error: 'Invalid subscription topic' }));
+        return;
     }
+
+    this.subscriptions.set(ws, subscriptions);
   }
 
   private handleUnsubscription(ws: WebSocket, request: any) {
     const { topic } = request;
+    const subscriptions = this.subscriptions.get(ws) || new Set();
+
     switch (topic) {
       case 'newHeads':
         this.unsubscribeFromNewHeads(ws);
+        subscriptions.delete('newHeads');
         break;
       case 'logs':
         this.unsubscribeFromLogs(ws);
+        subscriptions.delete('logs');
         break;
       case 'pendingTransactions':
         this.unsubscribeFromPendingTransactions(ws);
+        subscriptions.delete('pendingTransactions');
         break;
       default:
         ws.send(JSON.stringify({ error: 'Invalid unsubscription topic' }));
+        return;
     }
+
+    this.subscriptions.set(ws, subscriptions);
   }
 
   private subscribeToNewHeads(ws: WebSocket) {
@@ -88,7 +107,9 @@ class WebSocketServer {
   }
 
   private unsubscribeFromNewHeads(ws: WebSocket) {
-    this.blockManager.off('newHead');
+    this.blockManager.off('newHead', (block) => {
+      ws.send(JSON.stringify({ topic: 'newHeads', data: block }));
+    });
   }
 
   private subscribeToLogs(ws: WebSocket) {
@@ -98,7 +119,9 @@ class WebSocketServer {
   }
 
   private unsubscribeFromLogs(ws: WebSocket) {
-    this.transactionPool.off('transactionExecuted');
+    this.transactionPool.off('transactionExecuted', (receipt: TransactionReceipt) => {
+      ws.send(JSON.stringify({ topic: 'logs', data: receipt }));
+    });
   }
 
   private subscribeToPendingTransactions(ws: WebSocket) {
@@ -108,7 +131,9 @@ class WebSocketServer {
   }
 
   private unsubscribeFromPendingTransactions(ws: WebSocket) {
-    this.transactionPool.off('newTransaction');
+    this.transactionPool.off('newTransaction', (transaction) => {
+      ws.send(JSON.stringify({ topic: 'pendingTransactions', data: transaction }));
+    });
   }
 }
 
