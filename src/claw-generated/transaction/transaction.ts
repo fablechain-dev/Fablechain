@@ -9,7 +9,7 @@ export class Transaction {
   gasUsed: number;
   status: boolean;
   signature: string;
-  fee: number; // New fee property
+  fee: number;
 
   constructor(
     hash: string,
@@ -20,7 +20,7 @@ export class Transaction {
     gasUsed: number,
     status: boolean,
     signature: string,
-    fee: number // New fee parameter
+    fee: number
   ) {
     this.hash = hash;
     this.from = from;
@@ -30,16 +30,14 @@ export class Transaction {
     this.gasUsed = gasUsed;
     this.status = status;
     this.signature = signature;
-    this.fee = fee; // Assign fee to the new property
+    this.fee = fee;
   }
 
   verifySignature(): boolean {
-    // Verify the transaction's signature using the sender's public key
     return verifySignature(this.hash, this.signature, this.from);
   }
 
   calculateFee(): number {
-    // Calculate the transaction fee based on size and complexity
     const baseRate = 0.0001; // Base fee rate per byte
     const sizeInBytes = this.serialize().length;
     const complexityFactor = this.gasUsed / 21000; // Complexity factor based on gas used
@@ -47,15 +45,13 @@ export class Transaction {
   }
 
   generateReceipt(): TransactionReceipt {
-    // Generate transaction receipt data
-    const logs: LogEntry[] = []; // Replace with actual logs
-    const bloomFilter: BloomFilter = new BloomFilter(); // Replace with actual bloom filter
-
-    return new TransactionReceipt(this.status, this.gasUsed, logs, bloomFilter, this.fee); // Include the fee in the receipt
+    const logs: LogEntry[] = [];
+    const bloomFilter: BloomFilter = new BloomFilter();
+    const fee = this.calculateFee(); // Calculate the fee
+    return new TransactionReceipt(this.status, this.gasUsed, logs, bloomFilter, fee);
   }
 
   serialize(): string {
-    // Serialize the transaction data into a string
     return JSON.stringify({
       hash: this.hash,
       from: this.from,
@@ -75,19 +71,19 @@ export class TransactionReceipt {
   gasUsed: number;
   logs: LogEntry[];
   bloomFilter: BloomFilter;
-  fee: number; // New fee property
+  fee: number;
 
   constructor(
     status: boolean,
     gasUsed: number,
     logs: LogEntry[],
     bloomFilter: BloomFilter,
-    fee: number // New fee parameter
+    fee: number
   ) {
     this.status = status;
     this.gasUsed = gasUsed;
     this.logs = logs;
     this.bloomFilter = bloomFilter;
-    this.fee = fee; // Assign fee to the new property
+    this.fee = fee;
   }
 }
