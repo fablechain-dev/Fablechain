@@ -1,30 +1,43 @@
 import { Transaction } from './Transaction';
-import { sha256 } from 'js-sha256';
 
 export class Block {
+  public readonly id: number;
   public readonly timestamp: number;
   public readonly transactions: Transaction[];
   public readonly previousHash: string;
   public readonly hash: string;
+  public readonly size: number;
+  public readonly maxSize: number = 1000000; // 1 MB
 
-  constructor(timestamp: number, transactions: Transaction[], previousHash: string) {
+  constructor(
+    id: number,
+    timestamp: number,
+    transactions: Transaction[],
+    previousHash: string,
+    hash: string
+  ) {
+    this.id = id;
     this.timestamp = timestamp;
     this.transactions = transactions;
     this.previousHash = previousHash;
-    this.hash = this.calculateHash();
+    this.hash = hash;
+    this.size = this.calculateBlockSize();
   }
 
-  private calculateHash(): string {
-    const transactionsData = this.transactions.map(tx => tx.serialize()).join('');
-    const data = `${this.timestamp}${transactionsData}${this.previousHash}`;
-    return sha256(data);
+  private calculateBlockSize(): number {
+    // Calculate the total size of the block in bytes
+    return Buffer.byteLength(JSON.stringify(this));
   }
 
   public isValid(): boolean {
-    return this.hash === this.calculateHash();
-  }
+    // Validate the block size
+    if (this.size > this.maxSize) {
+      return false;
+    }
 
-  public serialize(): string {
-    return JSON.stringify(this);
+    // Validate other block properties
+    // ...
+
+    return true;
   }
 }
