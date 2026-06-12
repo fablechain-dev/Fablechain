@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchTokenContracts, getTokenDetails } from './tokenService';
+import { fetchTokenContracts, getTokenDetails, fetchRecentTransfers } from './tokenService';
 
 interface TokenDetails {
   address: string;

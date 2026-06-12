@@ -1,5 +1,6 @@
 import { Contract, providers } from 'ethers';
 import { ContractStorage } from '../contracts/ContractStorage.sol';
+import { ClawChain } from '../ClawChain';
 
 export async function fetchTokenContracts(): Promise<string[]> {
   // Fetch the list of deployed CRC-20 token contracts
@@ -56,20 +57,12 @@ async function fetchRecentTransfers(tokenAddress: string): Promise<
   }>
 > {
   // Fetch the recent transfer events for the specified token contract
-  // and return them in the desired format
-  // ...
-  return [
-    {
-      from: '0x1234567890abcdef',
-      to: '0x0987654321fedcba',
-      amount: 100,
-      timestamp: Date.now() - 3600000, // 1 hour ago
-    },
-    {
-      from: '0x0987654321fedcba',
-      to: '0x1234567890abcdef',
-      amount: 50,
-      timestamp: Date.now() - 7200000, // 2 hours ago
-    },
-  ];
+  const clawChain = new ClawChain();
+  const transfers = await clawChain.getTokenTransfers(tokenAddress, 10); // Fetch the 10 most recent transfers
+  return transfers.map((transfer) => ({
+    from: transfer.from,
+    to: transfer.to,
+    amount: transfer.amount,
+    timestamp: transfer.timestamp,
+  }));
 }
