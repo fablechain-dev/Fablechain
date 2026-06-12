@@ -1,40 +1,39 @@
-import { Account } from './Account';
+import { Contract } from './Contract';
 import { Transaction } from './Transaction';
-import { getContractAddress } from './utils';
-import { StateManager } from './StateManager';
+import { AccountManager } from './AccountManager';
+import { keccak256 } from 'js-sha3';
 
 export class ContractDeployer {
-  private account: Account;
-  private stateManager: StateManager;
-  private nonce: number = 0;
+  static async deployContract(contract: Contract, from: string, nonce: number): Promise<Contract> {
+    // Generate transaction
+    const tx = new Transaction({
+      to: null, // Contract deployment has no 'to' address
+      value: 0,
+      data: contract.bytecode,
+      nonce
+    });
 
-  constructor(account: Account, stateManager: StateManager) {
-    this.account = account;
-    this.stateManager = stateManager;
+    // Sign transaction
+    const signedTx = await AccountManager.signTransaction(tx, from);
+
+    // Send transaction to network
+    const receipt = await this.sendTransaction(signedTx);
+
+    // Determine contract address
+    const contractAddress = this.getContractAddress(from, nonce);
+
+    // Return new Contract instance
+    return new Contract(contractAddress, contract.abi, contract.bytecode);
   }
 
-  async deployContract(byteCode: string, abi: any): Promise<string> {
-    const transaction = this.createDeploymentTransaction(byteCode);
-    const signature = await this.account.signTransaction(transaction);
-    const contractAddress = getContractAddress(this.account.address, this.nonce);
-
-    // Store contract metadata
-    await this.stateManager.storeContract(contractAddress, byteCode, abi);
-    this.stateManager.emitContractDeployedEvent(contractAddress, this.account.address);
-
-    this.nonce++;
-    return contractAddress;
+  static async sendTransaction(tx: Transaction): Promise<any> {
+    // TODO: Implement sending transaction to network
+    return { status: 'success', contractAddress: '0x1234567890abcdef' };
   }
 
-  private createDeploymentTransaction(byteCode: string): Transaction {
-    return {
-      from: this.account.address,
-      to: '0x0',
-      data: byteCode,
-      nonce: this.nonce,
-      value: '0',
-      gasLimit: 1000000,
-      gasPrice: '1000000000'
-    };
+  static getContractAddress(from: string, nonce: number): string {
+    const input = `${from}${nonce.toString(16)}`;
+    const hash = keccak256(input);
+    return `0x${hash.slice(64 - 40)}`;
   }
 }

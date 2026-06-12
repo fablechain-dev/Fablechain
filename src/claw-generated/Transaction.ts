@@ -1,14 +1,13 @@
-import { EventLog } from './EventLog';
-
 export class Transaction {
-  public nonce: number;
-  eventLog: EventLog = new EventLog();
+  to: string | null;
+  value: number;
+  data: string;
+  nonce: number;
 
-  constructor(nonce: number) {
-    this.nonce = nonce;
-  }
-
-  emitEvent(event: Event): void {
-    this.eventLog.addEvent(event);
+  constructor(params: { to: string | null; value: number; data: string; nonce: number }) {
+    this.to = params.to;
+    this.value = params.value;
+    this.data = params.data;
+    this.nonce = params.nonce;
   }
 }
