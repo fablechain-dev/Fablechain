@@ -1,157 +1,152 @@
-// Merkle Patricia Trie implementation for ClawChain state
-import { hash, HexString } from '../state/crypto';
-import LRUCache from 'lru-cache';
+import { keccak256 } from 'js-sha3';
 
-type TrieNode = {
-  key: HexString;
-  value: HexString | null;
-  children: { [key: string]: TrieNode };
-};
-
-class MerklePatriciaTrie {
-  private root: TrieNode = {
-    key: '',
-    value: null,
-    children: {},
-  };
-
-  private cache: LRUCache<HexString, TrieNode>;
+export class MerklePatriciaTrie {
+  private root: TrieNode | null = null;
 
   constructor() {
-    this.cache = new LRUCache<HexString, TrieNode>({
-      max: 1000, // Maximum number of nodes to cache
-      maxAge: 60 * 1000, // Cache entries expire after 1 minute
-    });
+    // Initialize the trie
   }
 
-  /**
-   * Get the value associated with a given key.
-   * @param key - The key to look up.
-   * @returns The value associated with the key, or null if not found.
-   */
-  get(key: HexString): HexString | null {
-    // Check the cache first
-    const cachedNode = this.cache.get(key);
-    if (cachedNode) {
-      return cachedNode.value;
-    }
+  get isEmpty(): boolean {
+    return this.root === null;
+  }
 
-    // If not in cache, load the node from the database
-    let node: TrieNode = this.root;
-    for (let i = 0; i < key.length; i += 2) {
-      const nibble = key.slice(i, i + 2);
-      if (!node.children[nibble]) {
+  get(key: string): any {
+    let node = this.root;
+    for (let i = 0; i < key.length; i++) {
+      const char = key[i];
+      if (!node || !node.children.has(char)) {
         return null;
       }
-      node = node.children[nibble];
+      node = node.children.get(char)!;
+    }
+    return node?.value || null;
+  }
+
+  set(key: string, value: any): void {
+    this.root = this.setRecursive(this.root, key, 0, value);
+  }
+
+  private setRecursive(node: TrieNode | null, key: string, index: number, value: any): TrieNode {
+    if (!node) {
+      node = { key: '', value: null, children: new Map(), isLeaf: false };
     }
 
-    // Cache the loaded node
-    this.cache.set(key, node);
-    return node.value;
-  }
-
-  /**
-   * Insert a new key-value pair into the trie.
-   * @param key - The key to insert.
-   * @param value - The value to associate with the key.
-   */
-  set(key: HexString, value: HexString): void {
-    let node: TrieNode = this.root;
-    for (let i = 0; i < key.length; i += 2) {
-      const nibble = key.slice(i, i + 2);
-      if (!node.children[nibble]) {
-        node.children[nibble] = {
-          key: nibble,
-          value: null,
-          children: {},
-        };
-      }
-      node = node.children[nibble];
-    }
-    node.value = value;
-
-    // Update the cache
-    this.cache.set(key, node);
-  }
-
-  /**
-   * Delete a key-value pair from the trie.
-   * @param key - The key to delete.
-   */
-  delete(key: HexString): void {
-    this.deleteRecursive(this.root, key, 0);
-    this.cache.del(key);
-  }
-
-  private deleteRecursive(node: TrieNode, key: HexString, index: number): TrieNode | null {
     if (index === key.length) {
-      if (!node.value) {
-        return null;
-      }
-      node.value = null;
-      return Object.keys(node.children).length === 0 ? null : node;
+      node.value = value;
+      node.isLeaf = true;
+      return node;
     }
 
-    const nibble = key.slice(index, index + 2);
-    const child = node.children[nibble];
+    const char = key[index];
+    let child = node.children.get(char);
+    if (!child) {
+      child = { key: char, value: null, children: new Map(), isLeaf: false };
+      node.children.set(char, child);
+    }
+
+    child = this.setRecursive(child, key, index + 1, value);
+    node.children.set(char, child);
+    return node;
+  }
+
+  delete(key: string): void {
+    this.root = this.deleteRecursive(this.root, key, 0);
+  }
+
+  private deleteRecursive(node: TrieNode | null, key: string, index: number): TrieNode | null {
+    if (!node) {
+      return null;
+    }
+
+    if (index === key.length) {
+      if (node.isLeaf) {
+        node.value = null;
+        node.isLeaf = false;
+      }
+      return node.children.size === 0 ? null : node;
+    }
+
+    const char = key[index];
+    const child = node.children.get(char);
     if (!child) {
       return node;
     }
 
-    const newChild = this.deleteRecursive(child, key, index + 2);
-    if (newChild) {
-      node.children[nibble] = newChild;
-    } else {
-      delete node.children[nibble];
-    }
+    const updatedChild = this.deleteRecursive(child, key, index + 1);
+    node.children.set(char, updatedChild || new Map());
 
-    if (Object.keys(node.children).length === 0 && !node.value) {
+    if (updatedChild === null && !node.isLeaf && node.children.size === 0) {
       return null;
     }
 
     return node;
   }
 
-  /**
-   * Generate a Merkle proof for a given key.
-   * @param key - The key to generate a proof for.
-   * @returns The Merkle proof as a list of nodes.
-   */
-  getProof(key: HexString): TrieNode[] {
-    const proof: TrieNode[] = [];
-    this.getProofRecursive(this.root, key, 0, proof);
+  getRoot(): string {
+    return this.root ? this.hashNode(this.root) : '';
+  }
+
+  prove(key: string): Array<any> {
+    const proof: Array<any> = [];
+    let node = this.root;
+    let index = 0;
+
+    while (node) {
+      if (index === key.length) {
+        if (node.isLeaf) {
+          proof.push({ key: node.key, value: node.value });
+        }
+        break;
+      }
+
+      const char = key[index];
+      const child = node.children.get(char);
+      if (!child) {
+        break;
+      }
+
+      proof.push({ key: child.key, value: child.value, children: this.hashChildren(child.children) });
+      node = child;
+      index++;
+    }
+
     return proof;
   }
 
-  private getProofRecursive(
-    node: TrieNode,
-    key: HexString,
-    index: number,
-    proof: TrieNode[]
-  ): boolean {
-    proof.push(node);
+  verify(key: string, value: any, proof: Array<any>): boolean {
+    let root = '';
+    let node: TrieNode | null = null;
 
-    if (index === key.length) {
-      return node.value !== null;
+    for (const { key, value, children } of proof) {
+      const newNode: TrieNode = { key, value, children: new Map(), isLeaf: value !== null };
+      if (node) {
+        const char = key[0];
+        node.children.set(char, newNode);
+      }
+      node = newNode;
+      root = this.hashNode(newNode);
     }
 
-    const nibble = key.slice(index, index + 2);
-    const child = node.children[nibble];
-    if (!child) {
-      return false;
-    }
-
-    return this.getProofRecursive(child, key, index + 2, proof);
+    return root === this.getRoot() && (node?.value === value || (node?.value === null && value === undefined));
   }
 
-  /**
-   * Get the root hash of the trie.
-   * @returns The root hash as a hex string.
-   */
-  getRootHash(): HexString {
-    return hash(JSON.stringify(this.root));
+  private hashNode(node: TrieNode): string {
+    return keccak256(JSON.stringify({
+      key: node.key,
+      value: node.value,
+      children: this.hashChildren(node.children)
+    }));
+  }
+
+  private hashChildren(children: Map<string, TrieNode>): Array<string> {
+    return Array.from(children.values()).map(this.hashNode);
   }
 }
 
-export default MerklePatriciaTrie;
+interface TrieNode {
+  key: string;
+  value: any;
+  children: Map<string, TrieNode>;
+  isLeaf: boolean;
+}

@@ -1,50 +1,42 @@
-import { Account } from '../models/Account';
+import { Account } from './Account';
+import { MerklePatriciaTrie } from './merkle_patricia_trie';
+import { Transaction } from './Transaction';
 
 export class StateManager {
-  private state: Map<string, Account> = new Map();
-  private stateHistory: Array<Map<string, Account>> = [];
+  private trie: MerklePatriciaTrie;
 
   constructor() {
-    // Initialize state
+    this.trie = new MerklePatriciaTrie();
   }
 
   getAccount(address: string): Account {
-    return this.state.get(address) || new Account();
+    const accountData = this.trie.get(address);
+    return accountData ? Account.fromData(accountData) : new Account();
   }
 
   updateAccount(address: string, account: Account): void {
-    this.state.set(address, account);
-    this.recordStateUpdate();
+    this.trie.set(address, account.toData());
   }
 
   getStateRoot(): string {
-    // Calculate state root hash
-    return '';
+    return this.trie.getRoot();
   }
 
   applyTransaction(tx: Transaction): void {
     // Apply transaction to state
-    this.recordStateUpdate();
-  }
-
-  recordStateUpdate(): void {
-    // Create a copy of the current state and add it to the history
-    this.stateHistory.push(new Map(this.state));
+    // ...
+    this.trie.set(tx.from, this.getAccount(tx.from).toData());
+    this.trie.set(tx.to, this.getAccount(tx.to).toData());
   }
 
   getStateDiff(fromHeight: number, toHeight: number): Map<string, Account> {
     // Calculate the state diff between the two block heights
-    const fromState = this.stateHistory[fromHeight];
-    const toState = this.stateHistory[toHeight];
+    // ...
     const diff = new Map();
-
-    for (const [address, account] of toState) {
-      const prevAccount = fromState.get(address);
-      if (!prevAccount || !account.equals(prevAccount)) {
-        diff.set(address, account);
-      }
+    const proof = this.trie.prove(fromHeight.toString());
+    for (const { key, value } of proof) {
+      diff.set(key, Account.fromData(value));
     }
-
     return diff;
   }
 }
