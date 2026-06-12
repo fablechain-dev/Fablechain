@@ -1,19 +1,8 @@
-import { PeerInfo } from './types';
+import { Transaction } from '../model/transaction';
 
 export class Peer {
-  info: PeerInfo;
-  reputation: number;
-
-  constructor(info: PeerInfo) {
-    this.info = info;
-    this.reputation = 100; // start with a neutral reputation
-  }
-
-  updateReputation(delta: number) {
-    this.reputation = Math.max(0, Math.min(100, this.reputation + delta));
-  }
-
-  isBanned(): boolean {
-    return this.reputation === 0;
+  sendTransaction(tx: Transaction): void {
+    // TODO: Implement the actual network communication to send the transaction to this peer
+    console.log(`Sending transaction ${tx.hash} to peer`);
   }
 }
