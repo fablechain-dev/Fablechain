@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './NetworkStatsPanel.css';
 
 interface NetworkStats {
   tps: number;
@@ -10,18 +11,12 @@ interface NetworkStats {
 }
 
 const NetworkStatsPanel: React.FC = () => {
-  const [networkStats, setNetworkStats] = useState<NetworkStats>({
-    tps: 0,
-    blockTime: 0,
-    difficulty: 0,
-    hashrate: 0,
-    activeAddresses: 0
-  });
+  const [networkStats, setNetworkStats] = useState<NetworkStats | null>(null);
 
   useEffect(() => {
     const fetchNetworkStats = async () => {
       try {
-        const response = await axios.get('/api/network/stats');
+        const response = await axios.get('/api/network-stats');
         setNetworkStats(response.data);
       } catch (error) {
         console.error('Error fetching network stats:', error);
@@ -29,27 +24,35 @@ const NetworkStatsPanel: React.FC = () => {
     };
 
     fetchNetworkStats();
-    const interval = setInterval(fetchNetworkStats, 60000); // Fetch stats every minute
+    const interval = setInterval(fetchNetworkStats, 10000);
     return () => clearInterval(interval);
   }, []);
 
+  if (!networkStats) {
+    return <div className="network-stats-panel">Loading...</div>;
+  }
+
   return (
     <div className="network-stats-panel">
-      <h2>Network Stats</h2>
-      <div>
-        <span>TPS:</span> {networkStats.tps.toLocaleString()}
+      <div className="stat-item">
+        <div className="stat-label">TPS</div>
+        <div className="stat-value">{networkStats.tps}</div>
       </div>
-      <div>
-        <span>Block Time:</span> {networkStats.blockTime.toLocaleString()} seconds
+      <div className="stat-item">
+        <div className="stat-label">Block Time</div>
+        <div className="stat-value">{networkStats.blockTime} s</div>
       </div>
-      <div>
-        <span>Difficulty:</span> {networkStats.difficulty.toLocaleString()}
+      <div className="stat-item">
+        <div className="stat-label">Difficulty</div>
+        <div className="stat-value">{networkStats.difficulty}</div>
       </div>
-      <div>
-        <span>Hashrate:</span> {networkStats.hashrate.toLocaleString()} H/s
+      <div className="stat-item">
+        <div className="stat-label">Hashrate</div>
+        <div className="stat-value">{networkStats.hashrate} GH/s</div>
       </div>
-      <div>
-        <span>Active Addresses:</span> {networkStats.activeAddresses.toLocaleString()}
+      <div className="stat-item">
+        <div className="stat-label">Active Addresses</div>
+        <div className="stat-value">{networkStats.activeAddresses}</div>
       </div>
     </div>
   );
