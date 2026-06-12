@@ -1,12 +1,13 @@
 import { keccak256 } from 'js-sha3';
+import { TrieCache } from './TrieCache';
 
 class MerklePatriciaTrie {
   private root: Node | null;
-  private nodeCache: Map<string, Node>;
+  private cache: TrieCache;
 
-  constructor() {
+  constructor(cacheCapacity: number) {
     this.root = null;
-    this.nodeCache = new Map();
+    this.cache = new TrieCache(cacheCapacity);
   }
 
   getRoot(): string {
@@ -50,6 +51,10 @@ class MerklePatriciaTrie {
     }
 
     if (node.key === currentKey) {
+      const cachedNode = this.cache.get(this.hash(node));
+      if (cachedNode) {
+        node = cachedNode;
+      }
       node.children[key[1] || ''] = this.updateNode(node.children[key[1] || ''], key.slice(1), value);
     } else {
       const newNode = { key: currentKey, value: null, children: { [key[1] || '']: this.updateNode(null, key.slice(1), value) } };
@@ -74,7 +79,7 @@ class MerklePatriciaTrie {
     const currentKey = key[0];
     if (node.key === currentKey) {
       // Check if the node is in the cache
-      const cachedNode = this.getNodeFromCache(node.key);
+      const cachedNode = this.cache.get(this.hash(node));
       if (cachedNode) {
         return this.findNode(cachedNode, key.slice(1));
       } else {
@@ -117,11 +122,7 @@ class MerklePatriciaTrie {
   }
 
   private cacheNode(node: Node): void {
-    this.nodeCache.set(this.hash(node), node);
-  }
-
-  private getNodeFromCache(key: string): Node | null {
-    return this.nodeCache.get(key) || null;
+    this.cache.set(this.hash(node), node);
   }
 }
 
