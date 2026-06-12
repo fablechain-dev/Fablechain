@@ -1,81 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { getAccountInfo } from './get_account_info';
-import { TransactionReceipt } from './transaction-receipt';
-import { Contract } from './contract';
+import { useParams } from 'react-router-dom';
+import { getAddressBalance, getAddressTransactions, getAddressTokens } from '../api/address';
+import AddressBalanceCard from './AddressBalanceCard';
+import AddressTransactionHistory from './AddressTransactionHistory';
+import AddressTokenHoldings from './AddressTokenHoldings';
 
-interface AddressPageProps {
-  address: string;
-}
-
-const AddressPage: React.FC<AddressPageProps> = ({ address }) => {
-  const [accountInfo, setAccountInfo] = useState<{
-    balance: number;
-    tokenHoldings: { [tokenAddress: string]: number };
-    transactionHistory: TransactionReceipt[];
-  }>({
-    balance: 0,
-    tokenHoldings: {},
-    transactionHistory: [],
-  });
+const AddressPage: React.FC = () => {
+  const { address } = useParams<{ address: string }>();
+  const [balance, setBalance] = useState<string>('');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [tokens, setTokens] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchAccountData = async () => {
-      try {
-        const info = await getAccountInfo(address);
-        const tokenHoldings = await fetchTokenHoldings(address);
-        const transactionHistory = await fetchTransactionHistory(address);
-        setAccountInfo({
-          balance: info.lamports,
-          tokenHoldings,
-          transactionHistory,
-        });
-      } catch (error) {
-        console.error('Error fetching account data:', error);
-      }
+    const fetchAddressData = async () => {
+      const balanceResponse = await getAddressBalance(address);
+      setBalance(balanceResponse.balance);
+
+      const transactionsResponse = await getAddressTransactions(address);
+      setTransactions(transactionsResponse.transactions);
+
+      const tokensResponse = await getAddressTokens(address);
+      setTokens(tokensResponse.tokens);
     };
-    fetchAccountData();
+
+    fetchAddressData();
   }, [address]);
 
-  const fetchTokenHoldings = async (address: string): Promise<{ [tokenAddress: string]: number }> {
-    // TODO: Implement logic to fetch token holdings for the given address
-    return {};
-  };
-
-  const fetchTransactionHistory = async (address: string): Promise<TransactionReceipt[]> {
-    // TODO: Implement logic to fetch transaction history for the given address
-    return [];
-  };
-
   return (
-    <div>
+    <div className="address-page">
       <h1>Address: {address}</h1>
-      <div>
-        <h2>Balance</h2>
-        <p>{accountInfo.balance} CLAW</p>
-      </div>
-      <div>
-        <h2>Token Holdings</h2>
-        {Object.entries(accountInfo.tokenHoldings).map(([token, amount]) => (
-          <p key={token}>
-            {token}: {amount}
-          </p>
-        ))}
-      </div>
-      <div>
-        <h2>Transaction History</h2>
-        {accountInfo.transactionHistory.map((tx, index) => (
-          <div key={index}>
-            <p>Status: {tx.status ? 'Success' : 'Failed'}</p>
-            <p>Gas Used: {tx.gasUsed}</p>
-            <p>Events:</p>
-            <ul>
-              {tx.events.map((event, eventIndex) => (
-                <li key={eventIndex}>{event.type}</li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+      <AddressBalanceCard balance={balance} />
+      <AddressTransactionHistory transactions={transactions} />
+      <AddressTokenHoldings tokens={tokens} />
     </div>
   );
 };
