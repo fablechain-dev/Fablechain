@@ -1,5 +1,3 @@
-mod transaction;
-mod get_signatures_for_address;
+mod rpc;
 
-pub use transaction::*;
-pub use get_signatures_for_address::*;
+pub use rpc::send_transaction;
