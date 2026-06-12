@@ -1,88 +1,35 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
-
-const NavigationContainer = styled.nav`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background-color: #333;
-  color: #fff;
-`;
-
-const NavLinks = styled.ul`
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-
-  li {
-    margin-right: 1rem;
-    font-size: 1.2rem;
-    padding: 0.5rem;
-
-    a {
-      color: #fff;
-      text-decoration: none;
-    }
-
-    &:hover {
-      background-color: #555;
-    }
-  }
-
-  @media (max-width: 768px) {
-    display: ${({ isOpen }) => (isOpen ? 'flex' : 'none')};
-    flex-direction: column;
-    position: absolute;
-    top: 4rem;
-    left: 0;
-    right: 0;
-    background-color: #333;
-    padding: 1rem;
-    z-index: 1;
-
-    li {
-      margin-right: 0;
-      margin-bottom: 0.5rem;
-    }
-  }
-`;
-
-const HamburgerButton = styled.button`
-  display: none;
-  background-color: transparent;
-  border: none;
-  color: #fff;
-  font-size: 1.5rem;
-  cursor: pointer;
-
-  @media (max-width: 768px) {
-    display: block;
-  }
-`;
 
 const Navigation: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const toggleNavigation = () => {
-    setIsOpen(!isOpen);
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
   };
 
   return (
-    <NavigationContainer>
-      <div>
-        <a href="/">ClawChain</a>
+    <nav className="navigation">
+      <div className="navigation-container">
+        <div className="navigation-brand">
+          <a href="/">ClawChain</a>
+        </div>
+        <div className={`navigation-menu ${isMenuOpen ? 'open' : ''}`}>
+          <ul>
+            <li><a href="/blocks">Blocks</a></li>
+            <li><a href="/transactions">Transactions</a></li>
+            <li><a href="/contracts">Contracts</a></li>
+            <li><a href="/accounts">Accounts</a></li>
+          </ul>
+        </div>
+        <div className="navigation-toggle" onClick={toggleMenu}>
+          <span className="hamburger-icon">
+            <span className="bar"></span>
+            <span className="bar"></span>
+            <span className="bar"></span>
+          </span>
+        </div>
       </div>
-      <HamburgerButton onClick={toggleNavigation}>
-        {isOpen ? 'X' : '☰'}
-      </HamburgerButton>
-      <NavLinks isOpen={isOpen}>
-        <li><a href="/explore">Explore</a></li>
-        <li><a href="/create">Create</a></li>
-        <li><a href="/profile">Profile</a></li>
-      </NavLinks>
-    </NavigationContainer>
+    </nav>
   );
 };
 
