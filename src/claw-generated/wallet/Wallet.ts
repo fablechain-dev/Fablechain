@@ -1,52 +1,27 @@
-import { MultisigTransaction } from './MultisigTransaction';
-import { TransactionSigner } from './TransactionSigner';
-
-export type WalletType = 'single-sig' | 'multi-sig';
+import { TransactionSigner } from '../crypto/transaction-signer';
+import { KeyPair, generateKeypair } from './keypair';
 
 export class Wallet {
-  readonly id: string;
-  readonly type: WalletType;
-  readonly signers: string[];
-  readonly minSignatures: number;
+  private keyPair: KeyPair;
+  private signatureScheme: 'ed25519' | 'ecdsa' = 'ed25519';
 
-  constructor(id: string, type: WalletType, signers: string[], minSignatures: number) {
-    this.id = id;
-    this.type = type;
-    this.signers = signers;
-    this.minSignatures = minSignatures;
+  constructor(keyPair?: KeyPair) {
+    this.keyPair = keyPair || generateKeypair();
   }
 
-  createMultisigWallet(id: string, signers: string[], minSignatures: number): Wallet {
-    return new Wallet(id, 'multi-sig', signers, minSignatures);
+  getKeyPair(): KeyPair {
+    return this.keyPair;
   }
 
-  createTransaction(data: any): MultisigTransaction {
-    if (this.type === 'multi-sig') {
-      const txId = this.generateTransactionId();
-      return new MultisigTransaction(txId, this.signers, this.minSignatures, data);
-    } else {
-      throw new Error('Single-sig wallets cannot create multisig transactions');
-    }
+  getPublicKey(): string {
+    return this.keyPair.publicKey;
   }
 
-  addSigner(signer: string): void {
-    if (this.type === 'multi-sig') {
-      this.signers.push(signer);
-    } else {
-      throw new Error('Single-sig wallets cannot add signers');
-    }
+  signTransaction(transaction: any): any {
+    return TransactionSigner.signTransaction(transaction, this.keyPair, this.signatureScheme);
   }
 
-  removeSigner(signer: string): void {
-    if (this.type === 'multi-sig') {
-      this.signers = this.signers.filter(s => s !== signer);
-    } else {
-      throw new Error('Single-sig wallets cannot remove signers');
-    }
-  }
-
-  private generateTransactionId(): string {
-    // Implement transaction ID generation logic
-    return 'tx-' + Math.random().toString(36).substring(2, 10);
+  verifySignature(transaction: any): boolean {
+    return TransactionSigner.verifySignature(transaction);
   }
 }

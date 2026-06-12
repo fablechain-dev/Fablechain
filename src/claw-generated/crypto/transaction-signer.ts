@@ -23,18 +23,20 @@ export class TransactionSigner {
     const { signature, signatureScheme, ...transactionData } = transaction;
     const { publicKey } = this.getKeyPair(transaction.from);
 
+    const transactionDataStr = this.serializeTransaction(transactionData);
+
     if (signatureScheme === 'ed25519') {
-      return verifyEd25519Signature(publicKey, signature, this.serializeTransaction(transactionData));
+      return verifyEd25519Signature(publicKey, signature, transactionDataStr);
     } else if (signatureScheme === 'ecdsa') {
-      return verifyECDSASignature(publicKey, signature, this.serializeTransaction(transactionData));
+      return verifyECDSASignature(publicKey, signature, transactionDataStr);
     } else {
       throw new Error('Unsupported signature scheme');
     }
   }
 
   private static signEd25519(data: string, privateKey: string): string {
-    const { signature } = this.getKeyPair(privateKey);
-    return signature;
+    const { signature } = generateKeypair(privateKey);
+    return signature.toString('hex');
   }
 
   private static signECDSA(data: string, privateKey: string): string {
@@ -42,8 +44,8 @@ export class TransactionSigner {
   }
 
   private static serializeTransaction(transaction: any): string {
-    // Implement transaction serialization logic
-    return JSON.stringify(transaction);
+    const { from, to, value, data, nonce, gasLimit, gasPrice, signatureScheme } = transaction;
+    return JSON.stringify({ from, to, value, data, nonce, gasLimit, gasPrice, signatureScheme });
   }
 
   private static getKeyPair(publicKey: string): KeyPair {
