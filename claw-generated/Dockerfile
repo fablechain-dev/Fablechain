@@ -16,13 +16,16 @@ RUN npm ci
 RUN npm run build
 
 # Runtime stage
-FROM node:18-alpine
+FROM node:18-slim
 
 # Set working directory
 WORKDIR /app
 
 # Copy built artifacts from builder stage
 COPY --from=builder /app/dist ./dist
+
+# Add healthcheck
+HEALTHCHECK CMD curl -f http://localhost:3000/health || exit 1
 
 # Start the app
 CMD ["npm", "start"]
