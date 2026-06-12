@@ -3,6 +3,7 @@ export class Transaction {
     public from: string,
     public to: string,
     public amount: number,
+    public nonce: number,
     public signature: string
   ) {}
 }
