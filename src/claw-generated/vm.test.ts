@@ -1,25 +1,47 @@
-import { Contract } from './contract';
-import { VM } from './vm';
+import { VirtualMachine } from './vm';
 
-describe('VM', () => {
-  describe('CALL opcode', () => {
-    it('should execute a contract-to-contract call', () => {
-      // Arrange
-      const callingContract = new Contract();
-      const targetContract = new Contract();
-      targetContract.execute = jest.fn().mockReturnValue({ returnValue: 42, gasUsed: 100 });
+describe('VirtualMachine', () => {
+  let vm: VirtualMachine;
 
-      // Act
-      const result = new VM().execute(callingContract, 'CALL', {
-        target: targetContract,
-        method: 'myMethod',
-        gas: 1000
-      });
+  beforeEach(() => {
+    vm = new VirtualMachine();
+  });
 
-      // Assert
-      expect(targetContract.execute).toHaveBeenCalledWith('myMethod', { gas: 1000 });
-      expect(result).toEqual(42);
-      expect(callingContract.refundGas).toHaveBeenCalledWith(900);
-    });
+  it('should push and pop values from the stack', () => {
+    vm.pushToStack(10);
+    vm.pushToStack(20);
+    expect(vm.popFromStack()).toBe(20);
+    expect(vm.popFromStack()).toBe(10);
+  });
+
+  it('should load and store values in memory', () => {
+    vm.setMemoryValue(0, 100);
+    expect(vm.getMemoryValue(0)).toBe(100);
+  });
+
+  it('should perform arithmetic operations', () => {
+    vm.pushToStack(10);
+    vm.pushToStack(20);
+    vm.execute({ bytecode: [0x05] }); // ADD
+    expect(vm.popFromStack()).toBe(30);
+
+    vm.pushToStack(30);
+    vm.pushToStack(10);
+    vm.execute({ bytecode: [0x06] }); // SUB
+    expect(vm.popFromStack()).toBe(20);
+
+    vm.pushToStack(5);
+    vm.pushToStack(3);
+    vm.execute({ bytecode: [0x07] }); // MUL
+    expect(vm.popFromStack()).toBe(15);
+
+    vm.pushToStack(10);
+    vm.pushToStack(3);
+    vm.execute({ bytecode: [0x08] }); // DIV
+    expect(vm.popFromStack()).toBe(3);
+  });
+
+  it('should throw an error for unknown opcodes', () => {
+    expect(() => vm.execute({ bytecode: [0xFF] })).toThrowError('Unknown opcode: 255');
   });
 });

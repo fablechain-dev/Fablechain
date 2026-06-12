@@ -1,47 +1,78 @@
-import { Instruction, StackItem } from './types';
-import { GAS_COSTS } from './gas-costs';
+import { ExecutionContext } from '../types';
 
-export class VM {
-  private stack: StackItem[] = [];
-  private memory: Uint8Array = new Uint8Array();
-  private programCounter = 0;
-  private gasRemaining: number;
+export class VirtualMachine {
+  private stack: number[] = [];
+  private memory: Map<number, number> = new Map();
 
-  constructor(initialGas: number) {
-    this.gasRemaining = initialGas;
-  }
+  execute(context: ExecutionContext): void {
+    const { bytecode } = context;
+    let pc = 0;
 
-  execute(instructions: Instruction[]): void {
-    for (const instruction of instructions) {
-      this.executeInstruction(instruction);
+    while (pc < bytecode.length) {
+      const opcode = bytecode[pc];
+      switch (opcode) {
+        case 0x01: // PUSH
+          this.pushToStack(bytecode[++pc]);
+          pc++;
+          break;
+        case 0x02: // POP
+          this.popFromStack();
+          pc++;
+          break;
+        case 0x03: // LOAD
+          const address = this.popFromStack();
+          this.pushToStack(this.getMemoryValue(address));
+          pc++;
+          break;
+        case 0x04: // STORE
+          const value = this.popFromStack();
+          const storeAddress = this.popFromStack();
+          this.setMemoryValue(storeAddress, value);
+          pc++;
+          break;
+        case 0x05: // ADD
+          const b = this.popFromStack();
+          const a = this.popFromStack();
+          this.pushToStack(a + b);
+          pc++;
+          break;
+        case 0x06: // SUB
+          const d = this.popFromStack();
+          const c = this.popFromStack();
+          this.pushToStack(c - d);
+          pc++;
+          break;
+        case 0x07: // MUL
+          const f = this.popFromStack();
+          const e = this.popFromStack();
+          this.pushToStack(e * f);
+          pc++;
+          break;
+        case 0x08: // DIV
+          const h = this.popFromStack();
+          const g = this.popFromStack();
+          this.pushToStack(Math.floor(g / h));
+          pc++;
+          break;
+        default:
+          throw new Error(`Unknown opcode: ${opcode}`);
+      }
     }
   }
 
-  private executeInstruction(instruction: Instruction): void {
-    const opGasCost = GAS_COSTS[instruction.opcode] || 0;
-    this.gasRemaining -= opGasCost;
-
-    switch (instruction.opcode) {
-      case 'PUSH':
-        this.stack.push(instruction.operand);
-        break;
-      case 'POP':
-        this.stack.pop();
-        break;
-      case 'ADD':
-        this.stack.push(this.stack.pop() + this.stack.pop());
-        break;
-      // Add more opcodes here...
-    }
-
-    this.programCounter++;
-
-    if (this.gasRemaining <= 0) {
-      throw new Error('Ran out of gas');
-    }
+  private pushToStack(value: number): void {
+    this.stack.push(value);
   }
 
-  getGasRemaining(): number {
-    return this.gasRemaining;
+  private popFromStack(): number {
+    return this.stack.pop() as number;
+  }
+
+  private getMemoryValue(address: number): number {
+    return this.memory.get(address) || 0;
+  }
+
+  private setMemoryValue(address: number, value: number): void {
+    this.memory.set(address, value);
   }
 }
