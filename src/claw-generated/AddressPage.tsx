@@ -1,33 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getAddressBalance, getAddressTransactions, getAddressTokens } from './api/blockchain';
-import AddressBalanceCard from './AddressBalanceCard';
-import AddressTokenHoldings from './AddressTokenHoldings';
-import AddressTransactionHistory from './AddressTransactionHistory';
+import { getAccountBalance, getTransactionHistory, getTokenHoldings } from './accounts';
 
 const AddressPage: React.FC = () => {
   const { address } = useParams<{ address: string }>();
-  const [balance, setBalance] = useState('0');
-  const [transactions, setTransactions] = useState([]);
-  const [tokens, setTokens] = useState([]);
+  const [balance, setBalance] = useState<number>(0);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [tokens, setTokens] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchAddressData = async () => {
-      setBalance(await getAddressBalance(address));
-      setTransactions(await getAddressTransactions(address));
-      setTokens(await getAddressTokens(address));
+    const fetchData = async () => {
+      setBalance(await getAccountBalance(address));
+      setTransactions(await getTransactionHistory(address));
+      setTokens(await getTokenHoldings(address));
     };
-    fetchAddressData();
+    fetchData();
   }, [address]);
 
   return (
-    <div className="address-page">
+    <div>
       <h1>Address: {address}</h1>
-      <div className="address-info">
-        <AddressBalanceCard balance={balance} />
-        <AddressTokenHoldings tokens={tokens} />
+      <div>
+        <h2>Balance: {balance} CLAW</h2>
+        <h3>Transactions</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((tx, index) => (
+              <tr key={index}>
+                <td>{tx.date}</td>
+                <td>{tx.type}</td>
+                <td>{tx.amount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h3>Token Holdings</h3>
+        <ul>
+          {tokens.map((token, index) => (
+            <li key={index}>{token.name}: {token.balance}</li>
+          ))}
+        </ul>
       </div>
-      <AddressTransactionHistory transactions={transactions} />
     </div>
   );
 };
