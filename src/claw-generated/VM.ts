@@ -1,27 +1,27 @@
-import { Block } from '../blockchain/Block';
-import { Account } from '../accounts/Account';
-import { Transaction } from '../transactions/Transaction';
+import { Instruction } from './Instruction';
 
 export class VM {
-  execute(block: Block, accounts: Account[], transaction: Transaction): void {
-    // Implement contract execution logic here
+  private memory: Uint8Array;
+  private stack: number[];
+  private pc: number;
+
+  constructor() {
+    this.memory = new Uint8Array(1024 * 1024); // 1MB memory
+    this.stack = [];
+    this.pc = 0;
   }
 
-  handleCALL(callerAccount: Account, targetAccount: Account, gas: number, value: number): void {
-    // Check if the target account is a contract
-    if (targetAccount.isContract) {
-      // Deduct the gas cost from the caller's account
-      callerAccount.subtractGas(gas);
+  execute(instructions: Instruction[]) {
+    for (const instruction of instructions) {
+      this.executeInstruction(instruction);
+    }
+  }
 
-      // Execute the target contract's code
-      const result = targetAccount.executeContract(gas, value);
-
-      // Return the result to the caller
-      callerAccount.setReturnValue(result);
-    } else {
-      // Handle the case where the target is not a contract
-      // e.g., throw an error or perform a regular value transfer
-      throw new Error('Target account is not a contract');
+  private executeInstruction(instruction: Instruction) {
+    switch (instruction.opcode) {
+      // Implement opcode handling here
+      default:
+        throw new Error(`Unknown opcode: ${instruction.opcode}`);
     }
   }
 }
