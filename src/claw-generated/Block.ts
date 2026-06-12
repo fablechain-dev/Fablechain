@@ -1,28 +1,30 @@
-export class Block {
-  hash: string;
-  prevHash: string;
-  timestamp: number;
-  transactions: Transaction[];
-  confirmations: number;
+import { Transaction } from './Transaction';
+import { sha256 } from 'js-sha256';
 
-  constructor(prevHash: string, transactions: Transaction[]) {
-    this.prevHash = prevHash;
+export class Block {
+  public readonly timestamp: number;
+  public readonly transactions: Transaction[];
+  public readonly previousHash: string;
+  public readonly hash: string;
+
+  constructor(timestamp: number, transactions: Transaction[], previousHash: string) {
+    this.timestamp = timestamp;
     this.transactions = transactions;
-    this.timestamp = Date.now();
-    this.confirmations = 0;
+    this.previousHash = previousHash;
     this.hash = this.calculateHash();
   }
 
-  calculateHash(): string {
-    // Implement hash calculation logic here
-    return "placeholder_hash";
+  private calculateHash(): string {
+    const transactionsData = this.transactions.map(tx => tx.serialize()).join('');
+    const data = `${this.timestamp}${transactionsData}${this.previousHash}`;
+    return sha256(data);
   }
 
-  incrementConfirmations(): void {
-    this.confirmations++;
+  public isValid(): boolean {
+    return this.hash === this.calculateHash();
   }
 
-  isFinalized(minConfirmations: number): boolean {
-    return this.confirmations >= minConfirmations;
+  public serialize(): string {
+    return JSON.stringify(this);
   }
 }
