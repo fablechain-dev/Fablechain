@@ -14,7 +14,7 @@ const webSocketServer = new WebSocketServer(blockManager, transactionPool);
 
 router.use(rateLimiter.middleware);
 
-router.use(healthRouter);
+router.use('/health', healthRouter);
 router.post('/transactions', sendTransaction);
 
 export default router;
