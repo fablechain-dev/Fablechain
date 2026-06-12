@@ -1,70 +1,27 @@
-import { Account } from '../account/Account';
-import { Block } from '../block/Block';
-import { Transaction } from '../transaction/Transaction';
-import { StateSnapshotManager } from './StateSnapshotManager';
+import { Block } from '../blockchain/Block';
+import { Account } from '../accounts/Account';
 
 export class StateManager {
-  private accounts: Map<string, Account> = new Map();
-  private stateRoot: string = '';
-  private snapshotManager: StateSnapshotManager;
-  private pruningInterval: number;
+  private state: Map<string, Account> = new Map();
 
-  constructor(snapshotManager: StateSnapshotManager, pruningInterval: number) {
-    this.snapshotManager = snapshotManager;
-    this.pruningInterval = pruningInterval;
-  }
-
-  applyTransaction(tx: Transaction): void {
-    const sender = this.getAccount(tx.from);
-    const receiver = this.getAccount(tx.to);
-
-    sender.balance -= tx.amount;
-    receiver.balance += tx.amount;
-
-    this.updateStateRoot();
-  }
-
-  applyBlock(block: Block): void {
+  applyBlockChanges(block: Block) {
+    // Apply transactions to update the state
     for (const tx of block.transactions) {
-      this.applyTransaction(tx);
+      this.updateAccount(tx.from, tx);
+      this.updateAccount(tx.to, tx);
     }
+  }
 
-    this.updateStateRoot();
-    this.maybeCreateSnapshot(block);
-    this.maybePruneState(block.number);
+  private updateAccount(address: string, tx: Transaction) {
+    let account = this.state.get(address);
+    if (!account) {
+      account = new Account(address);
+      this.state.set(address, account);
+    }
+    account.applyTransaction(tx);
   }
 
   getAccount(address: string): Account {
-    if (!this.accounts.has(address)) {
-      this.accounts.set(address, new Account(address, 0));
-    }
-    return this.accounts.get(address)!;
-  }
-
-  getStateRoot(): string {
-    return this.stateRoot;
-  }
-
-  private updateStateRoot(): void {
-    // TODO: Implement state root calculation
-    this.stateRoot = 'abc123';
-  }
-
-  private maybeCreateSnapshot(block: Block): void {
-    if (block.number % this.pruningInterval === 0) {
-      this.snapshotManager.createSnapshot(block);
-    }
-  }
-
-  private maybePruneState(blockNumber: number): void {
-    if (blockNumber % this.pruningInterval === 0) {
-      this.pruneStateData(blockNumber - this.pruningInterval);
-    }
-  }
-
-  private pruneStateData(blockNumber: number): void {
-    // Remove state data for blocks older than the pruning interval
-    // This may involve deleting accounts, transactions, and other state data
-    // Use the StateSnapshotManager to handle the pruning process
+    return this.state.get(address) || new Account(address);
   }
 }
