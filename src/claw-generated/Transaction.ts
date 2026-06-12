@@ -1,16 +1,30 @@
-import { TransactionReceipt } from './TransactionReceipt';
-import { Log, LogEntry, BloomFilter } from '../types';
-
 export class Transaction {
-  // Transaction fields...
+  id: string;
+  from: string;
+  to: string;
+  amount: number;
+  fee: number;
+  nonce: number;
+  timestamp: number;
+  status: 'pending' | 'confirmed';
 
-  generateReceipt(): TransactionReceipt {
-    // Generate transaction receipt data
-    const status = true; // Replace with actual status
-    const gasUsed = 21000; // Replace with actual gas used
-    const logs: LogEntry[] = []; // Replace with actual logs
-    const bloomFilter: BloomFilter = new BloomFilter(); // Replace with actual bloom filter
-
-    return new TransactionReceipt(status, gasUsed, logs, bloomFilter);
+  constructor(
+    id: string,
+    from: string,
+    to: string,
+    amount: number,
+    fee: number,
+    nonce: number,
+    timestamp: number,
+    status: 'pending' | 'confirmed'
+  ) {
+    this.id = id;
+    this.from = from;
+    this.to = to;
+    this.amount = amount;
+    this.fee = fee;
+    this.nonce = nonce;
+    this.timestamp = timestamp;
+    this.status = status;
   }
 }

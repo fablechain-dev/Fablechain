@@ -1,21 +1,19 @@
-import { AccountState } from './AccountState';
-
 export class Account {
   address: string;
   balance: number;
-  state: AccountState;
+  nonce: number;
 
-  constructor(address: string) {
+  constructor(address: string, balance: number, nonce: number) {
     this.address = address;
-    this.balance = 0;
-    this.state = new AccountState();
+    this.balance = balance;
+    this.nonce = nonce;
   }
 
-  getState(key: string): any {
-    return this.state.get(this, key);
+  updateBalance(amount: number) {
+    this.balance += amount;
   }
 
-  setState(key: string, value: any): void {
-    this.state.set(this, key, value);
+  incrementNonce() {
+    this.nonce++;
   }
 }
