@@ -1,27 +1,36 @@
-import { Transaction } from './transaction';
-
 export class Block {
-  transactions: Transaction[];
-  previousHash: string;
-  hash: string;
+  public size: number;
+  public transactions: any[];
+  public timestamp: number;
+  public previousHash: string;
+  public hash: string;
 
-  constructor(transactions: Transaction[], previousHash: string) {
+  private static MAX_BLOCK_SIZE = 1 * 1024 * 1024; // 1 MB
+  private static SIZE_ADJUSTMENT_INTERVAL = 1000 * 60 * 60; // 1 hour
+
+  constructor(transactions: any[], previousHash: string) {
     this.transactions = transactions;
     this.previousHash = previousHash;
+    this.timestamp = Date.now();
     this.hash = this.calculateHash();
+    this.size = this.calculateSize();
   }
 
-  calculateHash(): string {
-    // TODO: Implement hash calculation
-    return 'placeholder-hash';
+  private calculateHash(): string {
+    // Implement hash calculation logic
+    return ''; 
   }
 
-  verifyTransactions(): boolean {
-    for (const tx of this.transactions) {
-      if (!tx.verifySignature()) {
-        return false;
-      }
-    }
-    return true;
+  private calculateSize(): number {
+    // Implement block size calculation logic
+    return 0;
+  }
+
+  public validateSize(): boolean {
+    return this.size <= Block.MAX_BLOCK_SIZE;
+  }
+
+  public static adjustMaxBlockSize(avgBlockSize: number): void {
+    // Implement dynamic block size adjustment logic
   }
 }
