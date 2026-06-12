@@ -18,4 +18,8 @@ export class Account {
   setStorageSlot(key: string, value: any): void {
     this.storageSlots.set(key, value);
   }
+
+  incrementNonce(): void {
+    this.nonce++;
+  }
 }
