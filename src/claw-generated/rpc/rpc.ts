@@ -1,6 +1,6 @@
 import { GetAccountInfoRpcImpl, GetAccountInfoRpc } from './get_account_info';
-import { GetBlockRpcImpl } from './get_block';
-import { GetTransactionRpcImpl } from './get_transaction';
+import { GetBlockRpcImpl, GetBlockRpc } from './get_block';
+import { GetTransactionRpcImpl, GetTransactionRpc } from './get_transaction';
 import { AccountManager, AccountStorage } from '../AccountManager';
 import { BlockManager } from '../BlockManager';
 import { TransactionManager } from '../TransactionManager';
