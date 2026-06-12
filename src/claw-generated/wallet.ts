@@ -1,32 +1,38 @@
-import * as bip39 from 'bip39';
-import * as ed25519 from 'ed25519-hd-key';
-import * as bs58 from 'bs58';
+import * as crypto from 'crypto';
+import bip39 from 'bip39';
+import { ec as EC } from 'elliptic';
+import bs58 from 'bs58';
 
-export class WalletKeyPair {
-  private _privateKey: Uint8Array;
-  private _publicKey: Uint8Array;
+export class Wallet {
+  private privateKey: Buffer;
+  private publicKey: Buffer;
 
-  constructor(privateKey: Uint8Array, publicKey: Uint8Array) {
-    this._privateKey = privateKey;
-    this._publicKey = publicKey;
+  constructor(seed?: string) {
+    if (seed) {
+      this.fromSeedPhrase(seed);
+    } else {
+      this.generateKeyPair();
+    }
   }
 
-  get privateKey(): Uint8Array {
-    return this._privateKey;
+  generateKeyPair() {
+    const ec = new EC('ed25519');
+    const keyPair = ec.genKeyPair();
+    this.privateKey = keyPair.getPrivate().toBuffer();
+    this.publicKey = keyPair.getPublic().toBuffer();
   }
 
-  get publicKey(): Uint8Array {
-    return this._publicKey;
-  }
-
-  get address(): string {
-    return bs58.encode(this._publicKey);
-  }
-
-  static fromSeedPhrase(seedPhrase: string): WalletKeyPair {
+  fromSeedPhrase(seedPhrase: string) {
     const seed = bip39.mnemonicToSeedSync(seedPhrase);
-    const { key: privateKey } = ed25519.derivePath("m/44'/60'/0'/0/0", seed.toString('hex'));
-    const publicKey = ed25519.getPublicKey(privateKey);
-    return new WalletKeyPair(privateKey, publicKey);
+    const ec = new EC('ed25519');
+    const keyPair = ec.keyFromSecret(seed.slice(0, 32));
+    this.privateKey = keyPair.getPrivate().toBuffer();
+    this.publicKey = keyPair.getPublic().toBuffer();
+  }
+
+  getAddress(): string {
+    const hash = crypto.createHash('sha256').update(this.publicKey).digest();
+    const checksum = crypto.createHash('sha256').update(hash).digest().slice(0, 4);
+    return bs58.encode(Buffer.concat([hash, checksum]));
   }
 }

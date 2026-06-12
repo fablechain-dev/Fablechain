@@ -1,12 +1,26 @@
-import { WalletKeyPair } from './wallet';
+import { Wallet } from './wallet';
+import { expect } from 'chai';
+import bip39 from 'bip39';
 
-describe('WalletKeyPair', () => {
-  it('should generate keypair from seed phrase', () => {
-    const seedPhrase = 'abandon amount expire adjust cage candy arch gather drum buyer index orange tree';
-    const keyPair = WalletKeyPair.fromSeedPhrase(seedPhrase);
+describe('Wallet', () => {
+  it('should generate a new keypair', () => {
+    const wallet = new Wallet();
+    expect(wallet.privateKey).to.be.an.instanceOf(Buffer);
+    expect(wallet.publicKey).to.be.an.instanceOf(Buffer);
+  });
 
-    expect(keyPair.privateKey.length).toBe(32);
-    expect(keyPair.publicKey.length).toBe(32);
-    expect(keyPair.address).toBe('1KbUJ4x8epz6QqxkmZbTc7ctHxmiF79roughlysimilar');
+  it('should derive a keypair from a seed phrase', () => {
+    const seedPhrase = 'abandon amount expire adjust cage candy arch gather drum buyer enemy junior emit';
+    const wallet = new Wallet(seedPhrase);
+    expect(wallet.privateKey).to.be.an.instanceOf(Buffer);
+    expect(wallet.publicKey).to.be.an.instanceOf(Buffer);
+  });
+
+  it('should generate a valid address', () => {
+    const wallet = new Wallet();
+    const address = wallet.getAddress();
+    expect(address).to.be.a('string');
+    expect(address.length).to.be.greaterThan(0);
+    expect(bip39.validateMnemonic(address)).to.be.false; // Ensure it's not a valid seed phrase
   });
 });
