@@ -1,99 +1,63 @@
-import { BigNumber } from 'ethers';
-import { Stake } from './Stake';
+import { AccountStorage } from '../AccountStorage';
+import { ContractStorage } from '../contracts/ContractStorage';
+import { Block } from '../blockchain/block';
 import { Validator } from '../Validator';
-import { Block } from '../Block';
 
 export class StakingManager {
-  private stakes: Map<string, Stake[]> = new Map();
-  private validators: Map<string, Validator> = new Map();
+  private accountStorage: AccountStorage;
+  private contractStorage: ContractStorage;
+  private validators: Validator[] = [];
+  private delegations: Map<string, Map<string, number>> = new Map(); // delegator -> validator -> amount
 
-  constructor(validators: Validator[]) {
-    for (const validator of validators) {
-      this.validators.set(validator.address, validator);
-    }
+  constructor(accountStorage: AccountStorage, contractStorage: ContractStorage) {
+    this.accountStorage = accountStorage;
+    this.contractStorage = contractStorage;
   }
 
-  async stake(address: string, amount: BigNumber, validatorAddress: string): Promise<void> {
-    const validator = this.validators.get(validatorAddress);
-    if (!validator) {
-      throw new Error(`Validator ${validatorAddress} not found`);
-    }
+  async handleBlockProduced(block: Block) {
+    // Update validator set based on staking activity
+    this.updateValidatorSet(block);
 
-    const stake: Stake = {
-      validator: validatorAddress,
-      amount,
-      timestamp: Date.now(),
-      rewards: BigNumber.from(0),
-    };
-
-    if (!this.stakes.has(address)) {
-      this.stakes.set(address, []);
-    }
-    this.stakes.get(address)!.push(stake);
-
-    validator.addStake(stake);
+    // Calculate and distribute rewards to validators and delegators
+    this.distributeRewards(block);
   }
 
-  async withdraw(address: string, amount: BigNumber): Promise<void> {
-    const stakes = this.stakes.get(address);
-    if (!stakes || stakes.length === 0) {
-      throw new Error(`No stakes found for address ${address}`);
-    }
-
-    let remainingAmount = amount;
-    for (const stake of stakes) {
-      if (stake.amount.lte(remainingAmount)) {
-        remainingAmount = remainingAmount.sub(stake.amount);
-        this.removeStake(address, stake);
-      } else {
-        stake.amount = stake.amount.sub(remainingAmount);
-        this.validators.get(stake.validator)!.removeStake(stake);
-        remainingAmount = BigNumber.from(0);
-        break;
-      }
-    }
-
-    if (remainingAmount.gt(0)) {
-      throw new Error(`Insufficient staked amount for withdrawal`);
-    }
+  private updateValidatorSet(block: Block) {
+    // Implement logic to update the validator set based on staking activity
+    // This may involve querying the staking contract, sorting validators by stake, etc.
+    this.validators = []; // update this.validators
   }
 
-  private removeStake(address: string, stake: Stake): void {
-    const stakes = this.stakes.get(address);
-    if (stakes) {
-      const index = stakes.findIndex((s) => s.validator === stake.validator && s.amount.eq(stake.amount));
-      if (index !== -1) {
-        stakes.splice(index, 1);
-        this.validators.get(stake.validator)!.removeStake(stake);
-      }
-    }
+  private distributeRewards(block: Block) {
+    // Implement logic to calculate and distribute rewards to validators and delegators
+    // This will involve querying staking data, calculating rewards based on stakes and block rewards, and updating account balances
   }
 
-  async updateRewards(block: Block): Promise<void> {
-    const currentTimestamp = Date.now();
-    for (const [address, stakes] of this.stakes) {
-      for (const stake of stakes) {
-        const validator = this.validators.get(stake.validator);
-        if (validator) {
-          const updatedStakeAmount = this.calculateCompoundInterest(stake, currentTimestamp);
-          const rewardAmount = this.calculateRewards(updatedStakeAmount, validator, block);
-          stake.rewards = stake.rewards.add(rewardAmount);
-          stake.amount = updatedStakeAmount;
-          block.addStake(address, stake);
-        }
-      }
-    }
+  async stake(account: string, amount: number) {
+    // Implement logic to allow an account to stake tokens
+    // This will involve updating the staking contract and the delegations map
   }
 
-  private calculateRewards(stakeAmount: BigNumber, validator: Validator, block: Block): BigNumber {
-    // Implement reward calculation logic based on staked amount, validator performance, etc.
-    return BigNumber.from(0);
+  async unstake(account: string, amount: number) {
+    // Implement logic to allow an account to unstake tokens
+    // This will involve updating the staking contract and the delegations map
   }
 
-  private calculateCompoundInterest(stake: Stake, currentTimestamp: number): BigNumber {
-    const stakingDuration = currentTimestamp - stake.timestamp;
-    const interestRate = 0.05; // Example 5% annual interest rate
-    const interestEarned = stake.amount.mul(stakingDuration).mul(interestRate).div(31536000000); // Assuming 1 year = 31,536,000,000 milliseconds
-    return stake.amount.add(interestEarned);
+  async delegate(delegator: string, validator: string, amount: number) {
+    // Implement logic to allow an account to delegate tokens to a validator
+    // This will involve updating the delegations map
+  }
+
+  async undelegate(delegator: string, validator: string, amount: number) {
+    // Implement logic to allow an account to undelegate tokens from a validator
+    // This will involve updating the delegations map
+  }
+
+  getValidatorSet(): Validator[] {
+    return this.validators;
+  }
+
+  getDelegations(delegator: string): Map<string, number> {
+    return this.delegations.get(delegator) || new Map();
   }
 }
