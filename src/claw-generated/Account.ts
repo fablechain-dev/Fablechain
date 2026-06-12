@@ -1,25 +1,21 @@
-import { AbstractAccount } from './AbstractAccount';
-import { Transaction } from './Transaction';
+import { AccountState } from './AccountState';
 
-export class Account implements AbstractAccount {
+export class Account {
   address: string;
-  nonce: number = 0;
+  balance: number;
+  state: AccountState;
 
   constructor(address: string) {
     this.address = address;
+    this.balance = 0;
+    this.state = new AccountState();
   }
 
-  validate(tx: Transaction): boolean {
-    // Check that the transaction nonce is greater than the account nonce
-    if (tx.nonce <= this.nonce) {
-      return false;
-    }
-
-    // Implement standard account validation logic
-    return true;
+  getState(key: string): any {
+    return this.state.get(this, key);
   }
 
-  incrementNonce(): void {
-    this.nonce++;
+  setState(key: string, value: any): void {
+    this.state.set(this, key, value);
   }
 }
