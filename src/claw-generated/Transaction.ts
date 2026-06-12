@@ -1,4 +1,5 @@
 import { Account } from './Account';
+import { Ed25519Signer } from './crypto/ed25519';
 
 export class Transaction {
   sender: Account;
@@ -15,15 +16,19 @@ export class Transaction {
   }
 
   async sign(): Promise<void> {
-    this.signature = await this.sender.sign(this.getDataToSign());
+    this.signature = await Ed25519Signer.sign(this.getDataToSign(), this.sender.privateKey);
   }
 
   verify(): boolean {
-    return this.sender.verify(this.getDataToSign(), this.signature);
+    return Ed25519Signer.verify(this.getDataToSign(), this.signature, this.sender.publicKey);
   }
 
   private getDataToSign(): Uint8Array {
-    // Implement logic to get the data that needs to be signed
-    return new Uint8Array();
+    return new Uint8Array([
+      ...this.sender.publicKey,
+      ...this.recipient.getBytes(),
+      ...new Uint8Array(this.amount.toString().split('').map(Number)),
+      ...new Uint8Array([Math.floor(this.timestamp / 1000)]),
+    ]);
   }
 }
