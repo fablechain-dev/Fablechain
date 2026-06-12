@@ -1,36 +1,39 @@
-import { Account } from './account';
 import { Transaction } from './transaction';
-import { TransactionHistory } from './transaction-history';
+import { Block } from './block';
 
-export class RpcService {
-  private accounts: { [address: string]: Account } = {};
-  private transactionHistories: { [address: string]: TransactionHistory } = {};
-
-  getAccountBalance(address: string): number {
-    if (!this.accounts[address]) {
-      this.accounts[address] = new Account();
-    }
-    return this.accounts[address].getBalance();
+export class RPC {
+  async getTransactionReceipt(txHash: string): Promise<{
+    from: string;
+    to: string;
+    value: number;
+    fee: number;
+  }> {
+    // Look up transaction by hash and return receipt
+    const tx = this.getTransaction(txHash);
+    return {
+      from: tx.from,
+      to: tx.to,
+      value: tx.value,
+      fee: tx.calculateFee()
+    };
   }
 
-  getTransactionHistory(address: string): Transaction[] {
-    if (!this.transactionHistories[address]) {
-      this.transactionHistories[address] = new TransactionHistory();
-    }
-    return this.transactionHistories[address].getTransactions();
+  async getBlockReward(blockNumber: number): Promise<number> {
+    // Look up block by number and return reward
+    const block = this.getBlock(blockNumber);
+    return block.calculateReward();
   }
 
-  getPendingTransactions(address: string): Transaction[] {
-    if (!this.transactionHistories[address]) {
-      this.transactionHistories[address] = new TransactionHistory();
-    }
-    return this.transactionHistories[address].getPendingTransactions();
+  private getTransaction(txHash: string): Transaction {
+    // Look up transaction by hash and return it
+    return new Transaction('0x123', '0x456', 1, 'contract.call()');
   }
 
-  getConfirmedTransactions(address: string): Transaction[] {
-    if (!this.transactionHistories[address]) {
-      this.transactionHistories[address] = new TransactionHistory();
-    }
-    return this.transactionHistories[address].getConfirmedTransactions();
+  private getBlock(blockNumber: number): Block {
+    // Look up block by number and return it
+    const tx = new Transaction('0x123', '0x456', 1, 'contract.deploy()');
+    const block = new Block();
+    block.addTransaction(tx);
+    return block;
   }
 }

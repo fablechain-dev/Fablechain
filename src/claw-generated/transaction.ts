@@ -1,24 +1,25 @@
 export class Transaction {
-  readonly id: string;
-  readonly from: string;
-  readonly to: string;
-  readonly amount: number;
-  readonly timestamp: number;
-  readonly status: 'pending' | 'confirmed';
-
   constructor(
-    id: string,
-    from: string,
-    to: string,
-    amount: number,
-    timestamp: number,
-    status: 'pending' | 'confirmed'
-  ) {
-    this.id = id;
-    this.from = from;
-    this.to = to;
-    this.amount = amount;
-    this.timestamp = timestamp;
-    this.status = status;
+    public readonly from: string,
+    public readonly to: string,
+    public readonly value: number,
+    public readonly data: string = ''
+  ) {}
+
+  calculateFee(): number {
+    // Calculate fee based on data size
+    const dataSize = this.data.length;
+    const baseFee = 0.1;
+    const sizeFee = dataSize * 0.001;
+
+    // Calculate fee based on complexity
+    let complexityFee = 0;
+    if (this.data.includes('contract.deploy')) {
+      complexityFee = 1;
+    } else if (this.data.includes('contract.call')) {
+      complexityFee = 0.5;
+    }
+
+    return baseFee + sizeFee + complexityFee;
   }
 }
