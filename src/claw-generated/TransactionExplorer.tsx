@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionReceipt } from './transaction';
 
 const TransactionExplorer: React.FC = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<(Transaction & { receipt: TransactionReceipt })[]>([]);
 
   useEffect(() => {
     // Fetch transaction data from the backend
@@ -31,6 +31,8 @@ const TransactionExplorer: React.FC = () => {
             <th>Amount</th>
             <th>Status</th>
             <th>Timestamp</th>
+            <th>Gas Used</th>
+            <th>Logs</th>
           </tr>
         </thead>
         <tbody>
@@ -40,8 +42,10 @@ const TransactionExplorer: React.FC = () => {
               <td>{tx.from}</td>
               <td>{tx.to}</td>
               <td>{tx.amount}</td>
-              <td>{tx.receipt?.status}</td>
+              <td>{tx.receipt.status}</td>
               <td>{new Date(tx.timestamp).toLocaleString()}</td>
+              <td>{tx.receipt.gasUsed}</td>
+              <td>{tx.receipt.logs.join(', ')}</td>
             </tr>
           ))}
         </tbody>

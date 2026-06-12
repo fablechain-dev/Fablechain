@@ -1,21 +1,37 @@
 import { Request, Response } from 'express';
-import { Transaction } from '@solana/web3.js';
+import { Transaction, TransactionReceipt } from '../transaction';
 
-export async function sendTransaction(req: Request, res: Response) {
+export async function getTransaction(req: Request, res: Response) {
   try {
-    const { signedTransaction } = req.body;
-    const transaction = Transaction.from(Buffer.from(signedTransaction, 'base64'));
+    const { transactionHash } = req.params;
 
-    // Validate the transaction
-    if (!transaction.verifySignatures()) {
-      return res.status(400).json({ error: 'Invalid transaction signatures' });
-    }
+    // Fetch the transaction details from the blockchain
+    const transaction = await getTransactionDetails(transactionHash);
+    const receipt = await getTransactionReceipt(transactionHash);
 
-    // Broadcast the transaction to the network
-    const signature = await transaction.send();
-    res.json({ signature });
+    res.json({ transaction, receipt });
   } catch (error) {
-    console.error('Error in sendTransaction:', error);
-    res.status(500).json({ error: 'Failed to process transaction' });
+    console.error('Error in getTransaction:', error);
+    res.status(500).json({ error: 'Failed to fetch transaction details' });
   }
+}
+
+async function getTransactionDetails(hash: string): Promise<Transaction> {
+  // Implement logic to fetch transaction details from the blockchain
+  return {
+    hash,
+    from: '0x1234567890abcdef',
+    to: '0x0987654321fedcba',
+    amount: 1.5,
+    timestamp: Date.now(),
+  };
+}
+
+async function getTransactionReceipt(hash: string): Promise<TransactionReceipt> {
+  // Implement logic to fetch transaction receipt from the blockchain
+  return {
+    status: 'success',
+    gasUsed: 21000,
+    logs: [],
+  };
 }
