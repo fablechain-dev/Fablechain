@@ -1,19 +1,34 @@
-import { Request, Response } from 'express';
-import { getTransactionSignatures } from './transactionService';
+import { Transaction } from '../transaction';
+import { AccountState } from '../account';
 
-export async function getSignaturesForAddress(req: Request, res: Response) {
-  const { address, limit = 10, before, until } = req.query;
+export interface GetSignaturesForAddressParams {
+  address: string;
+  limit?: number;
+  before?: string;
+  until?: string;
+}
 
-  try {
-    const signatures = await getTransactionSignatures(
-      address as string,
-      typeof limit === 'string' ? parseInt(limit) : 10,
-      before as string,
-      until as string
-    );
-    res.json(signatures);
-  } catch (err) {
-    console.error('Error in getSignaturesForAddress:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+export interface GetSignaturesForAddressResult {
+  signatures: string[];
+  before: string;
+  until: string;
+}
+
+export async function getSignaturesForAddress(
+  params: GetSignaturesForAddressParams
+): Promise<GetSignaturesForAddressResult> {
+  const { address, limit = 1000, before, until } = params;
+
+  // Fetch transaction signatures for the given address
+  const signatures = await AccountState.getTransactionSignatures(address, {
+    limit,
+    before,
+    until,
+  });
+
+  return {
+    signatures,
+    before: signatures.length > 0 ? signatures[0] : '',
+    until: signatures.length > 0 ? signatures[signatures.length - 1] : '',
+  };
 }
