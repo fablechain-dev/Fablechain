@@ -8,6 +8,9 @@ interface NetworkStats {
   difficulty: number;
   hashrate: number;
   activeAddresses: number;
+  blockHeight: number;
+  transactionCount: number;
+  totalSupply: number;
 }
 
 const NetworkStatsPanel: React.FC = () => {
@@ -53,6 +56,18 @@ const NetworkStatsPanel: React.FC = () => {
       <div className="stat-item">
         <div className="stat-label">Active Addresses</div>
         <div className="stat-value">{networkStats.activeAddresses.toFixed(0)}</div>
+      </div>
+      <div className="stat-item">
+        <div className="stat-label">Block Height</div>
+        <div className="stat-value">{networkStats.blockHeight.toFixed(0)}</div>
+      </div>
+      <div className="stat-item">
+        <div className="stat-label">Transactions</div>
+        <div className="stat-value">{networkStats.transactionCount.toFixed(0)}</div>
+      </div>
+      <div className="stat-item">
+        <div className="stat-label">Total Supply</div>
+        <div className="stat-value">{networkStats.totalSupply.toFixed(2)}</div>
       </div>
     </div>
   );
