@@ -1,22 +1,20 @@
 import WebSocket from 'ws';
-import { BlockManager } from '../blockchain/BlockManager';
-import { TransactionPool } from '../TransactionPool';
-import { TransactionReceipt } from '../TransactionReceipt';
+import { RpcServer } from './rpc-server';
+import { EventEmitter } from 'events';
+import { Block, Transaction } from '../core/types';
 
 class WebSocketServer {
   private wss: WebSocket.Server;
+  private rpcServer: RpcServer;
+  private eventEmitter: EventEmitter;
   private subscriptions: Map<WebSocket, Set<string>> = new Map();
 
-  constructor(
-    private blockManager: BlockManager,
-    private transactionPool: TransactionPool
-  ) {
+  constructor(rpcServer: RpcServer, eventEmitter: EventEmitter) {
+    this.rpcServer = rpcServer;
+    this.eventEmitter = eventEmitter;
     this.wss = new WebSocket.Server({ port: 8080 });
-    this.initializeWebSocketServer();
-  }
 
-  private initializeWebSocketServer() {
-    this.wss.on('connection', (ws: WebSocket) => {
+    this.wss.on('connection', (ws) => {
       console.log('WebSocket client connected');
       this.subscriptions.set(ws, new Set());
 
@@ -42,99 +40,113 @@ class WebSocketServer {
           this.handleUnsubscription(ws, request);
           break;
         default:
-          ws.send(JSON.stringify({ error: 'Invalid request method' }));
+          this.sendErrorResponse(ws, `Unknown method: ${request.method}`);
       }
-    } catch (error) {
-      console.error('Error handling WebSocket message:', error);
-      ws.send(JSON.stringify({ error: 'Invalid request' }));
+    } catch (err) {
+      this.sendErrorResponse(ws, err.message);
     }
   }
 
   private handleSubscription(ws: WebSocket, request: any) {
-    const { topic } = request;
-    const subscriptions = this.subscriptions.get(ws) || new Set();
-
-    switch (topic) {
-      case 'newHeads':
-        this.subscribeToNewHeads(ws);
-        subscriptions.add('newHeads');
-        break;
-      case 'logs':
-        this.subscribeToLogs(ws);
-        subscriptions.add('logs');
-        break;
-      case 'pendingTransactions':
-        this.subscribeToPendingTransactions(ws);
-        subscriptions.add('pendingTransactions');
+    const { method, params } = request;
+    switch (method) {
+      case 'subscribe':
+        switch (params.type) {
+          case 'newHeads':
+            this.subscribeToNewHeads(ws);
+            break;
+          case 'logs':
+            this.subscribeToLogs(ws, params.filter);
+            break;
+          case 'pendingTransactions':
+            this.subscribeToPendingTransactions(ws);
+            break;
+          default:
+            this.sendErrorResponse(ws, `Unknown subscription type: ${params.type}`);
+        }
         break;
       default:
-        ws.send(JSON.stringify({ error: 'Invalid subscription topic' }));
-        return;
+        this.sendErrorResponse(ws, `Unknown method: ${method}`);
     }
-
-    this.subscriptions.set(ws, subscriptions);
   }
 
   private handleUnsubscription(ws: WebSocket, request: any) {
-    const { topic } = request;
-    const subscriptions = this.subscriptions.get(ws) || new Set();
-
-    switch (topic) {
-      case 'newHeads':
-        this.unsubscribeFromNewHeads(ws);
-        subscriptions.delete('newHeads');
-        break;
-      case 'logs':
-        this.unsubscribeFromLogs(ws);
-        subscriptions.delete('logs');
-        break;
-      case 'pendingTransactions':
-        this.unsubscribeFromPendingTransactions(ws);
-        subscriptions.delete('pendingTransactions');
+    const { method, params } = request;
+    switch (method) {
+      case 'unsubscribe':
+        switch (params.type) {
+          case 'newHeads':
+            this.unsubscribeFromNewHeads(ws);
+            break;
+          case 'logs':
+            this.unsubscribeFromLogs(ws, params.filter);
+            break;
+          case 'pendingTransactions':
+            this.unsubscribeFromPendingTransactions(ws);
+            break;
+          default:
+            this.sendErrorResponse(ws, `Unknown subscription type: ${params.type}`);
+        }
         break;
       default:
-        ws.send(JSON.stringify({ error: 'Invalid unsubscription topic' }));
-        return;
+        this.sendErrorResponse(ws, `Unknown method: ${method}`);
     }
-
-    this.subscriptions.set(ws, subscriptions);
   }
 
   private subscribeToNewHeads(ws: WebSocket) {
-    this.blockManager.on('newHead', (block) => {
-      ws.send(JSON.stringify({ topic: 'newHeads', data: block }));
+    this.subscriptions.get(ws)?.add('newHeads');
+    this.eventEmitter.on('newBlock', (block: Block) => {
+      this.sendUpdate(ws, 'newHeads', block);
     });
   }
 
   private unsubscribeFromNewHeads(ws: WebSocket) {
-    this.blockManager.off('newHead', (block) => {
-      ws.send(JSON.stringify({ topic: 'newHeads', data: block }));
+    this.subscriptions.get(ws)?.delete('newHeads');
+    this.eventEmitter.off('newBlock', this.sendUpdate);
+  }
+
+  private subscribeToLogs(ws: WebSocket, filter: any) {
+    this.subscriptions.get(ws)?.add(`logs:${JSON.stringify(filter)}`);
+    this.eventEmitter.on('log', (log: any) => {
+      if (this.matchesFilter(log, filter)) {
+        this.sendUpdate(ws, 'logs', log);
+      }
     });
   }
 
-  private subscribeToLogs(ws: WebSocket) {
-    this.transactionPool.on('transactionExecuted', (receipt: TransactionReceipt) => {
-      ws.send(JSON.stringify({ topic: 'logs', data: receipt }));
-    });
-  }
-
-  private unsubscribeFromLogs(ws: WebSocket) {
-    this.transactionPool.off('transactionExecuted', (receipt: TransactionReceipt) => {
-      ws.send(JSON.stringify({ topic: 'logs', data: receipt }));
-    });
+  private unsubscribeFromLogs(ws: WebSocket, filter: any) {
+    this.subscriptions.get(ws)?.delete(`logs:${JSON.stringify(filter)}`);
+    this.eventEmitter.off('log', this.sendUpdate);
   }
 
   private subscribeToPendingTransactions(ws: WebSocket) {
-    this.transactionPool.on('newTransaction', (transaction) => {
-      ws.send(JSON.stringify({ topic: 'pendingTransactions', data: transaction }));
+    this.subscriptions.get(ws)?.add('pendingTransactions');
+    this.eventEmitter.on('pendingTransaction', (tx: Transaction) => {
+      this.sendUpdate(ws, 'pendingTransactions', tx);
     });
   }
 
   private unsubscribeFromPendingTransactions(ws: WebSocket) {
-    this.transactionPool.off('newTransaction', (transaction) => {
-      ws.send(JSON.stringify({ topic: 'pendingTransactions', data: transaction }));
-    });
+    this.subscriptions.get(ws)?.delete('pendingTransactions');
+    this.eventEmitter.off('pendingTransaction', this.sendUpdate);
+  }
+
+  private sendUpdate(ws: WebSocket, type: string, data: any) {
+    ws.send(JSON.stringify({ type, data }));
+  }
+
+  private sendErrorResponse(ws: WebSocket, errorMessage: string) {
+    ws.send(JSON.stringify({ error: errorMessage }));
+  }
+
+  private matchesFilter(log: any, filter: any): boolean {
+    // Implement log filtering logic
+    return true;
+  }
+
+  start() {
+    this.wss.start();
   }
 }
 
-export default WebSocketServer;
+export { WebSocketServer };
