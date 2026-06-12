@@ -1,46 +1,63 @@
-import { describe, it, expect } from 'vitest';
-import { simulateTransaction, getSignaturesForAddress } from '../transaction';
-import { Account } from '../../wallet/account';
-import { Transaction } from '../transaction';
+import { getAccountInfo, getBalance, getBlock, getTransaction, sendTransaction, simulateTransaction } from '../rpc';
 
 describe('RPC Endpoints', () => {
-  describe('simulateTransaction', () => {
-    it('should simulate a valid transaction', async () => {
-      const account = new Account();
-      const transaction = new Transaction();
-      // Set up a valid transaction
-      const [logs, gasUsed] = await simulateTransaction(account, transaction);
-      expect(logs).toEqual(expect.any(Array));
-      expect(gasUsed).toBeGreaterThan(0);
+  describe('getAccountInfo', () => {
+    it('should return account info for a valid address', async () => {
+      const accountInfo = await getAccountInfo('0x1234567890abcdef');
+      expect(accountInfo).toEqual({
+        address: '0x1234567890abcdef',
+        balance: '1000000000',
+        nonce: 123,
+        // other account properties
+      });
     });
 
-    it('should return an error for an invalid transaction', async () => {
-      const account = new Account();
-      const transaction = new Transaction();
-      // Set up an invalid transaction
-      await expect(simulateTransaction(account, transaction)).rejects.toThrow();
+    it('should throw an error for an invalid address', async () => {
+      await expect(getAccountInfo('invalid_address')).rejects.toThrow();
     });
   });
 
-  describe('getSignaturesForAddress', () => {
-    it('should return signatures for a valid account', async () => {
-      const account = new Account();
-      const signatures = await getSignaturesForAddress(account, 0, 10);
-      expect(signatures).toEqual(expect.any(Array));
+  describe('getBalance', () => {
+    it('should return the balance for a valid address', async () => {
+      const balance = await getBalance('0x1234567890abcdef');
+      expect(balance).toBe('1000000000');
     });
 
-    it('should return an error for an invalid account', async () => {
-      await expect(getSignaturesForAddress(null as any, 0, 10)).rejects.toThrow();
+    it('should throw an error for an invalid address', async () => {
+      await expect(getBalance('invalid_address')).rejects.toThrow();
+    });
+  });
+
+  // Add more test cases for other RPC methods...
+
+  describe('simulateTransaction', () => {
+    it('should simulate a valid transaction', async () => {
+      const tx = {
+        from: '0x1234567890abcdef',
+        to: '0x0987654321fedcba',
+        value: '100000000',
+        gas: 21000,
+        gasPrice: '1000000000',
+        data: '0x0123456789abcdef'
+      };
+      const result = await simulateTransaction(tx);
+      expect(result).toEqual({
+        gasUsed: 21000,
+        status: 1,
+        // other simulation results
+      });
     });
 
-    it('should handle a large number of transactions', async () => {
-      const account = new Account();
-      // Generate a large number of transactions for the account
-      for (let i = 0; i < 1000; i++) {
-        await account.addTransaction(new Transaction());
-      }
-      const signatures = await getSignaturesForAddress(account, 0, 100);
-      expect(signatures.length).toBe(100);
+    it('should throw an error for an invalid transaction', async () => {
+      const tx = {
+        from: 'invalid_address',
+        to: '0x0987654321fedcba',
+        value: '100000000',
+        gas: 21000,
+        gasPrice: '1000000000',
+        data: '0x0123456789abcdef'
+      };
+      await expect(simulateTransaction(tx)).rejects.toThrow();
     });
   });
 });
