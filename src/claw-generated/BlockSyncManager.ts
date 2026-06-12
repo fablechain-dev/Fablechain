@@ -1,5 +1,6 @@
 import { Peer } from '../networking/Peer';
 import { Block } from '../chain/Block';
+import { blockProduced } from './metrics';
 
 class BlockSyncManager {
   private peers: Peer[] = [];
@@ -37,6 +38,9 @@ class BlockSyncManager {
     // 4. Validate and integrate downloaded blocks
     // - Verify the integrity of the downloaded blocks (e.g., hash, signatures)
     // - Insert the blocks into the local chain in the correct order
+
+    // Increment the blockProduced metric for each block
+    blocks.forEach(() => blockProduced.inc());
   }
 
   async persistBlocks(blocks: Block[]): Promise<void> {
