@@ -1,17 +1,12 @@
-import { PeerManager } from './PeerManager';
-import { PeerReputationManager } from './PeerReputationManager';
+import { registerMetrics } from './monitoring';
 
-export class ClawChain {
-  private peerManager: PeerManager;
-  private peerReputationManager: PeerReputationManager;
-
+class ClawChain {
   constructor() {
-    this.peerManager = new PeerManager();
-    this.peerReputationManager = new PeerReputationManager(this.peerManager);
+    // Other initialization logic...
+    registerMetrics();
   }
 
-  start() {
-    this.peerReputationManager.monitorPeerBehavior();
-    // Start other ClawChain components
-  }
+  // Other ClawChain methods...
 }
+
+export default ClawChain;
