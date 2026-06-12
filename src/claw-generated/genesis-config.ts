@@ -1,20 +1,22 @@
-import { AccountInfo } from '../types';
+import { GenesisBuilder } from './genesis';
+import path from 'path';
 
-export interface GenesisConfig {
-  chainId: string;
-  timestamp: number;
-  blockTime: number;
-  blockSize: number;
-  initialAccounts: AccountInfo[];
+export class GenesisConfig {
+  private genesisBlock: Block;
+
+  constructor() {
+    const builder = new GenesisBuilder();
+    builder.loadAccountsFromFile('../../fixtures/genesis-accounts.json');
+    builder.setChainConfig({
+      chainId: 'clawchain',
+      blockTime: 10,
+      gasLimit: 8000000,
+      initialSupply: 1000000000
+    });
+    this.genesisBlock = builder.build();
+  }
+
+  getGenesisBlock(): Block {
+    return this.genesisBlock;
+  }
 }
-
-export const DEFAULT_GENESIS_CONFIG: GenesisConfig = {
-  chainId: 'clawchain-1',
-  timestamp: Date.now(),
-  blockTime: 5000, // 5 seconds
-  blockSize: 1024 * 1024, // 1 MB
-  initialAccounts: [
-    { address: 'claw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq', balance: 1000000000 },
-    { address: 'claw1pppppppppppppppppppppppppppppppp', balance: 500000000 },
-  ],
-};
