@@ -18,19 +18,13 @@ jobs:
       with:
         node-version: '14'
     - run: npm ci
+    - run: npm run test
     - run: npm run build
-    - run: npm test
-  
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
     
-    steps:
-    - uses: actions/checkout@v2
-    - name: Deploy to hosting platform
+    - name: Deploy to production
+      if: github.ref == 'refs/heads/main'
       env:
         HOST_USERNAME: ${{ secrets.HOST_USERNAME }}
         HOST_PASSWORD: ${{ secrets.HOST_PASSWORD }}
       run: |
-        npm run build
-        scp -r dist/* user@example.com:/path/to/deployment
+        ssh $HOST_USERNAME@example.com 'cd /path/to/clawchain && git pull && npm install && npm run build && pm2 restart clawchain'
