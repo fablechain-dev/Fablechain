@@ -1,23 +1,20 @@
-import { AbstractAccount } from './AbstractAccount';
-import { Account } from './Account';
+import { AccountManager } from './AccountManager';
+import { Transaction } from '../core/types';
 
 export class TransactionProcessor {
-  static processTransaction(tx: Transaction) {
-    // Check if the sender is an AbstractAccount
-    if (tx.from instanceof AbstractAccount) {
-      // Validate the transaction using the AbstractAccount's validate method
-      if (!tx.from.validate(tx)) {
-        throw new Error('Transaction validation failed');
-      }
-    } else if (tx.from instanceof Account) {
-      // Use standard account validation
-      if (!tx.from.validate(tx)) {
-        throw new Error('Transaction validation failed');
-      }
-    } else {
-      throw new Error('Invalid sender account type');
+  private accountManager: AccountManager;
+
+  constructor(accountManager: AccountManager) {
+    this.accountManager = accountManager;
+  }
+
+  async processTransaction(tx: Transaction): Promise<boolean> {
+    if (!(await this.accountManager.validateTransaction(tx))) {
+      return false;
     }
 
-    // Continue with normal transaction processing...
+    // Other transaction processing logic...
+
+    return true;
   }
 }
