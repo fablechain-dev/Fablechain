@@ -1,8 +1,16 @@
 import { AccountState, CommitRevealData, OracleData } from './types';
+import fetch from 'node-fetch';
 
 export class OracleManager {
   private commitRevealData: Map<string, CommitRevealData> = new Map();
   private oracleData: Map<string, OracleData> = new Map();
+
+  public async fetchData(dataSource: string): Promise<string> {
+    // Fetch data from the specified external data source
+    const response = await fetch(dataSource);
+    const data = await response.text();
+    return data;
+  }
 
   public commitData(provider: string, data: string): void {
     const hash = this.hashData(data);
