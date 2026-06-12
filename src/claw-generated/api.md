@@ -1,77 +1,74 @@
 # ClawChain RPC API
 
-The ClawChain RPC API provides a set of methods for interacting with the blockchain. Here are the available methods:
+## `getAccountInfo`
+Fetch account data for a given public key.
 
-## `getBalance`
+### Parameters
+- `pubkey: string` - The public key of the account to fetch.
 
-Get the balance of a given account.
-
-**Parameters:**
-- `address`: string - The address of the account.
-
-**Return Value:**
-- `balance`: number - The balance of the account.
-
-**Example:**
-```javascript
-const balance = await rpc.getBalance("0x1234567890abcdef");
-console.log(`Account balance: ${balance} CLAW`);
+### Return Value
+```typescript
+{
+  data: Uint8Array; // The account's data
+  lamports: number; // The account's balance in lamports
+  owner: string; // The account's owner public key
+  executable: boolean; // Whether the account is executable
+} | null
 ```
 
-## `sendTransaction`
+If the account is not found, `null` is returned.
 
-Send a transaction to the ClawChain network.
+### Example
+```typescript
+const accountInfo = await rpcMethods.getAccountInfo('9h3ePfJ7NXzDvXCxrX4ZUTdQxmXdwwm3Fy6qJUZCrAHj');
+console.log(accountInfo);
+```
 
-**Parameters:**
-- `from`: string - The address of the sender.
-- `to`: string - The address of the recipient.
-- `amount`: number - The amount of CLAW to send.
-- `signature`: string - The signature of the transaction.
+## `getSignaturesForAddress`
+Retrieve a list of transaction signatures associated with a given address.
 
-**Return Value:**
-- `transactionHash`: string - The hash of the submitted transaction.
+### Parameters
+- `address: string` - The public key of the address to fetch signatures for.
+- `limit?: number` - The maximum number of signatures to return (default: 1000).
+- `before?: string` - A signature to start fetching results before (exclusive).
+- `until?: string` - A signature to stop fetching results at (inclusive).
 
-**Example:**
-```javascript
-const txHash = await rpc.sendTransaction({
-  from: "0x1234567890abcdef",
-  to: "0x0987654321fedcba",
-  amount: 10,
-  signature: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+### Return Value
+```typescript
+{
+  signatures: string[]; // The list of transaction signatures
+  before?: string; // The signature to start fetching results before (next page)
+  until?: string; // The signature to stop fetching results at (next page)
+}
+```
+
+### Example
+```typescript
+const signatures = await rpcMethods.getSignaturesForAddress('9h3ePfJ7NXzDvXCxrX4ZUTdQxmXdwwm3Fy6qJUZCrAHj', {
+  limit: 10,
+  before: '5h3ePfJ7NXzDvXCxrX4ZUTdQxmXdwwm3Fy6qJUZCrAHj'
 });
-console.log(`Transaction submitted: ${txHash}`);
+console.log(signatures);
 ```
 
-## `getTransactionReceipt`
+## `getTransaction`
+Retrieve a transaction by its signature.
 
-Get the receipt of a transaction.
+### Parameters
+- `signature: string` - The signature of the transaction to fetch.
 
-**Parameters:**
-- `transactionHash`: string - The hash of the transaction.
-
-**Return Value:**
-- `receipt`: object - The transaction receipt.
-
-**Example:**
-```javascript
-const receipt = await rpc.getTransactionReceipt("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef");
-console.log(`Transaction receipt: ${JSON.stringify(receipt)}`);
+### Return Value
+```typescript
+{
+  transaction: Transaction; // The transaction object
+  meta: TransactionReceipt; // The transaction receipt (metadata)
+} | null
 ```
 
-## `getBlockByHash`
+If the transaction is not found, `null` is returned.
 
-Get a block by its hash.
-
-**Parameters:**
-- `blockHash`: string - The hash of the block.
-
-**Return Value:**
-- `block`: object - The block object.
-
-**Example:**
-```javascript
-const block = await rpc.getBlockByHash("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef");
-console.log(`Block: ${JSON.stringify(block)}`);
+### Example
+```typescript
+const transactionData = await rpcMethods.getTransaction('5h3ePfJ7NXzDvXCxrX4ZUTdQxmXdwwm3Fy6qJUZCrAHj');
+console.log(transactionData);
 ```
-
-This is a starting point for the API documentation. As the RPC methods are implemented, I will update this document to provide a comprehensive overview of the ClawChain API.
