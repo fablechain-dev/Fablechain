@@ -1,31 +1,30 @@
 export class Block {
-  public readonly id: string;
-  public readonly timestamp: number;
-  public readonly transactions: any[];
-  public readonly previousHash: string;
-  public readonly hash: string;
-  public readonly confirmations: number;
+  public version: number;
+  public timestamp: number;
+  public transactions: any[];
+  public previousHash: string;
+  public hash: string;
 
-  constructor(
-    id: string,
-    timestamp: number,
-    transactions: any[],
-    previousHash: string,
-    hash: string
-  ) {
-    this.id = id;
+  constructor(version: number, timestamp: number, transactions: any[], previousHash: string) {
+    this.version = version;
     this.timestamp = timestamp;
     this.transactions = transactions;
     this.previousHash = previousHash;
-    this.hash = hash;
-    this.confirmations = 0;
+    this.hash = this.calculateHash();
   }
 
-  public incrementConfirmations(): void {
-    this.confirmations++;
+  calculateHash(): string {
+    // Implement hash calculation logic here
+    return "";
   }
 
-  public isFinalized(requiredConfirmations: number): boolean {
-    return this.confirmations >= requiredConfirmations;
+  isValid(): boolean {
+    // Implement block validation logic here
+    return true;
+  }
+
+  serialize(): string {
+    // Implement serialization logic here
+    return "";
   }
 }
