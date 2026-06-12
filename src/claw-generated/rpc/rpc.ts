@@ -1,20 +1,21 @@
-import { PeerManager } from '../networking/peer_manager';
-import { TransactionGossipProtocol } from '../networking/transaction-gossip-protocol';
+import { GetAccountInfoRpcImpl, GetAccountInfoRpc } from './get_account_info';
+import { AccountManager, AccountStorage } from '../AccountManager';
+import { createMethodHandler, JsonRpcServer } from './server';
 
-class RPCServer {
-  private peerManager: PeerManager;
-  private transactionGossipProtocol: TransactionGossipProtocol;
-
-  constructor(peerManager: PeerManager) {
-    this.peerManager = peerManager;
-    this.transactionGossipProtocol = peerManager.transactionGossipProtocol;
+export class RpcServer extends JsonRpcServer {
+  constructor(
+    private accountManager: AccountManager,
+    private accountStorage: AccountStorage
+  ) {
+    super();
+    this.registerMethod('getAccountInfo', this.getAccountInfo.bind(this));
   }
 
-  handleTransactionRequest(peer: Peer, txHash: string): void {
-    this.transactionGossipProtocol.handleTransactionRequest(peer, txHash);
-  }
-
-  // Other RPC methods...
+  private getAccountInfo = createMethodHandler(
+    (params: { pubkey: string }) => {
+      const { pubkey } = params;
+      const impl = new GetAccountInfoRpcImpl(this.accountManager, this.accountStorage);
+      return impl.get_account_info(pubkey);
+    }
+  );
 }
-
-export { RPCServer };
