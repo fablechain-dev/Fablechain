@@ -1,36 +1,54 @@
 import { MerklePatriciaTrie } from './MerklePatriciaTrie';
+import { ReadWriteLock } from './ReadWriteLock';
 
 class StateManager {
   private currentState: MerklePatriciaTrie;
   private previousState: MerklePatriciaTrie;
   private archivedStates: MerklePatriciaTrie[] = [];
+  private stateReadWriteLock: ReadWriteLock;
 
   constructor() {
     this.currentState = new MerklePatriciaTrie();
     this.previousState = new MerklePatriciaTrie();
+    this.stateReadWriteLock = new ReadWriteLock();
   }
 
   getStateRoot(): string {
-    return this.currentState.getRoot();
+    this.stateReadWriteLock.readLock();
+    const root = this.currentState.getRoot();
+    this.stateReadWriteLock.readUnlock();
+    return root;
   }
 
   setState(key: string, value: any): void {
+    this.stateReadWriteLock.writeLock();
     this.currentState.set(key, value);
+    this.stateReadWriteLock.writeUnlock();
   }
 
   getState(key: string): any {
-    return this.currentState.get(key);
+    this.stateReadWriteLock.readLock();
+    const value = this.currentState.get(key);
+    this.stateReadWriteLock.readUnlock();
+    return value;
   }
 
   getProof(key: string): any[] {
-    return this.currentState.getProof(key);
+    this.stateReadWriteLock.readLock();
+    const proof = this.currentState.getProof(key);
+    this.stateReadWriteLock.readUnlock();
+    return proof;
   }
 
   verifyProof(key: string, value: any, proof: any[]): boolean {
-    return this.currentState.verifyProof(key, value, proof);
+    this.stateReadWriteLock.readLock();
+    const isValid = this.currentState.verifyProof(key, value, proof);
+    this.stateReadWriteLock.readUnlock();
+    return isValid;
   }
 
   getStateDiff(): MerklePatriciaTrie {
+    this.stateReadWriteLock.readLock();
     const diff = new MerklePatriciaTrie();
     const previousKeys = this.previousState.getAllKeys();
     const currentKeys = this.currentState.getAllKeys();
@@ -48,11 +66,12 @@ class StateManager {
         diff.set(key, null);
       }
     }
-
+    this.stateReadWriteLock.readUnlock();
     return diff;
   }
 
   applyStateDiff(diff: MerklePatriciaTrie): void {
+    this.stateReadWriteLock.writeLock();
     const keys = diff.getAllKeys();
     for (const key of keys) {
       const value = diff.get(key);
@@ -65,25 +84,24 @@ class StateManager {
     this.previousState = this.currentState;
     this.currentState = new MerklePatriciaTrie();
     this.currentState.merge(this.previousState);
+    this.stateReadWriteLock.writeUnlock();
   }
 
   pruneState(maxBlockHeight: number): void {
-    // Remove state data for blocks older than the specified max height
+    this.stateReadWriteLock.writeLock();
     const currentBlockHeight = this.getCurrentBlockHeight();
     const keepBlockHeight = currentBlockHeight - maxBlockHeight;
 
-    // Remove old state data from the current and previous state tries
     this.currentState.pruneOldData(keepBlockHeight);
     this.previousState.pruneOldData(keepBlockHeight);
 
-    // Add the current state to the archived states
     this.archivedStates.push(this.previousState);
 
-    // Trim the archived states to keep only the most recent
     const maxArchivedStates = 10;
     if (this.archivedStates.length > maxArchivedStates) {
       this.archivedStates.shift();
     }
+    this.stateReadWriteLock.writeUnlock();
   }
 
   private getCurrentBlockHeight(): number {
