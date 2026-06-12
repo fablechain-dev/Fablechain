@@ -1,66 +1,43 @@
 import { Block } from './Block';
-import { CheckpointManager } from './CheckpointManager';
-import { TransactionPool } from './TransactionPool';
-import { StateManager } from './StateManager';
+import { Transaction } from './Transaction';
+
+const INITIAL_MAX_BLOCK_SIZE = 1024 * 1024; // 1 MB
+const BLOCK_SIZE_ADJUSTMENT_INTERVAL = 2016; // Adjust every 2,016 blocks (2 weeks)
+const BLOCK_SIZE_ADJUSTMENT_FACTOR = 1.05; // Increase by 5% if blocks are small
 
 export class Blockchain {
-  private blocks: Block[] = [];
-  private checkpointManager: CheckpointManager = new CheckpointManager();
-  private transactionPool: TransactionPool = new TransactionPool();
-  private stateManager: StateManager = new StateManager();
+  private chain: Block[] = [];
+  private pendingTransactions: Transaction[] = [];
+  private maxBlockSize: number = INITIAL_MAX_BLOCK_SIZE;
 
   addBlock(block: Block): void {
-    this.blocks.push(block);
-    this.checkpointManager.addCheckpoint(block);
-    this.stateManager.applyBlockToState(block);
-  }
-
-  getBlockByNumber(number: number): Block | null {
-    const checkpoint = this.checkpointManager.getCheckpointForBlock(number);
-    if (checkpoint) {
-      return new Block(number, checkpoint.block.hash, checkpoint.block.timestamp);
+    // Validate the new block
+    if (!block.isValid()) {
+      throw new Error('Invalid block size');
     }
-    return this.blocks.find((b) => b.number === number) || null;
+
+    this.chain.push(block);
+
+    // Adjust the max block size if necessary
+    if (this.chain.length % BLOCK_SIZE_ADJUSTMENT_INTERVAL === 0) {
+      this.adjustMaxBlockSize();
+    }
   }
 
-  async reorganizeChain(newChain: Block[]): Promise<void> {
-    // Find the common ancestor block
-    const commonAncestor = this.findCommonAncestor(newChain);
-
-    // Revert the current chain back to the common ancestor
-    await this.revertChainToAncestor(commonAncestor.number);
-
-    // Replay transactions from the new chain
-    await this.replayTransactionsFromChain(newChain);
-
-    // Update the blockchain state
-    await this.updateStateFromChain(newChain);
-
-    // Update the blocks and checkpoints
-    this.blocks = newChain;
-    this.checkpointManager.updateCheckpoints(newChain);
+  addTransaction(transaction: Transaction): void {
+    this.pendingTransactions.push(transaction);
   }
 
-  private findCommonAncestor(newChain: Block[]): Block {
-    // Implement logic to find the common ancestor block between the current chain and the new chain
-    // This could involve iterating through the blocks and finding the last block that is present in both chains
-    // Return the common ancestor block
+  private adjustMaxBlockSize(): void {
+    // Calculate the average block size over the last adjustment interval
+    const blockSizes = this.chain.slice(-BLOCK_SIZE_ADJUSTMENT_INTERVAL).map(b => b.size);
+    const averageBlockSize = blockSizes.reduce((sum, size) => sum + size, 0) / blockSizes.length;
+
+    // Adjust the max block size if the average is significantly smaller than the current limit
+    if (averageBlockSize < this.maxBlockSize * 0.8) {
+      this.maxBlockSize = Math.floor(this.maxBlockSize * BLOCK_SIZE_ADJUSTMENT_FACTOR);
+    }
   }
 
-  private async revertChainToAncestor(ancestorBlockNumber: number): Promise<void> {
-    // Implement logic to revert the current chain back to the specified ancestor block
-    // This could involve removing blocks from the chain and rolling back the state manager
-    // Ensure that the transaction pool is also updated accordingly
-  }
-
-  private async replayTransactionsFromChain(newChain: Block[]): Promise<void> {
-    // Implement logic to replay the transactions from the new chain
-    // This could involve processing the transactions in the new blocks and updating the state manager
-    // Ensure that the transaction pool is also updated accordingly
-  }
-
-  private async updateStateFromChain(newChain: Block[]): Promise<void> {
-    // Implement logic to update the state manager to match the new chain
-    // This could involve applying the new blocks to the state manager
-  }
+  // Other Blockchain methods...
 }

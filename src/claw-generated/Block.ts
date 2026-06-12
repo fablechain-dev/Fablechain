@@ -1,37 +1,35 @@
 import { Transaction } from './Transaction';
 
+const MAX_BLOCK_SIZE = 1024 * 1024; // 1 MB
+
 export class Block {
-  public readonly number: number;
   public readonly timestamp: number;
   public readonly transactions: Transaction[];
-  public readonly previousHash: string;
+  public readonly prevHash: string;
   public readonly hash: string;
+  public readonly nonce: number;
 
   constructor(
-    number: number,
     timestamp: number,
     transactions: Transaction[],
-    previousHash: string
+    prevHash: string,
+    hash: string,
+    nonce: number
   ) {
-    this.number = number;
     this.timestamp = timestamp;
     this.transactions = transactions;
-    this.previousHash = previousHash;
-    this.hash = this.calculateHash();
+    this.prevHash = prevHash;
+    this.hash = hash;
+    this.nonce = nonce;
   }
 
-  private calculateHash(): string {
-    // Implement hash calculation logic here
-    return '';
+  get size(): number {
+    // Calculate the size of the block in bytes
+    return JSON.stringify(this).length;
   }
 
-  public isValid(): boolean {
-    // Implement block validation logic here
-    return true;
-  }
-
-  public serialize(): string {
-    // Implement block serialization logic here
-    return JSON.stringify(this);
+  isValid(): boolean {
+    // Check if the block size is within the limit
+    return this.size <= MAX_BLOCK_SIZE;
   }
 }
