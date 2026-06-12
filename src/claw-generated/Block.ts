@@ -1,45 +1,35 @@
-import { Transaction } from './Transaction';
-import { Account } from './Account';
+import { Transaction } from '../transaction/Transaction';
 
 export class Block {
-  transactions: Transaction[];
-  timestamp: number;
-  nonce: number;
-  previousHash: string;
+  public index: number;
+  public timestamp: number;
+  public transactions: Transaction[];
+  public previousHash: string;
+  public hash: string;
+  public nonce: number;
+  public finalized: boolean;
+  public finalizedAt: number;
 
-  constructor(transactions: Transaction[], previousHash: string) {
+  constructor(
+    index: number,
+    timestamp: number,
+    transactions: Transaction[],
+    previousHash: string,
+    hash: string,
+    nonce: number
+  ) {
+    this.index = index;
+    this.timestamp = timestamp;
     this.transactions = transactions;
-    this.timestamp = Date.now();
-    this.nonce = 0;
     this.previousHash = previousHash;
+    this.hash = hash;
+    this.nonce = nonce;
+    this.finalized = false;
+    this.finalizedAt = 0;
   }
 
-  async validateTransactions(): Promise<boolean> {
-    for (const tx of this.transactions) {
-      if (!tx.verify()) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  async mine(targetDifficulty: number): Promise<void> {
-    while (true) {
-      const hash = this.getHash();
-      if (this.meetsDifficultyTarget(hash, targetDifficulty)) {
-        return;
-      }
-      this.nonce++;
-    }
-  }
-
-  private getHash(): string {
-    // Implement logic to get the hash of the block
-    return '';
-  }
-
-  private meetsDifficultyTarget(hash: string, targetDifficulty: number): boolean {
-    // Implement logic to check if the hash meets the difficulty target
-    return false;
+  public finalizeBlock(confirmations: number): void {
+    this.finalized = true;
+    this.finalizedAt = Date.now();
   }
 }
