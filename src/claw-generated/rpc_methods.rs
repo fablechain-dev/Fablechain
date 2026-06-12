@@ -1,26 +1,35 @@
-use super::transaction::TransactionReceipt;
-use crate::memory_store::MemoryStore;
-use crate::vm::VM;
+use crate::transaction::TransactionPool;
+use crate::transaction::Transaction;
 
-pub async fn get_transaction(
-    store: &MemoryStore,
-    signature: &str,
-) -> Option<TransactionReceipt> {
-    // Retrieve the transaction from the store by signature
-    store.get_transaction(signature)
+pub struct RPCMethods {
+    transaction_pool: TransactionPool,
 }
 
-pub async fn simulate_transaction(
-    store: &MemoryStore,
-    vm: &VM,
-    transaction: &str,
-) -> Result<(TransactionReceipt, u64), String> {
-    // Decode the transaction
-    let tx = vm.decode_transaction(transaction)?;
+impl RPCMethods {
+    pub fn new(transaction_pool: TransactionPool) -> Self {
+        RPCMethods { transaction_pool }
+    }
 
-    // Simulate the transaction
-    let receipt = vm.simulate_transaction(&tx)?;
+    pub async fn send_transaction(&self, signed_tx: String) -> Result<(), String> {
+        // 1. Decode the base64-encoded signed transaction
+        let tx_bytes = base64::decode(&signed_tx)
+            .map_err(|e| format!("Error decoding transaction: {}", e))?;
 
-    // Return the transaction receipt and compute units used
-    Ok((receipt, receipt.compute_units_consumed))
+        // 2. Deserialize the Transaction from the bytes
+        let tx = Transaction::from_bytes(&tx_bytes)
+            .map_err(|e| format!("Error deserializing transaction: {}", e))?;
+
+        // 3. Validate the transaction
+        if !tx.is_valid() {
+            return Err("Transaction is not valid".to_string());
+        }
+
+        // 4. Add the transaction to the pool
+        self.transaction_pool.add_transaction(tx);
+
+        // 5. Broadcast the transaction to the network
+        // TODO: Implement network broadcast
+
+        Ok(())
+    }
 }
