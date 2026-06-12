@@ -8,29 +8,27 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { X402_CONFIG, PREMIUM_ENDPOINTS } from './types';
-import { getOrCreateWallet, logPayment } from './wallets';
+import { getOrCreateWallet } from './wallets';
 
-// Use require() for x402 packages due to moduleResolution: "node" not supporting subpath exports
-const { paymentMiddleware } = require('@x402/express') as {
+// Use require() with subpath exports (supported at runtime by Node.js 20+)
+// TypeScript moduleResolution:"node" can't resolve these at compile time, but skipLibCheck handles it
+const expressModule = require('@x402/express') as {
   paymentMiddleware: (
+    routes: Record<string, any>,
     server: any,
-    routes: Record<string, { description?: string; resource?: any }>
-  ) => (req: Request, res: Response, next: NextFunction) => void;
-  x402ResourceServer: any;
+    paywallConfig?: any,
+    paywall?: any,
+    syncFacilitatorOnStart?: boolean
+  ) => (req: Request, res: Response, next: NextFunction) => Promise<void>;
 };
+const { paymentMiddleware } = expressModule;
 
-const { HTTPFacilitatorClient, x402ResourceServer: X402ResourceServer } = require('@x402/express') as {
+const coreServer = require('@x402/core/server') as {
   HTTPFacilitatorClient: new (config?: { url?: string }) => any;
   x402ResourceServer: new (facilitator: any) => any;
 };
 
-// We need the core server for resource server creation
-const coreServer = require('@x402/core/dist/cjs/server/index.js') as {
-  HTTPFacilitatorClient: new (config?: { url?: string }) => any;
-  x402ResourceServer: new (facilitator: any) => any;
-};
-
-const svmServer = require('@x402/svm/dist/cjs/exact/server/index.js') as {
+const svmServer = require('@x402/svm/exact/server') as {
   registerExactSvmScheme: (server: any) => void;
   ExactSvmScheme: any;
 };
@@ -72,7 +70,6 @@ export function initX402Server(): boolean {
  * @param defaultAgentId - The default agent whose wallet receives payments
  */
 export function buildRouteConfig(defaultAgentId: string = 'claw-main'): Record<string, any> {
-  const defaultWallet = getOrCreateWallet(defaultAgentId);
   const routes: Record<string, any> = {};
 
   for (const endpoint of PREMIUM_ENDPOINTS) {
@@ -118,7 +115,7 @@ export function createX402Middleware(defaultAgentId: string = 'claw-main'): (req
   const routes = buildRouteConfig(defaultAgentId);
 
   try {
-    return paymentMiddleware(resourceServer, routes);
+    return paymentMiddleware(routes, resourceServer);
   } catch (e) {
     console.error('[x402] Failed to create middleware:', e);
     return (_req: Request, _res: Response, next: NextFunction) => next();

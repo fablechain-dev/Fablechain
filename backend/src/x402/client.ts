@@ -10,21 +10,17 @@ import { Keypair } from '@solana/web3.js';
 import { X402_CONFIG } from './types';
 import { getAgentKeypair } from './wallets';
 
-// Use require() for x402 subpath imports (moduleResolution: "node" compat)
+// Use require() with subpath exports (supported at runtime by Node.js 20+)
 const { wrapFetchWithPayment } = require('@x402/fetch') as {
   wrapFetchWithPayment: (fetchFn: typeof fetch, client: any) => typeof fetch;
 };
 
-const { x402Client: X402ClientClass } = require('@x402/core/dist/cjs/client/index.js') as {
+const { x402Client: X402ClientClass } = require('@x402/core/client') as {
   x402Client: new () => any;
 };
 
-const svmClient = require('@x402/svm/dist/cjs/exact/client/index.js') as {
+const svmClient = require('@x402/svm/exact/client') as {
   registerExactSvmScheme: (client: any, config: { signer: any }) => any;
-};
-
-const svmSigner = require('@x402/svm/dist/cjs/index.js') as {
-  toClientSvmSigner: (signer: any) => any;
 };
 
 // Cache of payment-enabled fetch functions per agent
