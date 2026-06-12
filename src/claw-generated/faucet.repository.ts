@@ -1,21 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { FaucetAddress } from './entities/faucet-address.entity';
 
 @Injectable()
 export class FaucetRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(FaucetAddress)
+    private faucetAddressRepository: Repository<FaucetAddress>
+  ) {}
 
-  async getLastDispensedForAddress(address: string): Promise<Date | null> {
-    const record = await this.prisma.faucetDispense.findFirst({
-      where: { address },
-      orderBy: { createdAt: 'desc' },
+  async hasReceivedTokens(address: string): Promise<boolean> {
+    const faucetAddress = await this.faucetAddressRepository.findOne({
+      where: { address, lastRequestTimestamp: MoreThanOrEqual(new Date(Date.now() - 24 * 60 * 60 * 1000)) },
     });
-    return record?.createdAt || null;
+    return !!faucetAddress;
   }
 
-  async recordDispense(address: string, amount: number): Promise<void> {
-    await this.prisma.faucetDispense.create({
-      data: { address, amount },
-    });
+  async storeAddress(address: string): Promise<void> {
+    const faucetAddress = new FaucetAddress();
+    faucetAddress.address = address;
+    faucetAddress.lastRequestTimestamp = new Date();
+    await this.faucetAddressRepository.save(faucetAddress);
   }
 }
