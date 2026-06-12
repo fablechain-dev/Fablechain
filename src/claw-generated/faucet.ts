@@ -1,36 +1,36 @@
 import { Request, Response } from 'express';
-import { CLAW } from '../token/CLAW';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { getAccountBalance, sendFunds } from '../blockchain';
+import { redis } from '../redis';
 
-const prisma = new PrismaClient();
+const FAUCET_COOLDOWN_SECONDS = 86400; // 24 hours
+const FAUCET_LIMIT_PER_IP = 3;
+const FAUCET_LIMIT_PER_ADDRESS = 1;
 
-export async function faucetHandler(req: Request, res: Response) {
+export async function handleFaucetRequest(req: Request, res: Response) {
   const { address } = req.body;
+  const ip = req.ip;
 
-  // Check if the address has already received tokens in the past 24 hours
-  const lastRequest = await prisma.faucetRequest.findFirst({
-    where: {
-      address,
-      createdAt: {
-        gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      },
-    },
-  });
-
-  if (lastRequest) {
-    return res.status(429).json({ error: 'You can only request tokens once per day' });
+  // Check IP rate limit
+  const ipRequests = await redis.get(`faucet:ip:${ip}`);
+  if (ipRequests && parseInt(ipRequests) >= FAUCET_LIMIT_PER_IP) {
+    return res.status(429).json({ error: 'Too many requests from this IP' });
   }
 
-  // Mint and transfer 10 CLAW tokens to the address
-  await CLAW.mint(address, 10);
+  // Check address rate limit
+  const addressRequests = await redis.get(`faucet:address:${address}`);
+  if (addressRequests && parseInt(addressRequests) >= FAUCET_LIMIT_PER_ADDRESS) {
+    return res.status(429).json({ error: 'Too many requests from this address' });
+  }
 
-  // Store the faucet request in the database
-  await prisma.faucetRequest.create({
-    data: {
-      address,
-      createdAt: new Date(),
-    },
-  });
+  // Increment request counts
+  await redis.incr(`faucet:ip:${ip}`);
+  await redis.incr(`faucet:address:${address}`);
+  await redis.expire(`faucet:ip:${ip}`, FAUCET_COOLDOWN_SECONDS);
+  await redis.expire(`faucet:address:${address}`, FAUCET_COOLDOWN_SECONDS);
 
-  return res.status(200).json({ message: 'Tokens sent to your address' });
+  // Send funds
+  const balance = await getAccountBalance(address);
+  await sendFunds(address, 1000000); // 1 CLAW token
+
+  res.json({ success: true, balance });
 }
