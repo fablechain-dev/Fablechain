@@ -1,22 +1,36 @@
-import { ChainState } from '../api/chain-state';
+import { generateMnemonic, mnemonicToSeedSync } from 'bip39';
+import { Ed25519KeyPair } from './ed25519';
+import { base58Encode } from './encoding';
 
-export class WalletAPI {
-  static async getAccountBalance(address: string): Promise<number> {
-    const chainState = new ChainState();
-    return await chainState.getBalance(address);
+export class Wallet {
+  private keyPair: Ed25519KeyPair;
+
+  constructor(seed?: Uint8Array) {
+    if (seed) {
+      this.keyPair = Ed25519KeyPair.fromSeed(seed);
+    } else {
+      this.keyPair = Ed25519KeyPair.generate();
+    }
   }
 
-  static async getTransactionHistory(address: string): Promise<Transaction[]> {
-    const chainState = new ChainState();
-    return await chainState.getTransactions(address);
+  get publicKey(): Uint8Array {
+    return this.keyPair.publicKey;
   }
-}
 
-interface Transaction {
-  hash: string;
-  from: string;
-  to: string;
-  amount: number;
-  timestamp: number;
-  confirmed: boolean;
+  get privateKey(): Uint8Array {
+    return this.keyPair.privateKey;
+  }
+
+  get address(): string {
+    return base58Encode(this.publicKey);
+  }
+
+  get mnemonic(): string {
+    return generateMnemonic();
+  }
+
+  static fromMnemonic(mnemonic: string): Wallet {
+    const seed = mnemonicToSeedSync(mnemonic);
+    return new Wallet(seed);
+  }
 }
