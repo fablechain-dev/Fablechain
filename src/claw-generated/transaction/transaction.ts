@@ -1,39 +1,38 @@
-import { TransactionSigner } from '../crypto/transaction-signer';
-import { KeyPair } from '../wallet/keypair';
+import { TransactionReceipt } from './TransactionReceipt';
+import { Log, LogEntry, BloomFilter } from '../types';
 
 export class Transaction {
-  public signature: string;
+  hash: string;
+  from: string;
+  to: string;
+  amount: number;
+  timestamp: number;
+  gasUsed: number;
+  status: boolean;
 
-  constructor(public from: string, public to: string, public amount: number, public data: string) {}
-
-  sign(keyPair: KeyPair): Transaction {
-    const signedTransaction = TransactionSigner.signTransaction(this, keyPair);
-    this.signature = signedTransaction.signature;
-    return this;
+  constructor(
+    hash: string,
+    from: string,
+    to: string,
+    amount: number,
+    timestamp: number,
+    gasUsed: number,
+    status: boolean
+  ) {
+    this.hash = hash;
+    this.from = from;
+    this.to = to;
+    this.amount = amount;
+    this.timestamp = timestamp;
+    this.gasUsed = gasUsed;
+    this.status = status;
   }
 
-  verify(): boolean {
-    return TransactionSigner.verifySignature(this);
-  }
+  generateReceipt(): TransactionReceipt {
+    // Generate transaction receipt data
+    const logs: LogEntry[] = []; // Replace with actual logs
+    const bloomFilter: BloomFilter = new BloomFilter(); // Replace with actual bloom filter
 
-  serialize(): string {
-    return JSON.stringify({
-      from: this.from,
-      to: this.to,
-      amount: this.amount,
-      data: this.data,
-      signature: this.signature,
-    });
-  }
-
-  static deserialize(serializedTransaction: string): Transaction {
-    const { from, to, amount, data, signature } = JSON.parse(serializedTransaction);
-    const transaction = new Transaction(from, to, amount, data);
-    transaction.signature = signature;
-    return transaction;
-  }
-
-  broadcast(): void {
-    // Implement transaction broadcasting logic
+    return new TransactionReceipt(this.status, this.gasUsed, logs, bloomFilter);
   }
 }

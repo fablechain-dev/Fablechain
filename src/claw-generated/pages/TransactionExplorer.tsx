@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useClawChain } from '../useClawChain';
 import { Transaction } from '../transaction/transaction';
+import { format } from 'date-fns';
 
 const TransactionExplorer: React.FC = () => {
   const { getTransactions } = useClawChain();
@@ -24,6 +25,8 @@ const TransactionExplorer: React.FC = () => {
             <th>From</th>
             <th>To</th>
             <th>Amount</th>
+            <th>Timestamp</th>
+            <th>Gas Used</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -34,7 +37,9 @@ const TransactionExplorer: React.FC = () => {
               <td>{tx.from}</td>
               <td>{tx.to}</td>
               <td>{tx.amount}</td>
-              <td>{tx.status}</td>
+              <td>{format(tx.timestamp * 1000, 'yyyy-MM-dd HH:mm:ss')}</td>
+              <td>{tx.gasUsed}</td>
+              <td>{tx.status ? 'Success' : 'Failed'}</td>
             </tr>
           ))}
         </tbody>
