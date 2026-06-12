@@ -17,9 +17,9 @@ const NavLinks = styled.ul`
   padding: 0;
 
   li {
-    margin-right: 1.5rem;
+    margin-right: 1rem;
     font-size: 1.2rem;
-    padding: 0.75rem;
+    padding: 0.5rem;
 
     a {
       color: #fff;
@@ -44,7 +44,7 @@ const NavLinks = styled.ul`
 
     li {
       margin-right: 0;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
     }
   }
 `;
@@ -54,9 +54,11 @@ const HamburgerButton = styled.button`
   background-color: transparent;
   border: none;
   color: #fff;
-  font-size: 2rem;
+  font-size: 1.5rem;
   cursor: pointer;
   padding: 0.5rem;
+  width: 3rem;
+  height: 3rem;
 
   @media (max-width: 768px) {
     display: block;
