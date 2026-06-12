@@ -1,12 +1,15 @@
 import { Peer } from './peer';
 import { PeerManager } from './peer_manager';
 import { Block } from '../blockchain/block';
+import { BlockchainManager } from '../blockchain/blockchain';
 
 export class BlockPropagator {
   private peerManager: PeerManager;
+  private blockchainManager: BlockchainManager;
 
-  constructor(peerManager: PeerManager) {
+  constructor(peerManager: PeerManager, blockchainManager: BlockchainManager) {
     this.peerManager = peerManager;
+    this.blockchainManager = blockchainManager;
   }
 
   broadcastBlock(block: Block) {
@@ -17,14 +20,36 @@ export class BlockPropagator {
   }
 
   private sendBlockToPeer(peer: Peer, block: Block) {
-    // Implement compact block relay logic to send only the necessary block data
-    const blockData = this.getCompactBlockData(peer, block);
-    // Send the blockData to the peer
+    const compactBlockData = this.getCompactBlockData(peer, block);
+    peer.sendBlockData(compactBlockData);
   }
 
   private getCompactBlockData(peer: Peer, block: Block): Uint8Array {
-    // Implement logic to determine the minimal block data to send to the peer
-    // based on the blocks they already have
+    const peerBlockIndex = this.blockchainManager.getBlockIndexForPeer(peer);
+    const peerBlocks = this.blockchainManager.getBlocksForPeer(peer);
+
+    // Check if the peer already has the block
+    if (peerBlocks.some(b => b.hash === block.hash)) {
+      return new Uint8Array(); // No need to send anything
+    }
+
+    const blockData: any = {
+      index: block.index,
+      timestamp: block.timestamp,
+      transactionCount: block.transactions.length,
+      previousHash: block.previousHash
+    };
+
+    const missingTransactions = block.transactions.filter(tx => {
+      return !peerBlocks[peerBlockIndex]?.transactions.some(t => t.hash === tx.hash);
+    });
+    blockData.transactions = missingTransactions.map(tx => tx.hash);
+
+    return this.serializeCompactBlockData(blockData);
+  }
+
+  private serializeCompactBlockData(blockData: any): Uint8Array {
+    // Implement serialization logic to convert the blockData object into a compact Uint8Array
     return new Uint8Array();
   }
 }
