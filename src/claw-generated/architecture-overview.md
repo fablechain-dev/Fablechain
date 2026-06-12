@@ -1,173 +1,42 @@
 # ClawChain Architecture Overview
 
-## High-Level System Diagram
+## High-Level Components
 
-```mermaid
-graph TD
-  Blockchain[Blockchain]
-  Agent[Agent]
-  API[API]
-  Byzantine[Byzantine]
-  Database[Database]
-  Integrations[Integrations]
+The ClawChain system is composed of the following high-level components:
 
-  Blockchain --> Database
-  API --> Blockchain
-  Agent --> Blockchain
-  Agent --> API
-  Agent --> Byzantine
-  Byzantine --> Blockchain
-  Integrations --> Blockchain
-  Integrations --> API
-```
+**Backend Server**
+- **Agent**: Handles the autonomous AI agent that manages the blockchain node's operations.
+- **API**: Provides the REST API endpoints for interacting with the blockchain.
+- **Blockchain**: Implements the core blockchain data structures and logic, including blocks, transactions, and consensus.
+- **Byzantine**: Handles the Byzantine fault-tolerant features, like the debate system.
+- **Database**: Manages the storage of blockchain data and node state.
+- **Events**: Provides an event bus for internal communication.
+- **Integrations**: Handles external service integrations, like the Arenaseer and Aster platforms.
+- **Validators**: Implements the validator personalities and manager.
+- **VM**: Handles the virtual machine for executing smart contracts.
 
-The high-level ClawChain system consists of the following key components:
+**Frontend Application**
+- Provides a user interface for interacting with the ClawChain network, including features like the block explorer, transaction explorer, wallet management, and governance system.
 
-**Blockchain**
-- Responsible for block production, transaction processing, consensus, and state management.
-- Interacts with the Database to store blockchain data.
+## Component Interactions
 
-**Agent**
-- The autonomous AI developer that manages the development and maintenance of the ClawChain system.
-- Interacts with the Blockchain, API, and Byzantine components to coordinate tasks and improvements.
+The high-level interactions between the main components are as follows:
 
-**API**
-- Provides an HTTP API for clients to interact with the ClawChain blockchain.
-- Receives transactions from clients and forwards them to the Blockchain.
-- Serves data queries from clients, fetching information from the Blockchain and Database.
+1. **Agent** interacts with the **Blockchain**, **Database**, **Events**, and **Validators** components to manage the node's operations, including block production, transaction processing, and state management.
+2. **API** exposes the blockchain functionality to external clients, forwarding requests to the **Blockchain**, **Wallet**, and other relevant components.
+3. **Blockchain** is the core of the system, responsible for managing the chain, blocks, transactions, and consensus.
+4. **Byzantine** handles the Byzantine fault-tolerant features, like the debate system, which interacts with the **Blockchain** and **API**.
+5. **Database** provides persistent storage for the blockchain data and node state, used by the **Blockchain** and other components.
+6. **Events** facilitates internal communication between the various components, allowing them to subscribe to relevant events.
+7. **Integrations** connect the ClawChain system to external services and platforms, providing additional functionality or data sources.
+8. **Validators** manage the different validator personalities and their interactions with the **Blockchain** and **Agent**.
+9. **VM** handles the execution of smart contracts, which are integrated into the **Blockchain** and **API**.
+10. The **Frontend Application** interacts with the **API** to provide a user interface for the ClawChain network.
 
-**Byzantine**
-- Handles the Byzantine fault tolerance mechanisms, including the debate system.
-- Integrates with the Blockchain to manage the debate process and consensus.
+## Diagram
 
-**Database**
-- Stores blockchain data, user accounts, and other persistent information.
-- Receives updates from the Blockchain component.
+[Add architecture diagram here]
 
-**Integrations**
-- External services and tools that ClawChain integrates with, like Arenaseer and Aster.
-- Interact with both the Blockchain and API components.
+## Conclusion
 
-## Blockchain Component Diagram
-
-```mermaid
-graph TD
-  Block[Block]
-  Transaction[Transaction]
-  TransactionPool[TransactionPool]
-  Consensus[Consensus]
-  StateManager[StateManager]
-  Crypto[Crypto]
-  AIValidator[AIValidator]
-
-  Block --> Transaction
-  Transaction --> Crypto
-  TransactionPool --> Transaction
-  Consensus --> Block
-  Consensus --> StateManager
-  StateManager --> AIValidator
-  AIValidator --> Block
-```
-
-The Blockchain component is responsible for the core functionality of the ClawChain network. Its main responsibilities include:
-
-- **Block**: Represents a block in the blockchain, containing transactions.
-- **Transaction**: Represents a transaction, including the input, output, and metadata.
-- **TransactionPool**: Manages the pool of unconfirmed transactions.
-- **Consensus**: Implements the consensus algorithm to produce new blocks.
-- **StateManager**: Manages the blockchain state, including accounts and contract storage.
-- **Crypto**: Provides cryptographic functions for signing, verifying, and hashing.
-- **AIValidator**: Validates blocks using an AI-based consensus mechanism.
-
-These components work together to process transactions, produce new blocks, and maintain the integrity of the blockchain state.
-
-## Agent Component Diagram
-
-```mermaid
-graph TD
-  AgentBrain[AgentBrain]
-  AgentExecutor[AgentExecutor]
-  AgentGoals[AgentGoals]
-  AgentMemory[AgentMemory]
-  AgentWorker[AgentWorker]
-  TaskBacklog[TaskBacklog]
-  SkillManager[SkillManager]
-  GitIntegration[GitIntegration]
-  ChainObserver[ChainObserver]
-  CIMonitor[CIMonitor]
-  BrowserAutomation[BrowserAutomation]
-
-  AgentBrain --> AgentExecutor
-  AgentBrain --> AgentGoals
-  AgentBrain --> AgentMemory
-  AgentBrain --> AgentWorker
-  AgentBrain --> TaskBacklog
-  AgentBrain --> SkillManager
-  AgentBrain --> GitIntegration
-  AgentBrain --> ChainObserver
-  AgentBrain --> CIMonitor
-  AgentBrain --> BrowserAutomation
-```
-
-The Agent component is responsible for managing the development and maintenance of the ClawChain system. Its key modules include:
-
-- **AgentBrain**: The central decision-making and coordination component.
-- **AgentExecutor**: Executes tasks and coordinates the development workflow.
-- **AgentGoals**: Defines the Agent's objectives and priorities.
-- **AgentMemory**: Stores the Agent's knowledge and past experiences.
-- **AgentWorker**: Handles the execution of individual tasks.
-- **TaskBacklog**: Maintains a queue of tasks that need to be completed.
-- **SkillManager**: Manages the Agent's capabilities and skills.
-- **GitIntegration**: Handles Git-related operations, such as branching and committing.
-- **ChainObserver**: Monitors the state of the ClawChain blockchain.
-- **CIMonitor**: Tracks the status of the continuous integration system.
-- **BrowserAutomation**: Provides browser automation capabilities for testing and deployment.
-
-The Agent coordinates these modules to autonomously maintain and improve the ClawChain system.
-
-## API Component Diagram
-
-```mermaid
-graph TD
-  Server[Server]
-  Router[Router]
-  AuthController[AuthController]
-  AdminController[AdminController]
-  AgentsController[AgentsController]
-  CIPSubmitController[CIPSubmitController]
-  ClawController[ClawController]
-  DebateController[DebateController]
-  LogsController[LogsController]
-  NetworkController[NetworkController]
-  PlaygroundController[PlaygroundController]
-  WalletController[WalletController]
-
-  Server --> Router
-  Router --> AuthController
-  Router --> AdminController
-  Router --> AgentsController
-  Router --> CIPSubmitController
-  Router --> ClawController
-  Router --> DebateController
-  Router --> LogsController
-  Router --> NetworkController
-  Router --> PlaygroundController
-  Router --> WalletController
-```
-
-The API component provides the HTTP interface for interacting with the ClawChain blockchain. Its key responsibilities include:
-
-- **Server**: The main HTTP server that handles incoming requests.
-- **Router**: Routes requests to the appropriate controller.
-- **AuthController**: Handles user authentication and authorization.
-- **AdminController**: Provides administrative functionality.
-- **AgentsController**: Manages the autonomous agent system.
-- **CIPSubmitController**: Handles the submission of Claw Improvement Proposals (CIPs).
-- **ClawController**: Provides general ClawChain-related functionality.
-- **DebateController**: Manages the Byzantine debate system.
-- **LogsController**: Handles log retrieval and management.
-- **NetworkController**: Provides network-related functionality.
-- **PlaygroundController**: Offers a development playground.
-- **WalletController**: Handles wallet-related operations.
-
-These controllers integrate with the Blockchain, Agent, and Byzantine components to serve client requests.
+This overview provides a high-level understanding of the ClawChain system architecture and the interactions between its main components. The detailed implementation of each component is documented in the codebase and associated documentation.
