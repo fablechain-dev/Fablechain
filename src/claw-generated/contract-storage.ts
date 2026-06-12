@@ -2,6 +2,8 @@ import { StorageSlot } from '../accounts/storage-slot';
 
 export class ContractStorage {
   private slots: Map<string, StorageSlot> = new Map();
+  private mappings: Map<string, Map<string, StorageSlot>> = new Map();
+  private arrays: Map<string, StorageSlot[]> = new Map();
 
   get(key: string): StorageSlot {
     if (!this.slots.has(key)) {
@@ -16,33 +18,39 @@ export class ContractStorage {
 
   delete(key: string): void {
     this.slots.delete(key);
+    this.mappings.delete(key);
+    this.arrays.delete(key);
   }
 
   has(key: string): boolean {
-    return this.slots.has(key);
+    return this.slots.has(key) || this.mappings.has(key) || this.arrays.has(key);
   }
 
   getKeys(): string[] {
-    return Array.from(this.slots.keys());
+    return Array.from(this.slots.keys())
+      .concat(Array.from(this.mappings.keys()))
+      .concat(Array.from(this.arrays.keys()));
   }
 
   getMapping(key: string): Map<string, StorageSlot> {
-    const slot = this.get(key);
-    return slot.asMapping();
+    if (!this.mappings.has(key)) {
+      this.mappings.set(key, new Map());
+    }
+    return this.mappings.get(key)!;
   }
 
   setMapping(key: string, mapping: Map<string, StorageSlot>): void {
-    const slot = this.get(key);
-    slot.setMapping(mapping);
+    this.mappings.set(key, mapping);
   }
 
   getArray(key: string): StorageSlot[] {
-    const slot = this.get(key);
-    return slot.asArray();
+    if (!this.arrays.has(key)) {
+      this.arrays.set(key, []);
+    }
+    return this.arrays.get(key)!;
   }
 
   setArray(key: string, array: StorageSlot[]): void {
-    const slot = this.get(key);
-    slot.setArray(array);
+    this.arrays.set(key, array);
   }
 }
