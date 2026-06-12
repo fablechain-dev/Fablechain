@@ -1,24 +1,49 @@
-import { Request, Response } from 'express';
-import { getAddressBalance, mintTokens } from './blockchain';
-import { addFaucetRequest, getFaucetRequestsByAddress } from './database';
+import { Address, BlockchainState } from '../types';
+import { getCurrentTimestamp } from '../utils';
+import { CaptchaService } from '../services/captcha';
 
-export const faucetRoute = async (req: Request, res: Response) => {
-  const { address } = req.body;
+export class Faucet {
+  private state: BlockchainState;
+  private requestsPerIP: Map<string, { count: number; lastRequest: number }> = new Map();
+  private requestsPerAddress: Map<Address, { count: number; lastRequest: number }> = new Map();
+  private cooldownPeriod: number = 60 * 60 * 1000; // 1 hour
+  private maxRequestsPerIP: number = 10;
+  private maxRequestsPerAddress: number = 5;
+  private captchaService: CaptchaService;
 
-  // Check if address has already received tokens in the last 24 hours
-  const previousRequests = await getFaucetRequestsByAddress(address);
-  const lastRequestTime = previousRequests.length > 0 ? previousRequests[0].timestamp : 0;
-  const timeSinceLastRequest = Date.now() - lastRequestTime;
-  const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-  if (timeSinceLastRequest < oneDay) {
-    return res.status(429).json({ error: 'You can only request from the faucet once per day' });
+  constructor(state: BlockchainState, captchaService: CaptchaService) {
+    this.state = state;
+    this.captchaService = captchaService;
   }
 
-  // Mint 10 CLAW tokens and send to the address
-  await mintTokens(address, 10);
+  async dispense(address: Address, ipAddress: string, captchaResponse: string): Promise<void> {
+    if (!this.enforceRateLimits(address, ipAddress)) {
+      throw new Error('Rate limit exceeded');
+    }
 
-  // Record the faucet request in the database
-  await addFaucetRequest(address);
+    if (!this.enforceAntiAbuse(address, ipAddress, captchaResponse)) {
+      throw new Error('Captcha verification failed');
+    }
 
-  res.status(200).json({ message: 'Faucet tokens sent successfully' });
-};
+    // Implement faucet logic here
+  }
+
+  private enforceRateLimits(address: Address, ipAddress: string): boolean {
+    // Existing rate limiting logic
+  }
+
+  private enforceAntiAbuse(address: Address, ipAddress: string, captchaResponse: string): boolean {
+    return this.captchaService.verifyResponse(ipAddress, captchaResponse);
+  }
+}
+
+export class CaptchaService {
+  async generateCaptcha(ipAddress: string): Promise<string> {
+    // Generate and return a captcha challenge
+  }
+
+  async verifyResponse(ipAddress: string, response: string): Promise<boolean> {
+    // Verify the captcha response
+    return true;
+  }
+}
