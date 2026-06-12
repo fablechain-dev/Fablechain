@@ -1,27 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import AgentTerminal from '../frontend/src/AgentTerminal';
-import AdminDashboard from '../frontend/src/AdminDashboard';
-import BlockExplorer from '../frontend/src/BlockExplorer';
-import WalletModal from './WalletModal';
-import ContractVerification from './ContractVerification';
+import React from 'react';
+import { BrowserRouter as Router, Route, Switch, Link } from 'react-router-dom';
+import ContractsPage from './ContractsPage';
 
-// Types
-type TabType = 'terminal' | 'genesis' | 'molt' | 'updates' | 'logs' | 'explorer' | 'faucet' | 'wallet' | 'network' | 'admin';
-
-interface Message {
-  role: 'user' | 'molt' | 'system';
-  content: string;
-}
-
-export default function App() {
-  // Existing App component content
-
+const App: React.FC = () => {
   return (
-    <div>
-      <WalletModal onConnect={handleWalletConnect} />
-      <ContractVerification />
-      {/* Existing App component JSX */}
-    </div>
+    <Router>
+      <div>
+        <nav>
+          <ul>
+            <li>
+              <Link to="/">Home</Link>
+            </li>
+            <li>
+              <Link to="/contracts">Contracts</Link>
+            </li>
+          </ul>
+        </nav>
+
+        <Switch>
+          <Route path="/contracts">
+            <ContractsPage />
+          </Route>
+          <Route path="/">
+            <div>Welcome to ClawChain!</div>
+          </Route>
+        </Switch>
+      </div>
+    </Router>
   );
-}
+};
+
+export default App;
