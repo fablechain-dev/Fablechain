@@ -1,6 +1,6 @@
-import { Block } from '../vm/Block';
-import { StateManager } from '../vm/StateManager';
-import { CompressionAlgorithm, CompressedSnapshot, Snapshot } from './types';
+import { Block } from './Block';
+import { StateManager } from './StateManager';
+import { CompressionAlgorithm, CompressedSnapshot, Snapshot } from './StateSnapshot';
 
 class StateSnapshotManager {
   private snapshotInterval: number;

@@ -1,28 +1,19 @@
-import { MerklePatriciaTrie } from './MerklePatriciaTrie';
+export interface Snapshot {
+  blockNumber: number;
+  state: any;
+}
 
-export class StateSnapshot {
-  private trie: MerklePatriciaTrie;
+export interface CompressedSnapshot {
+  blockNumber: number;
+  compressed: Uint8Array;
+}
 
-  constructor() {
-    this.trie = new MerklePatriciaTrie();
-  }
+export interface CompressionAlgorithm {
+  compress(data: string): Promise<Uint8Array>;
+  decompress(data: Uint8Array): Promise<string>;
+}
 
-  set(key: string, value: any): void {
-    this.trie.set(key, value);
-  }
-
-  get(key: string): any {
-    return this.trie.get(key);
-  }
-
-  getRoot(): string {
-    return this.trie.getRoot();
-  }
-
-  merge(other: StateSnapshot): void {
-    const keys = other.trie.getAllKeys();
-    for (const key of keys) {
-      this.trie.set(key, other.trie.get(key));
-    }
-  }
+export interface SnapshotStorage {
+  storeSnapshot(snapshot: CompressedSnapshot): Promise<void>;
+  getSnapshot(blockNumber: number): Promise<CompressedSnapshot | null>;
 }
