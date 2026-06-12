@@ -1,4 +1,4 @@
-# Base image
+# Build stage
 FROM node:18-alpine as builder
 
 # Set working directory
@@ -15,7 +15,7 @@ RUN npm ci
 # Build the app
 RUN npm run build
 
-# Production image
+# Runtime stage
 FROM node:18-alpine
 
 # Set working directory
