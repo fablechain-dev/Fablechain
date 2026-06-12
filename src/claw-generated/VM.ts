@@ -1,42 +1,39 @@
-import { Contract } from '../contracts/Contract';
-import { ExecutionContext } from './ExecutionContext';
-
 export class VM {
-  private contracts: Map<string, Contract> = new Map();
+  // Define VM instruction set and gas costs
+  private static INSTRUCTION_COSTS: { [key: string]: number } = {
+    PUSH: 3,
+    POP: 2,
+    ADD: 5,
+    SUB: 5,
+    MUL: 8,
+    DIV: 10,
+    // Add more instructions and costs here
+  };
 
-  public registerContract(contract: Contract) {
-    this.contracts.set(contract.address, contract);
+  private gasLimit: number;
+  private gasUsed: number = 0;
+
+  constructor(gasLimit: number) {
+    this.gasLimit = gasLimit;
   }
 
-  public executeContract(context: ExecutionContext): any {
-    const contract = this.contracts.get(context.to);
-    if (!contract) {
-      throw new Error(`Contract at ${context.to} not found`);
+  execute(instructions: string[]): any {
+    // Execute instructions, tracking gas usage
+    for (const instruction of instructions) {
+      this.executeInstruction(instruction);
+      if (this.gasUsed >= this.gasLimit) {
+        throw new Error('Execution halted: Out of gas');
+      }
     }
-
-    if (context.opcode === 'CALL') {
-      const { to, value, gas } = context.parameters;
-      const result = this.executeCall(to, value, gas, context);
-      return result;
-    }
-
-    return contract.execute(context);
+    // Return execution result
   }
 
-  private executeCall(to: string, value: bigint, gas: bigint, context: ExecutionContext): any {
-    const calledContract = this.contracts.get(to);
-    if (!calledContract) {
-      throw new Error(`Contract at ${to} not found`);
-    }
+  private executeInstruction(instruction: string): void {
+    // Lookup gas cost and update gas used
+    const cost = VM.INSTRUCTION_COSTS[instruction] || 0;
+    this.gasUsed += cost;
 
-    const callContext: ExecutionContext = {
-      ...context,
-      to,
-      value,
-      gas,
-      opcode: 'CALL'
-    };
-
-    return calledContract.execute(callContext);
+    // Execute the instruction
+    // ...
   }
 }
