@@ -1,4 +1,5 @@
 import { Transaction } from './Transaction';
+import { TransactionValidator } from './TransactionValidator';
 
 export class Block {
   public index: number;
@@ -31,19 +32,25 @@ export class Block {
   }
 
   public mineBlock(difficulty: number): void {
-    // Implement proof-of-work mining
     if (!this.validateBlockSize()) {
       throw new Error('Block size exceeds limit');
     }
+
+    if (!this.validateTransactions()) {
+      throw new Error('Invalid transactions in block');
+    }
+
+    // Implement proof-of-work mining
   }
 
-  public validateTransactions(): boolean {
-    // Implement transaction validation
-    return true;
+  public async validateTransactions(): Promise<boolean> {
+    const transactionValidator = new TransactionValidator();
+    const validationPromises = this.transactions.map((tx) => transactionValidator.validateTransaction(tx));
+    const validationResults = await Promise.all(validationPromises);
+    return validationResults.every((result) => result);
   }
 
   public get size(): number {
-    // Implement block size calculation
     let size = 0;
     for (const tx of this.transactions) {
       size += tx.size;
