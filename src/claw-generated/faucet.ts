@@ -1,146 +1,21 @@
-import { Wallet } from 'ethers';
-import { ClawChainNode } from '../node';
-import { generateCaptcha, CaptchaChallenge } from './captcha';
-import { Logger } from './logger';
+import { NextFunction, Request, Response } from 'express';
+import { Account } from '../models/Account';
+import { Token } from '../models/Token';
 
-const IP_LIMIT = 10; // Max requests per IP in 1 minute
-const WALLET_LIMIT = 5; // Max requests per wallet in 1 hour
-const COOLDOWN_MINUTES = 10; // Cooldown period in minutes
-const CAPTCHA_TIMEOUT_SECONDS = 60; // Captcha challenge timeout
+export const faucetEndpoint = async (req: Request, res: Response, next: NextFunction) => {
+  const { address } = req.body;
 
-export class Faucet {
-  private node: ClawChainNode;
-  private wallets: Map<string, FaucetRequest> = new Map();
-  private ipLimits: Map<string, FaucetRequest> = new Map();
-  private captchaMap: Map<string, CaptchaChallenge> = new Map();
-  private logger: Logger;
-
-  constructor(node: ClawChainNode, logger: Logger) {
-    this.node = node;
-    this.logger = logger;
+  // Check if address has already received tokens today
+  const alreadyDispensed = await Account.findOne({ address, lastDispensed: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } });
+  if (alreadyDispensed) {
+    return res.status(429).json({ error: 'You can only claim tokens once per day' });
   }
 
-  async handleFaucetRequest(wallet: Wallet, ip: string): Promise<void> {
-    // Check IP-based rate limit
-    if (this.isIPLimitExceeded(ip)) {
-      this.logger.warn(`IP rate limit exceeded for IP: ${ip}`);
-      throw new Error('IP rate limit exceeded');
-    }
+  // Mint 10 CLAW tokens for the address
+  await Token.mint(address, 10);
 
-    // Check wallet-based rate limit
-    if (this.isWalletLimitExceeded(wallet.address)) {
-      this.logger.warn(`Wallet rate limit exceeded for address: ${wallet.address}`);
-      throw new Error('Wallet rate limit exceeded');
-    }
+  // Update the account with the new dispense timestamp
+  await Account.updateOne({ address }, { $set: { lastDispensed: new Date() } }, { upsert: true });
 
-    // Generate a captcha challenge
-    const captcha = this.generateCaptcha(wallet.address);
-
-    // Wait for the user to solve the captcha
-    const solution = await this.waitForCaptchaSolution(wallet.address, CAPTCHA_TIMEOUT_SECONDS);
-    if (solution !== captcha.solution) {
-      this.logger.warn(`Incorrect captcha solution for address: ${wallet.address}`);
-      throw new Error('Captcha solution incorrect');
-    }
-
-    // Track the request
-    this.trackFaucetRequest(wallet, ip);
-
-    // Perform the faucet transfer
-    await this.node.transferFromFaucet(wallet);
-    this.logger.info(`Faucet transfer successful for address: ${wallet.address}`);
-  }
-
-  private generateCaptcha(walletAddress: string): CaptchaChallenge {
-    const captcha = generateCaptcha();
-    this.captchaMap.set(walletAddress, captcha);
-    return captcha;
-  }
-
-  private async waitForCaptchaSolution(walletAddress: string, timeoutSeconds: number): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const captcha = this.captchaMap.get(walletAddress);
-      if (!captcha) {
-        reject(new Error('Captcha not found'));
-        return;
-      }
-
-      const timeoutId = setTimeout(() => {
-        this.captchaMap.delete(walletAddress);
-        reject(new Error('Captcha timeout'));
-      }, timeoutSeconds * 1000);
-
-      captcha.onSolved = (solution) => {
-        clearTimeout(timeoutId);
-        this.captchaMap.delete(walletAddress);
-        resolve(solution);
-      };
-    });
-  }
-
-  private isIPLimitExceeded(ip: string): boolean {
-    const now = Date.now();
-    const ipRequest = this.ipLimits.get(ip);
-
-    if (!ipRequest) {
-      this.ipLimits.set(ip, { timestamp: now, numRequests: 1 });
-      return false;
-    }
-
-    const minutesSinceLastRequest = (now - ipRequest.timestamp) / (1000 * 60);
-    if (minutesSinceLastRequest >= 1) {
-      // Reset the request count if it's been more than 1 minute
-      this.ipLimits.set(ip, { timestamp: now, numRequests: 1 });
-      return false;
-    }
-
-    if (ipRequest.numRequests >= IP_LIMIT) {
-      return true;
-    }
-
-    this.ipLimits.set(ip, { timestamp: ipRequest.timestamp, numRequests: ipRequest.numRequests + 1 });
-    return false;
-  }
-
-  private isWalletLimitExceeded(address: string): boolean {
-    const now = Date.now();
-    const walletRequest = this.wallets.get(address);
-
-    if (!walletRequest) {
-      this.wallets.set(address, { timestamp: now, numRequests: 1 });
-      return false;
-    }
-
-    const hoursSinceLastRequest = (now - walletRequest.timestamp) / (1000 * 60 * 60);
-    if (hoursSinceLastRequest >= 1) {
-      // Reset the request count if it's been more than 1 hour
-      this.wallets.set(address, { timestamp: now, numRequests: 1 });
-      return false;
-    }
-
-    if (walletRequest.numRequests >= WALLET_LIMIT) {
-      return true;
-    }
-
-    this.wallets.set(address, { timestamp: walletRequest.timestamp, numRequests: walletRequest.numRequests + 1 });
-    return false;
-  }
-
-  private trackFaucetRequest(wallet: Wallet, ip: string): void {
-    const now = Date.now();
-    this.ipLimits.set(ip, { timestamp: now, numRequests: 1 });
-    this.wallets.set(wallet.address, { timestamp: now, numRequests: 1 });
-    this.logger.info(`Faucet request tracked for IP: ${ip}, Wallet: ${wallet.address}`);
-  }
-}
-
-interface FaucetRequest {
-  timestamp: number;
-  numRequests: number;
-}
-
-interface CaptchaChallenge {
-  image: string;
-  solution: string;
-  onSolved: (solution: string) => void;
-}
+  res.json({ message: 'Tokens dispensed successfully' });
+};

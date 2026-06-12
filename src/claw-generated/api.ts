@@ -1,18 +1,8 @@
-import { Blockchain } from './blockchain';
+import express from 'express';
+import { faucetEndpoint } from './faucet';
 
-export class API {
-  private blockchain: Blockchain;
+const router = express.Router();
 
-  constructor(blockchain: Blockchain) {
-    this.blockchain = blockchain;
-  }
+router.post('/faucet', faucetEndpoint);
 
-  getBlockFinality(blockHash: string): { finalized: boolean, confirmations: number } {
-    const block = this.blockchain.getChain().find(b => b.hash === blockHash);
-    if (!block) {
-      return { finalized: false, confirmations: 0 };
-    }
-    const confirmations = this.blockchain.getChain().filter(b => b.hash === blockHash).length;
-    return { finalized: block.finalized, confirmations };
-  }
-}
+export default router;
