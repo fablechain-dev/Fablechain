@@ -1,78 +1,46 @@
-import { ExecutionContext } from '../types';
+export class VM {
+  private gasLimit: number;
+  private gasUsed: number;
 
-export class VirtualMachine {
-  private stack: number[] = [];
-  private memory: Map<number, number> = new Map();
+  constructor(gasLimit: number) {
+    this.gasLimit = gasLimit;
+    this.gasUsed = 0;
+  }
 
-  execute(context: ExecutionContext): void {
-    const { bytecode } = context;
-    let pc = 0;
-
-    while (pc < bytecode.length) {
-      const opcode = bytecode[pc];
-      switch (opcode) {
-        case 0x01: // PUSH
-          this.pushToStack(bytecode[++pc]);
-          pc++;
-          break;
-        case 0x02: // POP
-          this.popFromStack();
-          pc++;
-          break;
-        case 0x03: // LOAD
-          const address = this.popFromStack();
-          this.pushToStack(this.getMemoryValue(address));
-          pc++;
-          break;
-        case 0x04: // STORE
-          const value = this.popFromStack();
-          const storeAddress = this.popFromStack();
-          this.setMemoryValue(storeAddress, value);
-          pc++;
-          break;
-        case 0x05: // ADD
-          const b = this.popFromStack();
-          const a = this.popFromStack();
-          this.pushToStack(a + b);
-          pc++;
-          break;
-        case 0x06: // SUB
-          const d = this.popFromStack();
-          const c = this.popFromStack();
-          this.pushToStack(c - d);
-          pc++;
-          break;
-        case 0x07: // MUL
-          const f = this.popFromStack();
-          const e = this.popFromStack();
-          this.pushToStack(e * f);
-          pc++;
-          break;
-        case 0x08: // DIV
-          const h = this.popFromStack();
-          const g = this.popFromStack();
-          this.pushToStack(Math.floor(g / h));
-          pc++;
-          break;
-        default:
-          throw new Error(`Unknown opcode: ${opcode}`);
-      }
+  public execute(instructions: Uint8Array): void {
+    // Implement VM execution logic here
+    for (const instruction of instructions) {
+      this.executeInstruction(instruction);
     }
   }
 
-  private pushToStack(value: number): void {
-    this.stack.push(value);
+  private executeInstruction(instruction: number): void {
+    // Determine gas cost for the instruction
+    const gasCost = this.getGasCost(instruction);
+    this.useGas(gasCost);
+
+    // Execute the instruction
+    // ...
   }
 
-  private popFromStack(): number {
-    return this.stack.pop() as number;
+  private getGasCost(instruction: number): number {
+    // Determine the gas cost for the given instruction
+    // based on its complexity and resource usage
+    switch (instruction) {
+      case 0x01: // ADD
+        return 3;
+      case 0x02: // MUL
+        return 5;
+      // Add more instructions and their gas costs
+      default:
+        return 1; // Default gas cost
+    }
   }
 
-  private getMemoryValue(address: number): number {
-    return this.memory.get(address) || 0;
-  }
-
-  private setMemoryValue(address: number, value: number): void {
-    this.memory.set(address, value);
+  private useGas(amount: number): void {
+    this.gasUsed += amount;
+    if (this.gasUsed > this.gasLimit) {
+      throw new Error('Ran out of gas');
+    }
   }
 }
