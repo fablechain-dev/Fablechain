@@ -1,13 +1,15 @@
+// zk-snark-verifier.ts
+
 import { ZoKratesVerifier } from './zk-snark-verifier/zokrates-verifier';
 
 export class ZkSnarkVerifier {
-  private verifier: ZoKratesVerifier;
+  private zoKratesVerifier: ZoKratesVerifier;
 
   constructor() {
-    this.verifier = new ZoKratesVerifier();
+    this.zoKratesVerifier = new ZoKratesVerifier();
   }
 
-  verifyTransaction(proof: any): boolean {
-    return this.verifier.verifyProof(proof);
+  verifyProof(proof: any, publicInputs: any): boolean {
+    return this.zoKratesVerifier.verifyProof(proof, publicInputs);
   }
 }
