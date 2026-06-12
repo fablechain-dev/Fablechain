@@ -1,17 +1,34 @@
-import { Event } from './event';
+import { Event } from './contract';
+import { BloomFilter } from './bloom_filter';
 
 export class TransactionReceipt {
-  constructor(
-    public status: boolean,
-    public gasUsed: number,
-    public events: Event[],
-    public bloomFilter: number[]
-  ) {
-    this.bloomFilter = this.generateBloomFilter();
-  }
+  readonly transactionHash: string;
+  readonly blockNumber: number;
+  readonly from: string;
+  readonly to: string;
+  readonly amount: number;
+  readonly timestamp: number;
+  readonly events: Event[];
+  readonly bloomFilter: BloomFilter;
 
-  private generateBloomFilter(): number[] {
-    // Implement bloom filter generation logic here
-    return [1, 2, 3];
+  constructor(
+    transactionHash: string,
+    blockNumber: number,
+    from: string,
+    to: string,
+    amount: number,
+    timestamp: number,
+    events: Event[]
+  ) {
+    this.transactionHash = transactionHash;
+    this.blockNumber = blockNumber;
+    this.from = from;
+    this.to = to;
+    this.amount = amount;
+    this.timestamp = timestamp;
+    this.events = events;
+
+    // Generate the bloom filter for the emitted events
+    this.bloomFilter = new BloomFilter(events);
   }
 }

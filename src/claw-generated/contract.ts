@@ -1,5 +1,29 @@
+export class Event {
+  name: string;
+  parameters: any[];
+
+  constructor(name: string, parameters: any[]) {
+    this.name = name;
+    this.parameters = parameters;
+  }
+}
+
 export class Contract {
   private storage: Map<string, any> = new Map();
+  private events: Event[] = [];
+
+  defineEvent(name: string, parameters: any[]) {
+    this.events.push(new Event(name, parameters));
+  }
+
+  emitEvent(name: string, parameters: any[]) {
+    const event = this.events.find((e) => e.name === name);
+    if (!event) {
+      throw new Error(`Unknown event: ${name}`);
+    }
+    this.events.push(new Event(name, parameters));
+    // Trigger event emission logic
+  }
 
   call(address: string, method: string, params: any): any {
     // Look up target contract
