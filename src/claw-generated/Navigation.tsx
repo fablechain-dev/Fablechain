@@ -18,6 +18,17 @@ const NavLinks = styled.ul`
 
   li {
     margin-right: 1rem;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+
+    a {
+      color: #fff;
+      text-decoration: none;
+    }
+
+    &:hover {
+      background-color: #555;
+    }
   }
 
   @media (max-width: 768px) {
@@ -30,6 +41,11 @@ const NavLinks = styled.ul`
     background-color: #333;
     padding: 1rem;
     z-index: 1;
+
+    li {
+      margin-right: 0;
+      margin-bottom: 0.5rem;
+    }
   }
 `;
 
