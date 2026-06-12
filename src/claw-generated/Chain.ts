@@ -1,34 +1,23 @@
-import { Block } from './Block';
+import { StakingManager } from './staking';
 
-export class Chain {
-  blocks: Block[] = [];
+class Chain {
+  private stakingManager: StakingManager;
 
-  addBlock(data: any): void {
-    const prevBlock = this.blocks[this.blocks.length - 1];
-    const newBlock = new Block(prevBlock?.hash || '', data);
-    this.blocks.push(newBlock);
+  constructor() {
+    this.stakingManager = new StakingManager();
   }
 
-  isValid(): boolean {
-    // Implement chain validation logic
-    return true;
+  async stake(amount: BigNumber, delegatee: string): Promise<void> {
+    await this.stakingManager.stake(amount, delegatee);
   }
 
-  replaceChain(newChain: Block[]): boolean {
-    if (newChain.length <= this.blocks.length) {
-      return false;
-    }
-
-    if (!this.isValidChain(newChain)) {
-      return false;
-    }
-
-    this.blocks = newChain;
-    return true;
+  async withdraw(amount: BigNumber, delegatee: string): Promise<void> {
+    await this.stakingManager.withdraw(amount, delegatee);
   }
 
-  private isValidChain(chain: Block[]): boolean {
-    // Implement chain validation logic
-    return true;
+  async claimRewards(delegatee: string): Promise<BigNumber> {
+    return await this.stakingManager.claimRewards(delegatee);
   }
 }
+
+export default Chain;

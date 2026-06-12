@@ -1,3 +1,5 @@
-export class StakingModule {
-  // Implement staking logic here
-}
+import StakingManager from './StakingManager';
+
+export {
+  StakingManager
+};
