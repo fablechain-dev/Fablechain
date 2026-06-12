@@ -1,42 +1,63 @@
 # ClawChain Architecture Overview
 
-## High-Level Components
+ClawChain is a decentralized blockchain platform designed for autonomous AI development. The system is composed of several key components that work together to provide a secure, scalable, and programmable infrastructure. This document provides a high-level overview of the ClawChain architecture.
 
-The ClawChain system is composed of the following high-level components:
+## Major Components
 
-**Backend Server**
-- **Agent**: Handles the autonomous AI agent that manages the blockchain node's operations.
-- **API**: Provides the REST API endpoints for interacting with the blockchain.
-- **Blockchain**: Implements the core blockchain data structures and logic, including blocks, transactions, and consensus.
-- **Byzantine**: Handles the Byzantine fault-tolerant features, like the debate system.
-- **Database**: Manages the storage of blockchain data and node state.
-- **Events**: Provides an event bus for internal communication.
-- **Integrations**: Handles external service integrations, like the Arenaseer and Aster platforms.
-- **Validators**: Implements the validator personalities and manager.
-- **VM**: Handles the virtual machine for executing smart contracts.
+### Blockchain Core
+The core blockchain functionality is implemented in the following modules:
 
-**Frontend Application**
-- Provides a user interface for interacting with the ClawChain network, including features like the block explorer, transaction explorer, wallet management, and governance system.
+- **Block**: Represents a block in the blockchain, including the block header, transactions, and metadata.
+- **Chain**: Manages the blockchain data structure, handles chain validation, and provides APIs for interacting with the chain.
+- **Consensus**: Implements the consensus algorithm used to validate and produce new blocks.
+- **StateManager**: Handles the storage and management of the global state, including account balances and contract data.
 
-## Component Interactions
+### Network Layer
+The networking components responsible for peer-to-peer communication and data propagation include:
 
-The high-level interactions between the main components are as follows:
+- **PeerManager**: Manages the connections to other nodes in the network, handles peer discovery, and maintains the routing table.
+- **BlockPropagator**: Propagates new blocks to the network using an efficient block propagation protocol.
+- **TransactionGossipProtocol**: Handles the gossip-based propagation of transactions throughout the network.
 
-1. **Agent** interacts with the **Blockchain**, **Database**, **Events**, and **Validators** components to manage the node's operations, including block production, transaction processing, and state management.
-2. **API** exposes the blockchain functionality to external clients, forwarding requests to the **Blockchain**, **Wallet**, and other relevant components.
-3. **Blockchain** is the core of the system, responsible for managing the chain, blocks, transactions, and consensus.
-4. **Byzantine** handles the Byzantine fault-tolerant features, like the debate system, which interacts with the **Blockchain** and **API**.
-5. **Database** provides persistent storage for the blockchain data and node state, used by the **Blockchain** and other components.
-6. **Events** facilitates internal communication between the various components, allowing them to subscribe to relevant events.
-7. **Integrations** connect the ClawChain system to external services and platforms, providing additional functionality or data sources.
-8. **Validators** manage the different validator personalities and their interactions with the **Blockchain** and **Agent**.
-9. **VM** handles the execution of smart contracts, which are integrated into the **Blockchain** and **API**.
-10. The **Frontend Application** interacts with the **API** to provide a user interface for the ClawChain network.
+### RPC Server
+The RPC server exposes a set of methods for interacting with the ClawChain blockchain, including:
 
-## Diagram
+- Querying account information and balances
+- Submitting new transactions
+- Retrieving block and transaction data
+- Simulating transaction execution
 
-[Add architecture diagram here]
+### Wallet & Accounts
+The wallet and account management modules provide functionality for:
 
-## Conclusion
+- Generating and managing public/private key pairs
+- Signing transactions
+- Tracking account state and balances
 
-This overview provides a high-level understanding of the ClawChain system architecture and the interactions between its main components. The detailed implementation of each component is documented in the codebase and associated documentation.
+### Smart Contracts
+ClawChain supports Ethereum-compatible smart contracts, with components for:
+
+- Contract deployment and verification
+- Contract execution and state management
+- Interacting with on-chain contracts via the RPC server
+
+### Agent System
+The agent-based architecture includes components that power the autonomous AI development capabilities:
+
+- **AgentBrain**: Coordinates the agent's decision-making and goal-oriented behavior.
+- **AgentExecutor**: Executes the agent's actions, including code generation, testing, and deployment.
+- **SkillManager**: Manages the agent's skills and capabilities, allowing it to learn and expand over time.
+
+### Monitoring & Observability
+ClawChain includes several tools for monitoring the health and performance of the network:
+
+- **CIMonitor**: Tracks the status of the continuous integration and deployment pipelines.
+- **ChainObserver**: Monitors the blockchain for anomalies, forks, and other issues.
+- **NetworkStatsPanel**: Provides real-time metrics and visualization of network activity.
+
+## Architecture Diagram
+The following diagram illustrates the high-level interactions between the major components of the ClawChain system:
+
+![ClawChain Architecture Diagram](claw-generated/architecture-diagram.png)
+
+This overview covers the key architectural elements of ClawChain. For more detailed information on specific components and their implementations, please refer to the codebase and individual module documentation.
