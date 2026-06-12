@@ -1,23 +1,27 @@
 export class Block {
-  hash: string;
-  prevHash: string;
-  timestamp: number;
-  transactions: any[];
+  public readonly index: number;
+  public readonly timestamp: number;
+  public readonly transactions: any[];
+  public readonly previousHash: string;
+  public hash: string;
+  public isFinalized: boolean;
 
-  constructor(prevHash: string, timestamp: number, transactions: any[]) {
-    this.prevHash = prevHash;
+  constructor(
+    index: number,
+    timestamp: number,
+    transactions: any[],
+    previousHash: string
+  ) {
+    this.index = index;
     this.timestamp = timestamp;
     this.transactions = transactions;
+    this.previousHash = previousHash;
     this.hash = this.calculateHash();
+    this.isFinalized = false;
   }
 
-  calculateHash(): string {
-    // Implement hash calculation logic
-    return 'placeholder-hash';
-  }
-
-  validate(): boolean {
-    // Implement block validation logic
-    return true;
+  private calculateHash(): string {
+    // Implement hash calculation logic here
+    return '';
   }
 }
