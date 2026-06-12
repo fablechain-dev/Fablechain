@@ -1,26 +1,45 @@
 import { StorageSlot } from './StorageSlot';
+import { StorageArray } from './StorageArray';
 
 export class Contract {
-  private storageSlots: StorageSlot[] = [];
+  private storageSlots: Map<string, StorageSlot | StorageArray> = new Map();
 
-  getStorageSlot(key: string): StorageSlot | undefined {
-    return this.storageSlots.find(slot => slot.key === key);
+  constructor() {
+    // Initialize contract state
   }
 
-  setStorageSlot(key: string, value: any): void {
-    const existingSlot = this.getStorageSlot(key);
-    if (existingSlot) {
-      existingSlot.value = value;
+  // CRUD operations for storage slots
+  getStorageSlot(key: string): StorageSlot {
+    const slot = this.storageSlots.get(key);
+    if (slot instanceof StorageSlot) {
+      return slot;
     } else {
-      this.storageSlots.push(new StorageSlot(key, value));
+      const newSlot = new StorageSlot();
+      this.storageSlots.set(key, newSlot);
+      return newSlot;
     }
   }
 
-  deleteStorageSlot(key: string): void {
-    this.storageSlots = this.storageSlots.filter(slot => slot.key !== key);
+  getStorageArray(key: string): StorageArray {
+    const slot = this.storageSlots.get(key);
+    if (slot instanceof StorageArray) {
+      return slot;
+    } else {
+      const newArray = new StorageArray();
+      this.storageSlots.set(key, newArray);
+      return newArray;
+    }
   }
 
-  getStorageSlots(): StorageSlot[] {
-    return this.storageSlots;
+  setStorageSlot(key: string, slot: StorageSlot): void {
+    this.storageSlots.set(key, slot);
+  }
+
+  setStorageArray(key: string, array: StorageArray): void {
+    this.storageSlots.set(key, array);
+  }
+
+  deleteStorageSlot(key: string): void {
+    this.storageSlots.delete(key);
   }
 }

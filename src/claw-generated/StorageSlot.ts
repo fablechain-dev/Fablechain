@@ -1,9 +1,11 @@
 export class StorageSlot {
-  key: string;
-  value: any;
+  private value: any;
 
-  constructor(key: string, value: any) {
-    this.key = key;
-    this.value = value;
+  get(): any {
+    return this.value;
+  }
+
+  set(newValue: any): void {
+    this.value = newValue;
   }
 }
