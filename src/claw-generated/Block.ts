@@ -1,32 +1,25 @@
-export class Block {
-  index: number;
-  timestamp: number;
-  transactions: any[];
-  previousHash: string;
-  hash: string;
-  nonce: number;
-  size: number; // New property to track block size
+import { Transaction } from '../model/Transaction';
 
-  constructor(
-    index: number,
-    timestamp: number,
-    transactions: any[],
-    previousHash: string,
-    hash: string,
-    nonce: number,
-    size: number // New parameter for block size
-  ) {
-    this.index = index;
+export class Block {
+  timestamp: number;
+  transactions: Transaction[];
+  prevHash: string;
+  hash: string;
+
+  constructor(timestamp: number, transactions: Transaction[], prevHash: string) {
     this.timestamp = timestamp;
     this.transactions = transactions;
-    this.previousHash = previousHash;
-    this.hash = hash;
-    this.nonce = nonce;
-    this.size = size; // Assign the block size
+    this.prevHash = prevHash;
+    this.hash = this.calculateHash();
   }
 
-  // New method to validate block size
-  validateSize(maxBlockSize: number): boolean {
-    return this.size <= maxBlockSize;
+  calculateHash(): string {
+    // Implement hash calculation logic
+    return '';
+  }
+
+  isValid(): boolean {
+    // Implement block validation logic
+    return true;
   }
 }
