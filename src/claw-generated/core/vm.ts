@@ -1,4 +1,5 @@
 import { Instruction, Operation } from './types';
+import { Contract } from '../contract';
 
 class VirtualMachine {
   private stack: any[] = [];
@@ -65,9 +66,22 @@ class VirtualMachine {
       case Operation.STORE:
         // Store value to memory
         break;
+      case Operation.CALL:
+        const targetAddress = this.popFromStack();
+        const targetContract = this.getContractAt(targetAddress);
+        const remainingGas = this.popFromStack(); // Get remaining gas from stack
+        const returnValue = targetContract.execute(remainingGas); // Execute the target contract
+        this.pushToStack(returnValue); // Push the return value to the stack
+        break;
       default:
         throw new Error(`Unknown opcode: ${opcode}`);
     }
+  }
+
+  private getContractAt(address: string): Contract {
+    // Look up contract instance by address
+    // (this is a simplified implementation for now)
+    return new Contract();
   }
 }
 
