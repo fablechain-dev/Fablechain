@@ -1,28 +1,44 @@
 import { MultisigTransaction } from './MultisigTransaction';
 import { TransactionSigner } from './TransactionSigner';
 
+export type WalletType = 'single-sig' | 'multi-sig';
+
 export class Wallet {
   readonly id: string;
+  readonly type: WalletType;
   readonly signers: string[];
   readonly minSignatures: number;
 
-  constructor(id: string, signers: string[], minSignatures: number) {
+  constructor(id: string, type: WalletType, signers: string[], minSignatures: number) {
     this.id = id;
+    this.type = type;
     this.signers = signers;
     this.minSignatures = minSignatures;
   }
 
   createTransaction(data: any): MultisigTransaction {
-    const txId = this.generateTransactionId();
-    return new MultisigTransaction(txId, this.signers, this.minSignatures, data);
+    if (this.type === 'multi-sig') {
+      const txId = this.generateTransactionId();
+      return new MultisigTransaction(txId, this.signers, this.minSignatures, data);
+    } else {
+      throw new Error('Single-sig wallets cannot create multisig transactions');
+    }
   }
 
-  addSignature(tx: MultisigTransaction, signer: string, signature: string): void {
-    tx.addSignature(signer, signature);
+  addSigner(signer: string): void {
+    if (this.type === 'multi-sig') {
+      this.signers.push(signer);
+    } else {
+      throw new Error('Single-sig wallets cannot add signers');
+    }
   }
 
-  verifyTransaction(tx: MultisigTransaction): boolean {
-    return tx.verify();
+  removeSigner(signer: string): void {
+    if (this.type === 'multi-sig') {
+      this.signers = this.signers.filter(s => s !== signer);
+    } else {
+      throw new Error('Single-sig wallets cannot remove signers');
+    }
   }
 
   private generateTransactionId(): string {
