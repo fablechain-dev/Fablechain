@@ -1,30 +1,29 @@
-import { assert } from 'chai';
-import { rpcCall } from '../api/rpc';
+import { getBlock } from './rpc';
+import { Block } from '../Block';
 
-describe('RPC API', () => {
-  describe('rpcCall()', () => {
-    it('should return a valid response for a known method', async () => {
-      const response = await rpcCall('getBalance', ['0x1234']);
-      assert.hasAllKeys(response, ['result', 'error', 'id']);
-      assert.isString(response.result);
+describe('getBlock', () => {
+  it('should fetch a block by slot number', async () => {
+    const block = await getBlock(123, {});
+    expect(block).toBeInstanceOf(Block);
+    expect(block.slot).toBe(123);
+  });
+
+  it('should apply the encoding option', async () => {
+    const block = await getBlock(123, { encoding: 'binary' });
+    expect(block.transactions[0].message).toBeInstanceOf(Uint8Array);
+
+    const block2 = await getBlock(123, { encoding: 'json' });
+    expect(block2.transactions[0].message).toBeInstanceOf(Object);
+  });
+
+  it('should apply the transaction details option', async () => {
+    const block = await getBlock(123, { transactionDetails: 'partial' });
+    expect(block.transactions[0]).toEqual({
+      signature: expect.any(String),
+      message: expect.any(Object)
     });
 
-    it('should return an error for an invalid method', async () => {
-      try {
-        await rpcCall('invalidMethod', []);
-        assert.fail('Expected an error');
-      } catch (err) {
-        assert.hasAllKeys(err, ['code', 'message']);
-      }
-    });
-
-    it('should return an error for invalid parameters', async () => {
-      try {
-        await rpcCall('getBalance', [123]);
-        assert.fail('Expected an error');
-      } catch (err) {
-        assert.hasAllKeys(err, ['code', 'message']);
-      }
-    });
+    const block2 = await getBlock(123, { transactionDetails: 'none' });
+    expect(block2.transactions).toEqual([]);
   });
 });
