@@ -36,23 +36,23 @@ const NetworkStatsPanel: React.FC = () => {
     <div className="network-stats-panel">
       <div className="stat-item">
         <div className="stat-label">TPS</div>
-        <div className="stat-value">{networkStats.tps}</div>
+        <div className="stat-value">{networkStats.tps.toFixed(2)}</div>
       </div>
       <div className="stat-item">
         <div className="stat-label">Block Time</div>
-        <div className="stat-value">{networkStats.blockTime} s</div>
+        <div className="stat-value">{networkStats.blockTime.toFixed(2)} s</div>
       </div>
       <div className="stat-item">
         <div className="stat-label">Difficulty</div>
-        <div className="stat-value">{networkStats.difficulty}</div>
+        <div className="stat-value">{networkStats.difficulty.toFixed(2)}</div>
       </div>
       <div className="stat-item">
         <div className="stat-label">Hashrate</div>
-        <div className="stat-value">{networkStats.hashrate} GH/s</div>
+        <div className="stat-value">{networkStats.hashrate.toFixed(2)} GH/s</div>
       </div>
       <div className="stat-item">
         <div className="stat-label">Active Addresses</div>
-        <div className="stat-value">{networkStats.activeAddresses}</div>
+        <div className="stat-value">{networkStats.activeAddresses.toFixed(0)}</div>
       </div>
     </div>
   );
