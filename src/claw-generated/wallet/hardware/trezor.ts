@@ -1,24 +1,24 @@
-import { TransportInterface } from './types';
-import TrezorConnect from 'trezor-connect';
+import { HardwareWalletDevice, HardwareWalletSignature } from './types';
+import { TrezorTransport } from './transport';
 
-export class TrezorTransport implements TransportInterface {
-  name = 'Trezor';
+export class TrezorWallet {
+  private transport: TrezorTransport;
 
-  async signTransaction(transaction: any): Promise<any> {
-    const result = await TrezorConnect.ethereumSignTransaction({
-      path: "m/44'/60'/0'/0/0",
-      transaction: {
-        to: transaction.to.toString(),
-        value: transaction.value.toString(),
-        data: transaction.data.toString(),
-        chainId: transaction.chainId,
-        nonce: transaction.nonce.toString(),
-        gas: transaction.gas.toString(),
-        gasPrice: transaction.gasPrice.toString()
-      }
-    });
-    return result.payload;
+  async connect(): Promise<HardwareWalletDevice> {
+    this.transport = new TrezorTransport();
+    return this.transport.connect();
+  }
+
+  async disconnect(): Promise<void> {
+    await this.transport.disconnect();
+  }
+
+  async signTransaction(transaction: any): Promise<HardwareWalletSignature> {
+    // Implement Trezor transaction signing
+    const signature = await this.transport.send(Buffer.from(JSON.stringify(transaction)));
+    return {
+      signature: signature.toString('hex'),
+      publicKey: '0x...'
+    };
   }
 }
-
-export default new TrezorTransport();

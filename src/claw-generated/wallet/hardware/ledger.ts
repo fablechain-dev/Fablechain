@@ -1,20 +1,24 @@
-import { TransportInterface } from './types';
-import TransportU2F from '@ledgerhq/hw-transport-u2f';
-import Eth from '@ledgerhq/hw-app-eth';
+import { HardwareWalletDevice, HardwareWalletSignature } from './types';
+import { LedgerTransport } from './transport';
 
-export class LedgerTransport implements TransportInterface {
-  name = 'Ledger';
+export class LedgerWallet {
+  private transport: LedgerTransport;
 
-  async signTransaction(transaction: any): Promise<any> {
-    const transport = await TransportU2F.create();
-    const eth = new Eth(transport);
-    const signature = await eth.signTransaction(
-      "44'/60'/0'/0/0",
-      transaction.serialize().toString('hex')
-    );
-    transport.close();
-    return signature;
+  async connect(): Promise<HardwareWalletDevice> {
+    this.transport = new LedgerTransport();
+    return this.transport.connect();
+  }
+
+  async disconnect(): Promise<void> {
+    await this.transport.disconnect();
+  }
+
+  async signTransaction(transaction: any): Promise<HardwareWalletSignature> {
+    // Implement Ledger transaction signing
+    const signature = await this.transport.send(Buffer.from(JSON.stringify(transaction)));
+    return {
+      signature: signature.toString('hex'),
+      publicKey: '0x...'
+    };
   }
 }
-
-export default new LedgerTransport();
