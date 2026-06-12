@@ -31,4 +31,12 @@ export class AccountManager {
     this.registerAccount(account);
     return account;
   }
+
+  async getBalance(address: Address): Promise<bigint> {
+    const account = this.getAccount(address);
+    if (!account) {
+      return BigInt(0);
+    }
+    return await account.getBalance();
+  }
 }
