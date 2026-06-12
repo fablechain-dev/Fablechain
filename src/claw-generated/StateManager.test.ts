@@ -1,7 +1,5 @@
-import { StateManager } from './StateManager';
-import { Account } from '../account/Account';
-import { Block } from '../block/Block';
-import { Transaction } from '../transaction/Transaction';
+import StateManager from './StateManager';
+import { Block } from '../blockchain/Block';
 
 describe('StateManager', () => {
   let stateManager: StateManager;
@@ -10,49 +8,29 @@ describe('StateManager', () => {
     stateManager = new StateManager();
   });
 
-  it('should update balances correctly', () => {
-    // Arrange
-    const sender = new Account('sender', 100);
-    const receiver = new Account('receiver', 0);
-    const tx = new Transaction(sender.address, receiver.address, 50);
+  it('should store and retrieve state', () => {
+    const block = new Block(1, 'previous-hash', 'transactions', 'timestamp');
+    const state = { accounts: { '0x123': { balance: 100 } } };
 
-    // Act
-    stateManager.applyTransaction(tx);
+    stateManager.storeState(block.hash, state);
+    const retrievedState = stateManager.retrieveState(block.hash);
 
-    // Assert
-    expect(stateManager.getAccount(sender.address).balance).toBe(50);
-    expect(stateManager.getAccount(receiver.address).balance).toBe(50);
+    expect(retrievedState).toEqual(state);
   });
 
-  it('should calculate the state root correctly', () => {
-    // Arrange
-    const sender = new Account('sender', 100);
-    const receiver = new Account('receiver', 0);
-    const tx = new Transaction(sender.address, receiver.address, 50);
-    const block = new Block([tx], '');
+  it('should prune old state', async () => {
+    const block1 = new Block(1, 'previous-hash', 'transactions', 'timestamp');
+    const block2 = new Block(2, block1.hash, 'transactions', 'timestamp');
+    const block3 = new Block(3, block2.hash, 'transactions', 'timestamp');
 
-    // Act
-    stateManager.applyBlock(block);
-    const stateRoot = stateManager.getStateRoot();
+    stateManager.storeState(block1.hash, { accounts: { '0x123': { balance: 100 } } });
+    stateManager.storeState(block2.hash, { accounts: { '0x123': { balance: 200 } } });
+    stateManager.storeState(block3.hash, { accounts: { '0x123': { balance: 300 } } });
 
-    // Assert
-    expect(stateRoot).not.toBe('');
-  });
+    await stateManager.pruneState(2);
 
-  it('should apply transactions correctly', () => {
-    // Arrange
-    const sender = new Account('sender', 100);
-    const receiver = new Account('receiver', 0);
-    const tx = new Transaction(sender.address, receiver.address, 50);
-    const block = new Block([tx], '');
-
-    // Act
-    stateManager.applyTransaction(tx);
-    stateManager.applyBlock(block);
-
-    // Assert
-    expect(stateManager.getAccount(sender.address).balance).toBe(50);
-    expect(stateManager.getAccount(receiver.address).balance).toBe(50);
-    expect(stateManager.getStateRoot()).not.toBe('');
+    expect(stateManager.retrieveState(block1.hash)).toBeUndefined();
+    expect(stateManager.retrieveState(block2.hash)).not.toBeUndefined();
+    expect(stateManager.retrieveState(block3.hash)).not.toBeUndefined();
   });
 });

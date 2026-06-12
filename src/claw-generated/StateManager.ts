@@ -1,27 +1,32 @@
 import { Block } from '../blockchain/Block';
-import { Account } from '../accounts/Account';
+import LevelDB from '../storage/LevelDB';
 
-export class StateManager {
-  private state: Map<string, Account> = new Map();
+class StateManager {
+  private recentState: Map<string, any>;
+  private checkpointStore: LevelDB;
 
-  applyBlockChanges(block: Block) {
-    // Apply transactions to update the state
-    for (const tx of block.transactions) {
-      this.updateAccount(tx.from, tx);
-      this.updateAccount(tx.to, tx);
-    }
+  constructor() {
+    this.recentState = new Map();
+    this.checkpointStore = new LevelDB('state-checkpoints');
   }
 
-  private updateAccount(address: string, tx: Transaction) {
-    let account = this.state.get(address);
-    if (!account) {
-      account = new Account(address);
-      this.state.set(address, account);
-    }
-    account.applyTransaction(tx);
+  storeState(blockHash: string, state: any): void {
+    this.recentState.set(blockHash, state);
   }
 
-  getAccount(address: string): Account {
-    return this.state.get(address) || new Account(address);
+  retrieveState(blockHash: string): any {
+    return this.recentState.get(blockHash);
+  }
+
+  async pruneState(retentionBlocks: number): Promise<void> {
+    const blockHashes = Array.from(this.recentState.keys());
+    const blocksToKeep = blockHashes.slice(-retentionBlocks);
+
+    for (const hash of blockHashes.filter(h => !blocksToKeep.includes(h))) {
+      this.recentState.delete(hash);
+      await this.checkpointStore.put(hash, this.recentState.get(hash));
+    }
   }
 }
+
+export default StateManager;
