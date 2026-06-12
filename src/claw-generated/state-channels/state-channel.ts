@@ -49,4 +49,23 @@ export class StateChannel {
     await this.chainInstance.sendTransaction(transaction);
     return transaction;
   }
+
+  async updateChannelState(newState: any): Promise<Transaction> {
+    // Update the channel state and submit a new state update transaction
+    this.updateState(newState);
+    const transaction = await this.participants[0].signTransaction({
+      // Transaction details to update the state
+    });
+    await this.chainInstance.sendTransaction(transaction);
+    return transaction;
+  }
+
+  async disputeChannelState(): Promise<Transaction> {
+    // Initiate a dispute process to settle the channel state on-chain
+    const transaction = await this.participants[0].signTransaction({
+      // Transaction details to dispute the state
+    });
+    await this.chainInstance.sendTransaction(transaction);
+    return transaction;
+  }
 }

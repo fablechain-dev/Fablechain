@@ -1,4 +1,4 @@
-import { Wallet } from '../wallet';
+import { Wallet, Transaction } from '../wallet';
 import { StateChannel } from './state-channel';
 import { ClawChain } from '../ClawChain';
 
@@ -30,5 +30,13 @@ export class StateChannelManager {
       this.channels.splice(index, 1);
     }
     return await channel.closeChannel();
+  }
+
+  async disputeChannel(channel: StateChannel): Promise<Transaction> {
+    return await channel.disputeChannelState();
+  }
+
+  async updateChannelState(channel: StateChannel, newState: any): Promise<Transaction> {
+    return await channel.updateChannelState(newState);
   }
 }
