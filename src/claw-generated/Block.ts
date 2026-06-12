@@ -1,5 +1,6 @@
 import { Transaction } from '../blockchain/Transaction';
 import { BlockHeader } from '../blockchain/BlockHeader';
+import { SHA256 } from 'crypto-js';
 
 export class Block {
   header: BlockHeader;
@@ -13,22 +14,40 @@ export class Block {
   }
 
   computeHash(): string {
-    // Implement hash calculation logic
-    return '';
+    const blockData = this.header.toString() + this.transactions.map(tx => tx.toString()).join('');
+    return SHA256(blockData).toString();
   }
 
   isValid(): boolean {
-    // Implement validation logic
-    return true;
+    // Check header validity
+    if (!this.header.isValid()) {
+      return false;
+    }
+
+    // Check transaction validity
+    for (const tx of this.transactions) {
+      if (!tx.isValid()) {
+        return false;
+      }
+    }
+
+    // Check hash
+    return this.hash === this.computeHash();
   }
 
   serialize(): string {
-    // Implement serialization logic
-    return '';
+    return JSON.stringify({
+      header: this.header,
+      transactions: this.transactions,
+      hash: this.hash
+    });
   }
 
   static deserialize(serializedBlock: string): Block {
-    // Implement deserialization logic
-    return new Block(new BlockHeader(), []);
+    const { header, transactions, hash } = JSON.parse(serializedBlock);
+    return new Block(
+      new BlockHeader(header),
+      transactions.map(tx => new Transaction(tx))
+    );
   }
 }
