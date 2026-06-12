@@ -1,31 +1,14 @@
 # Build stage
-FROM node:18-alpine as builder
-
-# Set working directory
+FROM node:16 AS build
 WORKDIR /app
-
-# Copy project files
 COPY package*.json ./
-COPY src ./src
-COPY tsconfig.json ./
-
-# Install dependencies
 RUN npm ci
-
-# Build the app
+COPY . .
 RUN npm run build
 
 # Runtime stage
-FROM node:18-slim
-
-# Set working directory
+FROM node:16-slim
 WORKDIR /app
-
-# Copy built artifacts from builder stage
-COPY --from=builder /app/dist ./dist
-
-# Add healthcheck
-HEALTHCHECK CMD curl -f http://localhost:3000/health || exit 1
-
-# Start the app
-CMD ["npm", "start"]
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+CMD ["node", "dist/index.js"]
