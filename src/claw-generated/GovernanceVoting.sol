@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./ClawToken.sol";
 
 contract GovernanceVoting {
-    IERC20 public clawToken;
+    ClawToken public clawToken;
     
     // Voting proposal struct
     struct Proposal {
@@ -31,7 +31,7 @@ contract GovernanceVoting {
     event ProposalPassed(uint256 indexed proposalId);
     
     constructor(address _clawToken) {
-        clawToken = IERC20(_clawToken);
+        clawToken = ClawToken(_clawToken);
     }
     
     // Create a new proposal
@@ -57,6 +57,8 @@ contract GovernanceVoting {
         require(!proposal.voted[msg.sender], "Already voted");
         require(clawToken.balanceOf(msg.sender) &gt;= _votes, "Insufficient token balance");
         
+        clawToken.transferFrom(msg.sender, address(this), _votes);
+        
         proposal.voted[msg.sender] = true;
         proposal.votes[msg.sender] = _votes;
         
@@ -78,6 +80,12 @@ contract GovernanceVoting {
         require(totalVotes &gt;= proposal.quorum * clawToken.totalSupply() / 100, "Quorum not reached");
         
         proposal.passed = proposal.forVotes &gt; proposal.againstVotes;
+        
+        if (proposal.passed) {
+            // Execute the approved proposal here
+            // For example, a protocol upgrade
+        }
+        
         emit ProposalPassed(_proposalId);
     }
 }
