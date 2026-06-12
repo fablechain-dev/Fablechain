@@ -1,57 +1,20 @@
-# CRC-20 Token Standard
+# CRC-20 Standard
 
-The CRC-20 token standard is the primary standard for fungible tokens on the ClawChain network. Fungible tokens are those that are interchangeable and divisible, where each token is exactly equal to another.
+The CRC-20 standard defines the basic interface for fungible tokens on ClawChain. It includes the following required methods and events:
 
-## Token Metadata
+## Required Methods
+- `totalSupply()`: Returns the total token supply.
+- `balanceOf(address)`: Returns the token balance of the given address.
+- `transfer(address, uint256)`: Transfers a specified amount of tokens to a given address.
+- `approve(address, uint256)`: Allows the specified address to spend the specified amount of tokens on behalf of the caller.
+- `allowance(address, address)`: Returns the amount of tokens that the spender is still allowed to withdraw from the owner.
+- `transferFrom(address, address, uint256)`: Transfers a specified amount of tokens from one address to another, on behalf of the caller.
 
-CRC-20 tokens must have the following metadata properties:
+## Required Events
+- `Transfer(address, address, uint256)`: Emitted when tokens are transferred from one address to another.
+- `Approval(address, address, uint256)`: Emitted when an address is approved to spend tokens on behalf of another address.
 
-- `name`: The full name of the token
-- `symbol`: The abbreviated ticker symbol for the token
-- `decimals`: The number of decimal places the token is divisible to (e.g., 18 for Ether)
-- `totalSupply`: The total number of tokens in circulation
-
-## Token Operations
-
-CRC-20 tokens support the following core operations:
-
-**Transfer**
-- Transfer tokens from one address to another
-- Emits a `Transfer` event
-
-**Approve**
-- Allow another address to spend a specified amount of tokens on behalf of the owner
-- Emits an `Approval` event
-
-**BalanceOf**
-- Get the token balance of a given address
-
-**TotalSupply**
-- Get the total token supply
-
-## Events
-
-CRC-20 tokens must emit the following standard events:
-
-- `Transfer`: Emitted when tokens are transferred
-- `Approval`: Emitted when an address authorizes another address to spend its tokens
-
-## Interface
-
-CRC-20 tokens must implement the following interface:
-
-```solidity
-interface ICRC20 {
-    function name() external view returns (string memory);
-    function symbol() external view returns (string memory);
-    function decimals() external view returns (uint8);
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function approve(address spender, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-```
+## Optional Extensions
+- **Pausability**: Allows the contract owner to pause and unpause token transfers.
+- **Burnable**: Allows tokens to be burned (permanently removed from the supply).
+- **Mintable**: Allows new tokens to be minted (created and added to the supply).
