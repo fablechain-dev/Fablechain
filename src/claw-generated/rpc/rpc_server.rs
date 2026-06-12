@@ -1,29 +1,16 @@
-use super::rpc_methods;
-use serde_json::{json, Value};
+use crate::rpc_methods;
 
-pub struct RpcServer {}
+pub struct RpcServer {
+    // Add any necessary fields
+}
 
 impl RpcServer {
-    pub fn new() -&gt; Self {
+    pub fn new() -> Self {
         RpcServer {}
     }
 
-    pub fn handle_request(&amp;self, request: &amp;Value) -&gt; Value {
-        let method = request["method"].as_str().unwrap();
-        let params = request["params"].clone();
-
-        match method {
-            "getBlock" =&gt; {
-                let params: rpc_methods::GetBlockParams = serde_json::from_value(params).unwrap();
-                let result = rpc_methods::get_block(params);
-                json!(result)
-            },
-            _ =&gt; {
-                json!({
-                    "error": format!("Unknown RPC method: {}", method),
-                    "code": -32601
-                })
-            }
-        }
+    pub async fn handle_request(&self, request: &str) -> String {
+        // Handle the RPC request and return the response
+        rpc_methods::simulate_transaction(request)
     }
 }

@@ -1,5 +1,8 @@
-use crate::rpc::get_balance::{get_balance, GetBalanceParams, GetBalanceResult};
+use crate::transaction::Transaction;
 
-pub fn register_rpc_methods(rpc_server: &mut crate::rpc::RpcServer) {
-    rpc_server.register_method("getBalance", get_balance);
+pub fn simulate_transaction(request: &str) -> String {
+    // Implement the simulateTransaction RPC method
+    let transaction: Transaction = serde_json::from_str(request).unwrap();
+    let (logs, compute_units) = transaction.simulate();
+    format!("{{ \"logs\": {:?}, \"compute_units\": {} }}", logs, compute_units)
 }
