@@ -2,9 +2,11 @@ import { keccak256 } from 'js-sha3';
 
 class MerklePatriciaTrie {
   private root: Node | null;
+  private nodeCache: Map<string, Node>;
 
   constructor() {
     this.root = null;
+    this.nodeCache = new Map();
   }
 
   getRoot(): string {
@@ -54,6 +56,9 @@ class MerklePatriciaTrie {
       node.children[currentKey] = newNode;
     }
 
+    // Cache the updated node
+    this.cacheNode(node);
+
     return node;
   }
 
@@ -68,7 +73,13 @@ class MerklePatriciaTrie {
 
     const currentKey = key[0];
     if (node.key === currentKey) {
-      return this.findNode(node.children[key[1] || ''], key.slice(1));
+      // Check if the node is in the cache
+      const cachedNode = this.getNodeFromCache(node.key);
+      if (cachedNode) {
+        return this.findNode(cachedNode, key.slice(1));
+      } else {
+        return this.findNode(node.children[key[1] || ''], key.slice(1));
+      }
     }
 
     return null;
@@ -103,6 +114,14 @@ class MerklePatriciaTrie {
 
   private hash(node: Node): string {
     return keccak256(JSON.stringify(node));
+  }
+
+  private cacheNode(node: Node): void {
+    this.nodeCache.set(this.hash(node), node);
+  }
+
+  private getNodeFromCache(key: string): Node | null {
+    return this.nodeCache.get(key) || null;
   }
 }
 
