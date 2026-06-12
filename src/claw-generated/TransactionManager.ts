@@ -1,27 +1,31 @@
 import { Transaction } from './Transaction';
-import { Ed25519KeyPair } from './Ed25519KeyPair';
-import { NetworkManager } from './NetworkManager';
+import { CacheManager } from './CacheManager';
 
-export class TransactionManager {
-  private networkManager: NetworkManager;
+class TransactionManager {
+  private cache: CacheManager<Transaction>;
 
-  constructor(networkManager: NetworkManager) {
-    this.networkManager = networkManager;
+  constructor() {
+    this.cache = new CacheManager<Transaction>(5000, 60); // cache size 5000, expiration 60 seconds
   }
 
-  public createAndBroadcastTransaction(
-    senderKeyPair: Ed25519KeyPair,
-    recipientPublicKey: string,
-    amount: number
-  ): void {
-    const recipientKeyPair = new Ed25519KeyPair(recipientPublicKey);
-    const transaction = new Transaction(senderKeyPair, recipientKeyPair, amount);
-    this.broadcastTransaction(transaction);
+  async getTransaction(hash: string): Promise<Transaction | null> {
+    const cachedTransaction = this.cache.get(hash);
+    if (cachedTransaction) {
+      return cachedTransaction;
+    }
+
+    const transaction = await this.fetchTransactionFromDatabase(hash);
+    if (transaction) {
+      this.cache.set(hash, transaction);
+    }
+    return transaction;
   }
 
-  public broadcastTransaction(transaction: Transaction): void {
-    // Serialize the transaction and broadcast it to the network
-    const transactionString = transaction.serialize();
-    this.networkManager.broadcastTransaction(transactionString);
+  async fetchTransactionFromDatabase(hash: string): Promise<Transaction | null> {
+    // Fetch transaction from database
+    // ...
+    return null;
   }
 }
+
+export { TransactionManager };
