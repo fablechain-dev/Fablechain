@@ -1,36 +1,37 @@
-import { Account } from '../blockchain/account';
+// transaction.ts
+
+import { EventEmitter, EventReceipt } from './events';
 
 export class Transaction {
-  sender: Account;
-  recipient: Account;
-  amount: number;
-  nonce: number;
-  signature: string;
+  private eventEmitter = new EventEmitter();
 
-  constructor(sender: Account, recipient: Account, amount: number, nonce: number, signature: string) {
-    this.sender = sender;
-    this.recipient = recipient;
-    this.amount = amount;
-    this.nonce = nonce;
-    this.signature = signature;
+  execute() {
+    // Execute the transaction logic
+    // ...
+
+    // Capture any emitted events
+    const events = this.eventEmitter.getEvents();
+    this.eventEmitter.clearEvents();
+
+    // Create the transaction receipt
+    return new TransactionReceipt(
+      this.hash,
+      events
+    );
   }
 
-  validate(): boolean {
-    // Signature verification
-    if (!this.sender.verifySignature(this.signature)) {
-      return false;
-    }
+  emit(name: string, data: any) {
+    this.eventEmitter.emit(name, data);
+  }
+}
 
-    // Nonce validation
-    if (this.sender.nonce !== this.nonce) {
-      return false;
-    }
+export class TransactionReceipt {
+  constructor(
+    public transactionHash: string,
+    public events: EventData[]
+  ) {}
 
-    // Balance check
-    if (this.sender.balance < this.amount) {
-      return false;
-    }
-
-    return true;
+  getBloomFilter(): number[] {
+    return new EventReceipt(this.transactionHash, this.events).getBloomFilter();
   }
 }
