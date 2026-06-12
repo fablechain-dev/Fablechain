@@ -1,25 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getAddressBalance, getAddressTransactions, getAddressTokens } from '../api/blockchain';
+import { getAddressBalance, getAddressTransactions, getAddressTokens } from '../api/address';
 
 const AddressPage: React.FC = () => {
   const { address } = useParams<{ address: string }>();
-  const [balance, setBalance] = useState<number>(0);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [tokens, setTokens] = useState<any[]>([]);
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState([]);
+  const [tokens, setTokens] = useState([]);
 
   useEffect(() => {
     const fetchAddressData = async () => {
-      const balanceResult = await getAddressBalance(address);
-      setBalance(balanceResult.balance);
-
-      const transactionsResult = await getAddressTransactions(address);
-      setTransactions(transactionsResult.transactions);
-
-      const tokensResult = await getAddressTokens(address);
-      setTokens(tokensResult.tokens);
+      setBalance(await getAddressBalance(address));
+      setTransactions(await getAddressTransactions(address));
+      setTokens(await getAddressTokens(address));
     };
-
     fetchAddressData();
   }, [address]);
 
@@ -29,20 +23,17 @@ const AddressPage: React.FC = () => {
       <p>Balance: {balance} CLAW</p>
       <h2>Transactions</h2>
       <ul>
-        {transactions.map((tx, index) => (
-          <li key={index}>
-            <p>TX Hash: {tx.hash}</p>
-            <p>Amount: {tx.amount} CLAW</p>
-            <p>Date: {tx.timestamp}</p>
+        {transactions.map((tx) => (
+          <li key={tx.id}>
+            {tx.type} - {tx.amount} CLAW
           </li>
         ))}
       </ul>
-      <h2>Tokens</h2>
+      <h2>Token Holdings</h2>
       <ul>
-        {tokens.map((token, index) => (
-          <li key={index}>
-            <p>Token: {token.name}</p>
-            <p>Balance: {token.balance}</p>
+        {tokens.map((token) => (
+          <li key={token.id}>
+            {token.name} - {token.balance}
           </li>
         ))}
       </ul>
