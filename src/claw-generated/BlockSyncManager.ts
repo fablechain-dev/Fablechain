@@ -31,7 +31,7 @@ export class BlockSyncManager {
       }
     }
 
-    const blocks = await this.downloadBlocks(missingBlockHashes, peers);
+    const blocks = await this.downloadBlocksInParallel(missingBlockHashes, peers);
     for (const block of blocks) {
       if (await this.chain.validateBlock(block)) {
         this.chain.addBlock(block);
@@ -60,22 +60,25 @@ export class BlockSyncManager {
     return missingHashes;
   }
 
-  private async downloadBlocks(
+  private async downloadBlocksInParallel(
     blockHashes: string[],
     peers: any[]
   ): Promise<Block[]> {
     const promises = blockHashes.map(async (hash) => {
-      for (const peer of peers) {
-        try {
-          const block = await this.connectionPool.downloadBlock(hash, peer);
-          if (block) {
-            return block;
+      const blocks = await Promise.all(
+        peers.map(async (peer) => {
+          try {
+            const block = await this.connectionPool.downloadBlock(hash, peer);
+            if (block) {
+              return block;
+            }
+          } catch (error) {
+            console.error(`Error downloading block ${hash} from peer: ${error.message}`);
           }
-        } catch (error) {
-          console.error(`Error downloading block ${hash} from peer: ${error.message}`);
-        }
-      }
-      return null;
+          return null;
+        })
+      );
+      return blocks.find(Boolean) || null;
     });
 
     const blocks = await Promise.all(promises);
