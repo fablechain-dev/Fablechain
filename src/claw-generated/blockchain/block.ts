@@ -44,17 +44,29 @@ export class Block {
     return this.CHECKPOINTS[blockNumber] || null;
   }
 
-  validate(): boolean {
+  async validate(): Promise&lt;boolean&gt; {
     // Check if block size is within the dynamic limit
     const averageBlockSize = this.getAverageBlockSize();
     const dynamicLimit = Math.max(Block.MAX_BLOCK_SIZE, averageBlockSize * 1.5);
-    return this.size <= dynamicLimit;
+    if (this.size > dynamicLimit) {
+      return false;
+    }
+
+    // Validate transactions in parallel
+    const transactionValidations = this.transactions.map((tx) =&gt; this.validateTransaction(tx));
+    const transactionValidationResults = await Promise.all(transactionValidations);
+    return transactionValidationResults.every((result) =&gt; result);
   }
 
   private static getAverageBlockSize(): number {
     if (Block.recentBlockSizes.length === 0) {
       return Block.MAX_BLOCK_SIZE;
     }
-    return Block.recentBlockSizes.reduce((sum, size) => sum + size, 0) / Block.recentBlockSizes.length;
+    return Block.recentBlockSizes.reduce((sum, size) =&gt; sum + size, 0) / Block.recentBlockSizes.length;
+  }
+
+  private async validateTransaction(tx: any): Promise&lt;boolean&gt; {
+    // Implement transaction validation logic here
+    return true;
   }
 }
