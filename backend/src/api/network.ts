@@ -11,6 +11,9 @@ import { eventBus } from '../events/EventBus';
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import * as path from 'path';
 import * as fs from 'fs';
+import { X402_CONFIG, PREMIUM_ENDPOINTS } from '../x402/types';
+import { setWalletDatabase, initWalletTable, initializeAgentWallets, getOrCreateWallet, getAllWallets, getPaymentLogs, logPayment } from '../x402/wallets';
+import { initX402Server, send402Response, isX402Initialized } from '../x402/server';
 
 const router = Router();
 
@@ -873,6 +876,15 @@ async function initializeAgents() {
   
   console.log(`[Network] Initialized ${connectedAgents.size} autonomous agents`);
   console.log(`[Network] Total messages in database: ${getTotalMessageCount()}`);
+
+  // Initialize x402 agent wallets
+  if (X402_CONFIG.enabled && db) {
+    setWalletDatabase(db);
+    initWalletTable();
+    const agentIds = Array.from(connectedAgents.keys());
+    initializeAgentWallets(agentIds);
+    initX402Server();
+  }
 }
 
 // ============== DISCUSSION LOGIC ==============
@@ -1466,6 +1478,223 @@ router.post('/messages', (req, res) => {
   eventBus.emit('network_message', msg);
   
   res.json({ success: true, messageId: msg.id });
+});
+
+// ============== x402 ROUTES ==============
+
+// x402 status
+router.get('/x402/status', (req, res) => {
+  res.json({
+    enabled: X402_CONFIG.enabled,
+    initialized: isX402Initialized(),
+    network: X402_CONFIG.network,
+    facilitatorUrl: X402_CONFIG.facilitatorUrl,
+    scheme: X402_CONFIG.scheme,
+    premiumEndpoints: PREMIUM_ENDPOINTS.map(ep => ({
+      method: ep.method,
+      path: ep.path,
+      price: ep.price,
+      description: ep.description,
+    })),
+  });
+});
+
+// x402 agent wallets (public keys only)
+router.get('/x402/wallets', (req, res) => {
+  const wallets = getAllWallets().map(w => {
+    const agent = connectedAgents.get(w.agentId);
+    return {
+      agentId: w.agentId,
+      agentName: agent?.name || w.agentId,
+      publicKey: w.publicKey,
+      network: X402_CONFIG.network,
+      createdAt: w.createdAt,
+    };
+  });
+  res.json({ wallets, total: wallets.length });
+});
+
+// x402 single agent wallet
+router.get('/x402/wallets/:agentId', (req, res) => {
+  const agent = connectedAgents.get(req.params.agentId);
+  if (!agent) return res.status(404).json({ error: 'Agent not found' });
+
+  const wallet = getOrCreateWallet(req.params.agentId);
+  res.json({
+    agentId: wallet.agentId,
+    agentName: agent.name,
+    publicKey: wallet.publicKey,
+    network: X402_CONFIG.network,
+    createdAt: wallet.createdAt,
+  });
+});
+
+// x402 payment logs
+router.get('/x402/payments', (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+  const payments = getPaymentLogs(limit);
+  res.json({ payments, total: payments.length });
+});
+
+// ============== PREMIUM ENDPOINTS (x402-gated) ==============
+
+// Premium: Deep analytics
+router.get('/premium/analytics', (req, res) => {
+  // Check for x402 payment header
+  const paymentHeader = req.headers['x-payment'] || req.headers['payment-signature'];
+  if (!paymentHeader && isX402Initialized()) {
+    return send402Response(res, 'claw-main', '$0.001', 'Deep forum analytics — sentiment analysis, agent scoring, topic heat maps');
+  }
+
+  // If payment received or x402 not initialized, serve the data
+  const agents = Array.from(connectedAgents.values());
+  const allMessages = loadMessages(500);
+
+  const agentActivity = agents.map(a => {
+    const agentMsgs = allMessages.filter(m => m.agentId === a.id);
+    const avgScore = agentMsgs.length > 0
+      ? agentMsgs.reduce((sum, m) => sum + m.score, 0) / agentMsgs.length
+      : 0;
+    return {
+      agentId: a.id,
+      name: a.name,
+      messageCount: agentMsgs.length,
+      avgScore: Math.round(avgScore * 100) / 100,
+      totalScore: a.totalScore,
+      topTopics: [...new Set(agentMsgs.filter(m => m.topic).map(m => m.topic))].slice(0, 5),
+    };
+  }).sort((a, b) => b.totalScore - a.totalScore);
+
+  const topicHeatMap = allMessages
+    .filter(m => m.topic)
+    .reduce((acc, m) => {
+      acc[m.topic!] = (acc[m.topic!] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+  const sortedTopics = Object.entries(topicHeatMap)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 20)
+    .map(([topic, count]) => ({ topic, count }));
+
+  if (paymentHeader) {
+    logPayment({
+      endpoint: '/premium/analytics',
+      payerAddress: 'x402-payer',
+      receiverAgentId: 'claw-main',
+      receiverAddress: getOrCreateWallet('claw-main').publicKey,
+      amount: '$0.001',
+      network: X402_CONFIG.network,
+      status: 'success',
+    });
+  }
+
+  res.json({
+    premium: true,
+    agentActivity,
+    topicHeatMap: sortedTopics,
+    totalMessages: allMessages.length,
+    totalAgents: agents.length,
+    generatedAt: new Date().toISOString(),
+  });
+});
+
+// Premium: Agent insights
+router.get('/premium/agent/:id/insights', (req, res) => {
+  const agent = connectedAgents.get(req.params.id);
+  if (!agent) return res.status(404).json({ error: 'Agent not found' });
+
+  const paymentHeader = req.headers['x-payment'] || req.headers['payment-signature'];
+  if (!paymentHeader && isX402Initialized()) {
+    return send402Response(res, req.params.id, '$0.001', `AI-generated personality insights for ${agent.name}`);
+  }
+
+  const agentMsgs = loadAgentMessages(agent.id, 100);
+  const topTopics = [...new Set(agentMsgs.filter(m => m.topic).map(m => m.topic))];
+  const avgScore = agentMsgs.length > 0
+    ? agentMsgs.reduce((sum, m) => sum + m.score, 0) / agentMsgs.length
+    : 0;
+
+  const recentTopics = agentMsgs.slice(0, 20).filter(m => m.topic).map(m => m.topic);
+  const topicFrequency = recentTopics.reduce((acc, t) => {
+    acc[t!] = (acc[t!] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const predictedInterests = Object.entries(topicFrequency)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([topic]) => topic);
+
+  if (paymentHeader) {
+    logPayment({
+      endpoint: `/premium/agent/${req.params.id}/insights`,
+      payerAddress: 'x402-payer',
+      receiverAgentId: req.params.id,
+      receiverAddress: getOrCreateWallet(req.params.id).publicKey,
+      amount: '$0.001',
+      network: X402_CONFIG.network,
+      status: 'success',
+    });
+  }
+
+  res.json({
+    premium: true,
+    agentId: agent.id,
+    name: agent.name,
+    personality: agent.personality,
+    debateStyle: agent.debateStyle,
+    interests: agent.interests,
+    totalMessages: agentMsgs.length,
+    avgScore: Math.round(avgScore * 100) / 100,
+    topTopics: topTopics.slice(0, 10),
+    predictedNextTopics: predictedInterests,
+    engagementLevel: agentMsgs.length > 50 ? 'high' : agentMsgs.length > 20 ? 'medium' : 'low',
+    wallet: getOrCreateWallet(agent.id).publicKey,
+    generatedAt: new Date().toISOString(),
+  });
+});
+
+// Premium: Priority topic suggestion
+router.post('/premium/priority-suggest', (req, res) => {
+  const paymentHeader = req.headers['x-payment'] || req.headers['payment-signature'];
+  if (!paymentHeader && isX402Initialized()) {
+    return send402Response(res, 'claw-main', '$0.005', 'Priority topic suggestion — skips vote queue');
+  }
+
+  const { topic } = req.body;
+  if (!topic || topic.length < 10) {
+    return res.status(400).json({ error: 'Topic must be at least 10 characters' });
+  }
+
+  // Priority suggestions go straight to the discussion topic
+  currentDiscussionTopic = topic;
+  discussionParticipants = [];
+
+  if (paymentHeader) {
+    logPayment({
+      endpoint: '/premium/priority-suggest',
+      payerAddress: 'x402-payer',
+      receiverAgentId: 'claw-main',
+      receiverAddress: getOrCreateWallet('claw-main').publicKey,
+      amount: '$0.005',
+      network: X402_CONFIG.network,
+      status: 'success',
+    });
+  }
+
+  // Kick off the new discussion
+  const eligibleAgents = Array.from(connectedAgents.values()).filter(a => a.isAutonomous && a.status === 'active');
+  if (eligibleAgents.length > 0) {
+    startNewDiscussion(eligibleAgents);
+  }
+
+  res.json({
+    premium: true,
+    success: true,
+    topic,
+    message: 'Priority topic set — agents will begin discussing immediately',
+  });
 });
 
 // Initialize

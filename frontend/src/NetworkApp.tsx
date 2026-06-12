@@ -56,7 +56,34 @@ interface Leaderboard {
   hotTopics: Array<{ topic: string; count: number }>;
 }
 
-type TabType = 'live' | 'agents' | 'topics' | 'leaderboard' | 'suggest' | 'about' | 'profile' | 'search';
+interface X402Status {
+  enabled: boolean;
+  initialized: boolean;
+  network: string;
+  facilitatorUrl: string;
+  scheme: string;
+  premiumEndpoints: Array<{ method: string; path: string; price: string; description: string }>;
+}
+interface X402Wallet {
+  agentId: string;
+  agentName: string;
+  publicKey: string;
+  network: string;
+  createdAt: string;
+}
+interface X402Payment {
+  id: string;
+  endpoint: string;
+  payerAddress: string;
+  receiverAgentId: string;
+  receiverAddress: string;
+  amount: string;
+  network: string;
+  timestamp: string;
+  status: string;
+}
+
+type TabType = 'live' | 'agents' | 'topics' | 'leaderboard' | 'suggest' | 'about' | 'profile' | 'search' | 'x402';
 
 // ============== COMPONENT ==============
 
@@ -86,6 +113,12 @@ const NetworkApp: React.FC = () => {
   const [expandedReplies, setExpandedReplies] = useState<Record<string, Message[]>>({});
   const [socketConnected, setSocketConnected] = useState(false);
   const [newMessageCount, setNewMessageCount] = useState(0);
+
+  // x402 state
+  const [x402Status, setX402Status] = useState<X402Status | null>(null);
+  const [x402Wallets, setX402Wallets] = useState<X402Wallet[]>([]);
+  const [x402Payments, setX402Payments] = useState<X402Payment[]>([]);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visitorId = useRef(`visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -138,6 +171,25 @@ const NetworkApp: React.FC = () => {
       const res = await fetch(`${API_BASE}/api/network/suggestions`);
       if (res.ok) setSuggestions((await res.json()).suggestions || []);
     } catch (e) { console.error('Failed to fetch suggestions:', e); }
+  };
+
+  const fetchX402Data = async () => {
+    try {
+      const [statusRes, walletsRes, paymentsRes] = await Promise.all([
+        fetch(`${API_BASE}/api/network/x402/status`),
+        fetch(`${API_BASE}/api/network/x402/wallets`),
+        fetch(`${API_BASE}/api/network/x402/payments`),
+      ]);
+      if (statusRes.ok) setX402Status(await statusRes.json());
+      if (walletsRes.ok) setX402Wallets((await walletsRes.json()).wallets || []);
+      if (paymentsRes.ok) setX402Payments((await paymentsRes.json()).payments || []);
+    } catch (e) { console.error('Failed to fetch x402 data:', e); }
+  };
+
+  const copyAddress = (address: string) => {
+    navigator.clipboard.writeText(address);
+    setCopiedAddress(address);
+    setTimeout(() => setCopiedAddress(null), 2000);
   };
 
   const doSearch = useCallback(async () => {
@@ -301,6 +353,7 @@ const NetworkApp: React.FC = () => {
     if (activeTab === 'topics') fetchTopics();
     if (activeTab === 'leaderboard') fetchLeaderboard();
     if (activeTab === 'suggest') fetchSuggestions();
+    if (activeTab === 'x402') fetchX402Data();
   }, [activeTab]);
 
   useEffect(() => {
@@ -468,6 +521,7 @@ const NetworkApp: React.FC = () => {
     { id: 'topics', label: 'Topics' },
     { id: 'leaderboard', label: isMobile ? 'Top' : 'Leaderboard' },
     { id: 'suggest', label: 'Suggest' },
+    { id: 'x402', label: 'x402' },
     { id: 'about', label: 'About' },
   ];
 
@@ -838,6 +892,134 @@ const NetworkApp: React.FC = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* x402 TAB */}
+        {activeTab === 'x402' && (
+          <div style={{ maxWidth: 800 }}>
+            {/* Status Banner */}
+            <div style={{ padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>x402 Payment Protocol</h2>
+                <span style={{
+                  fontSize: 10,
+                  padding: '3px 10px',
+                  borderRadius: 10,
+                  background: x402Status?.initialized ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  color: x402Status?.initialized ? '#10b981' : '#ef4444',
+                  fontWeight: 600,
+                }}>{x402Status?.initialized ? 'ACTIVE' : 'INACTIVE'}</span>
+              </div>
+              {x402Status && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
+                  <div style={{ padding: 8, background: 'var(--bg-secondary)', borderRadius: 6 }}>
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Network</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: "'JetBrains Mono', monospace" }}>{x402Status.network}</div>
+                  </div>
+                  <div style={{ padding: 8, background: 'var(--bg-secondary)', borderRadius: 6 }}>
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Scheme</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-primary)' }}>{x402Status.scheme}</div>
+                  </div>
+                  <div style={{ padding: 8, background: 'var(--bg-secondary)', borderRadius: 6 }}>
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Facilitator</div>
+                    <div style={{ fontSize: 11, color: 'var(--teal)', fontFamily: "'JetBrains Mono', monospace", wordBreak: 'break-all' }}>{x402Status.facilitatorUrl}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Agent Wallets */}
+            <div style={{ padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Agent Wallets ({x402Wallets.length})</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
+                {x402Wallets.map(w => (
+                  <div key={w.agentId} style={{
+                    padding: 10,
+                    background: 'var(--bg-secondary)',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                  }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{w.agentName}</div>
+                      <div style={{
+                        fontSize: 10,
+                        color: 'var(--teal)',
+                        fontFamily: "'JetBrains Mono', monospace",
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>{w.publicKey}</div>
+                    </div>
+                    <button
+                      onClick={() => copyAddress(w.publicKey)}
+                      style={{
+                        padding: '4px 10px',
+                        background: copiedAddress === w.publicKey ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                        border: '1px solid var(--border)',
+                        borderRadius: 6,
+                        color: copiedAddress === w.publicKey ? '#10b981' : 'var(--text-muted)',
+                        fontSize: 10,
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                    >{copiedAddress === w.publicKey ? 'Copied' : 'Copy'}</button>
+                  </div>
+                ))}
+                {x402Wallets.length === 0 && (
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>No wallets initialized yet</p>
+                )}
+              </div>
+            </div>
+
+            {/* Premium Endpoints */}
+            {x402Status && x402Status.premiumEndpoints.length > 0 && (
+              <div style={{ padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 16 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Premium Endpoints</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {x402Status.premiumEndpoints.map((ep, i) => (
+                    <div key={i} style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 6, borderLeft: '3px solid var(--coral)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(232, 90, 79, 0.15)', color: 'var(--coral)', borderRadius: 4, fontWeight: 600 }}>{ep.method}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: "'JetBrains Mono', monospace" }}>{ep.path}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: '#10b981' }}>{ep.price}</span>
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>{ep.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Payment History */}
+            <div style={{ padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Payment History</h3>
+              {x402Payments.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+                  {x402Payments.map(p => (
+                    <div key={p.id} style={{ padding: 10, background: 'var(--bg-secondary)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: "'JetBrains Mono', monospace" }}>{p.endpoint}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(p.timestamp).toLocaleString()}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#10b981' }}>{p.amount}</div>
+                        <div style={{
+                          fontSize: 9,
+                          color: p.status === 'success' ? '#10b981' : '#ef4444',
+                          textTransform: 'uppercase',
+                        }}>{p.status}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>No payments recorded yet</p>
+              )}
+            </div>
           </div>
         )}
 

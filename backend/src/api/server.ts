@@ -286,6 +286,7 @@ async function main() {
   const networkRouter = await import('./network');
   app.use('/api/network', networkRouter.default);
   console.log('[NETWORK] Multi-agent network ready');
+  console.log('[x402] Payment protocol routes mounted at /api/network/x402/*');
 
   // Listen for network events and broadcast via Socket.io
   eventBus.on('network_message', (msg: any) => {
