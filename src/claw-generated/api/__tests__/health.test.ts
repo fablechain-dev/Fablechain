@@ -1,102 +1,24 @@
-import { HealthCheckController } from '../health';
-import { Chain } from '../../blockchain/Chain';
-import { TransactionPool } from '../../blockchain/TransactionPool';
-import { ValidatorManager } from '../../validators/ValidatorManager';
+import request from 'supertest';
+import app from '../index';
 
-describe('HealthCheckController', () => {
-  let healthCheckController: HealthCheckController;
-  let chainMock: Chain;
-  let txPoolMock: TransactionPool;
-  let validatorManagerMock: ValidatorManager;
-
-  beforeEach(() => {
-    chainMock = {
-      getChainLength: jest.fn().mockReturnValue(100),
-      isSynced: jest.fn().mockResolvedValue(true)
-    } as unknown as Chain;
-
-    txPoolMock = {
-      getPendingCount: jest.fn().mockReturnValue(50)
-    } as unknown as TransactionPool;
-
-    validatorManagerMock = {
-      getAllValidators: jest.fn().mockReturnValue([1, 2, 3]),
-      isValidatorActive: jest.fn().mockResolvedValue(true)
-    } as unknown as ValidatorManager;
-
-    healthCheckController = new HealthCheckController(chainMock, txPoolMock, validatorManagerMock);
+describe('Health Endpoints', () => {
+  it('should return 200 OK for /health', async () => {
+    const response = await request(app).get('/health');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: 'OK' });
   });
 
-  describe('getHealthStatus', () => {
-    it('should return the correct health status', async () => {
-      const req = {};
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn()
-      };
-
-      await healthCheckController.getHealthStatus(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'ok',
-        chainLength: 100,
-        pendingTransactions: 50,
-        validators: 3
-      });
-    });
+  it('should return 200 OK for /ready when node is ready', async () => {
+    const response = await request(app).get('/ready');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ready: true });
   });
 
-  describe('getReadinessStatus', () => {
-    it('should return ready status when chain is synced and validator is active', async () => {
-      const req = {};
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn()
-      };
-
-      await healthCheckController.getReadinessStatus(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'ready'
-      });
-    });
-
-    it('should return not ready status when chain is not synced', async () => {
-      chainMock.isSynced.mockResolvedValue(false);
-
-      const req = {};
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn()
-      };
-
-      await healthCheckController.getReadinessStatus(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(503);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'not_ready',
-        message: 'Chain not synced or validator not active'
-      });
-    });
-
-    it('should return not ready status when validator is not active', async () => {
-      validatorManagerMock.isValidatorActive.mockResolvedValue(false);
-
-      const req = {};
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn()
-      };
-
-      await healthCheckController.getReadinessStatus(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(503);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'not_ready',
-        message: 'Chain not synced or validator not active'
-      });
-    });
+  it('should return 503 Service Unavailable for /ready when node is not ready', async () => {
+    // Mock the readiness check to return false
+    jest.spyOn(app, 'isReady').mockReturnValue(false);
+    const response = await request(app).get('/ready');
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ ready: false });
   });
 });

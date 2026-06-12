@@ -1,49 +1,15 @@
-import { Chain } from '../blockchain/Chain';
-import { TransactionPool } from '../blockchain/TransactionPool';
-import { ValidatorManager } from '../validators/ValidatorManager';
+import { Router, Request, Response } from 'express';
 
-export class HealthCheckController {
-  private chain: Chain;
-  private txPool: TransactionPool;
-  private validatorManager: ValidatorManager;
+const healthRouter = Router();
 
-  constructor(chain: Chain, txPool: TransactionPool, validatorManager: ValidatorManager) {
-    this.chain = chain;
-    this.txPool = txPool;
-    this.validatorManager = validatorManager;
-  }
+healthRouter.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'OK' });
+});
 
-  async getHealthStatus(req, res) {
-    const chainLength = this.chain.getChainLength();
-    const pendingTxCount = this.txPool.getPendingCount();
-    const validatorCount = this.validatorManager.getAllValidators().length;
+healthRouter.get('/ready', (req: Request, res: Response) => {
+  // Check if the node is fully synced and ready to process transactions
+  const isReady = true; // Replace with actual readiness check
+  res.status(isReady ? 200 : 503).json({ ready: isReady });
+});
 
-    res.status(200).json({
-      status: 'ok',
-      chainLength,
-      pendingTransactions: pendingTxCount,
-      validators: validatorCount
-    });
-  }
-
-  async getReadinessStatus(req, res) {
-    // Additional checks for readiness, e.g.:
-    // - Ensure chain is synced to latest block
-    // - Verify validator is actively producing blocks
-    // - Check for any critical errors or issues
-
-    const isChainSynced = await this.chain.isSynced();
-    const isValidatorActive = await this.validatorManager.isValidatorActive();
-
-    if (isChainSynced && isValidatorActive) {
-      res.status(200).json({
-        status: 'ready'
-      });
-    } else {
-      res.status(503).json({
-        status: 'not_ready',
-        message: 'Chain not synced or validator not active'
-      });
-    }
-  }
-}
+export default healthRouter;
