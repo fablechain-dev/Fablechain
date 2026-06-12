@@ -1,33 +1,31 @@
-import { STATE_PRUNING_PERIOD } from './config';
+import { MerklePatriciaTrie } from './MerklePatriciaTrie';
 
 class StateManager {
-  private stateStore: Map<number, StateData> = new Map();
-  private archivedStates: Map<number, StateData> = new Map();
+  private trie: MerklePatriciaTrie;
 
-  async getState(blockNumber: number): Promise<StateData> {
-    if (this.stateStore.has(blockNumber)) {
-      return this.stateStore.get(blockNumber)!;
-    }
-    if (this.archivedStates.has(blockNumber)) {
-      return this.archivedStates.get(blockNumber)!;
-    }
-    // Fetch state from archive or rebuild from history
+  constructor() {
+    this.trie = new MerklePatriciaTrie();
   }
 
-  async addState(blockNumber: number, state: StateData): Promise<void> {
-    this.stateStore.set(blockNumber, state);
-    this.maybeArchiveOldState(blockNumber);
+  getStateRoot(): string {
+    return this.trie.getRoot();
   }
 
-  private maybeArchiveOldState(currentBlockNumber: number): void {
-    const oldestBlockNumber = currentBlockNumber - STATE_PRUNING_PERIOD;
-    if (oldestBlockNumber > 0) {
-      for (let i = 1; i <= oldestBlockNumber; i++) {
-        if (this.stateStore.has(i)) {
-          this.archivedStates.set(i, this.stateStore.get(i)!);
-          this.stateStore.delete(i);
-        }
-      }
-    }
+  setState(key: string, value: any): void {
+    this.trie.set(key, value);
+  }
+
+  getState(key: string): any {
+    return this.trie.get(key);
+  }
+
+  getProof(key: string): any[] {
+    return this.trie.getProof(key);
+  }
+
+  verifyProof(key: string, value: any, proof: any[]): boolean {
+    return this.trie.verifyProof(key, value, proof);
   }
 }
+
+export { StateManager };
