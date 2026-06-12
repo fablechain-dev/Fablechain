@@ -1,42 +1,69 @@
-import { KademliaNode, KademliaRoutingTable } from './kademlia';
-import { BootstrapNode, DEFAULT_BOOTSTRAP_NODES } from './bootstrap_nodes';
-import { PeerID } from './types';
+import { NodeId, RoutingTable, DHTData } from './types';
 
 class PeerDiscovery {
-  private routingTable: KademliaRoutingTable;
-  private bootstrapNodes: BootstrapNode[];
-  private myNodeId: PeerID;
+  private nodeId: NodeId;
+  private routingTable: RoutingTable;
+  private dhtData: Map<string, DHTData> = new Map();
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(myNodeId: PeerID, bootstrapNodes: BootstrapNode[] = DEFAULT_BOOTSTRAP_NODES) {
-    this.myNodeId = myNodeId;
-    this.bootstrapNodes = bootstrapNodes;
-    this.routingTable = new KademliaRoutingTable();
+  constructor(nodeId: NodeId) {
+    this.nodeId = nodeId;
+    this.routingTable = new RoutingTable(nodeId);
+
+    // Start the routing table refresh process
+    this.startRefreshRoutingTable();
   }
 
-  async joinNetwork(): Promise<void> {
-    // Connect to bootstrap nodes and populate routing table
-    for (const node of this.bootstrapNodes) {
-      await this.connectToNode(node);
+  async findNode(targetId: NodeId): Promise<NodeId[]> {
+    // ... findNode implementation from previous step
+  }
+
+  async store(key: string, value: any): Promise<void> {
+    // ... store implementation from previous step
+  }
+
+  async bootstrap(bootstrapNodes: NodeId[]): Promise<void> {
+    // ... bootstrap implementation from previous step
+  }
+
+  private async refreshRoutingTable(): Promise<void> {
+    // Query the closest nodes to refresh the routing table
+    const closestNodes = this.routingTable.getClosestNodes(this.nodeId, 20);
+    for (const node of closestNodes) {
+      const nodeResults = await this.findNode(node);
+      for (const result of nodeResults) {
+        this.routingTable.addNode(result);
+      }
     }
-
-    // Start periodic maintenance tasks
-    setInterval(() => this.maintainNetwork(), 60000);
   }
 
-  private async connectToNode(node: BootstrapNode): Promise<void> {
-    // Implement logic to connect to a bootstrap node and add it to the routing table
-    const kademliaNode = new KademliaNode(node.id, node.address);
-    this.routingTable.addNode(kademliaNode);
+  private startRefreshRoutingTable(): void {
+    this.refreshInterval = setInterval(() => {
+      this.refreshRoutingTable();
+    }, 60000); // Refresh every 60 seconds
   }
 
-  private async maintainNetwork(): Promise<void> {
-    // Implement periodic tasks to maintain the health of the peer-to-peer network
-    // e.g., refresh routing table, find new nodes, etc.
+  private stopRefreshRoutingTable(): void {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
   }
 
-  findClosestNodes(targetId: PeerID, count: number): KademliaNode[] {
-    return this.routingTable.findClosestNodes(targetId, count);
+  private async connectToNode(nodeId: NodeId): Promise<void> {
+    // Connect to the given node
+    // ...
+  }
+
+  private hashToNodeId(input: string): NodeId {
+    // Hash the input to a node ID
+    // ...
+  }
+
+  private async sendStoreRequest(nodeId: NodeId, key: string, value: any): Promise<void> {
+    // Send a STORE request to the given node
+    // ...
   }
 }
 
-export { PeerDiscovery };
+export default PeerDiscovery;
