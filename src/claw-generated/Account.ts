@@ -1,15 +1,5 @@
-import { PublicKey } from '@solana/web3.js';
-
-export class Account {
-  public pubkey: PublicKey;
-  public lamports: number;
-  public owner: PublicKey;
-  public executable: boolean;
-
-  constructor(pubkey: PublicKey, lamports: number, owner: PublicKey, executable: boolean) {
-    this.pubkey = pubkey;
-    this.lamports = lamports;
-    this.owner = owner;
-    this.executable = executable;
-  }
+export interface Account {
+  address: string;
+  sign(data: Uint8Array): Promise<Uint8Array>;
+  verify(data: Uint8Array, signature: Uint8Array): Promise<boolean>;
 }

@@ -1,37 +1,45 @@
 import { Transaction } from './Transaction';
-import { TransactionReceipt } from './transaction/TransactionReceipt';
-import { Bloom } from './bloom-filter';
+import { Account } from './Account';
 
 export class Block {
-  blockNumber: number;
-  blockHash: string;
-  parentHash: string;
-  timestamp: number;
   transactions: Transaction[];
-  transactionReceipts: TransactionReceipt[];
-  stateRoot: string;
-  receiptsRoot: string;
-  logsBloom: Bloom;
+  timestamp: number;
+  nonce: number;
+  previousHash: string;
 
-  constructor(
-    blockNumber: number,
-    blockHash: string,
-    parentHash: string,
-    timestamp: number,
-    transactions: Transaction[],
-    transactionReceipts: TransactionReceipt[],
-    stateRoot: string,
-    receiptsRoot: string,
-    logsBloom: Bloom
-  ) {
-    this.blockNumber = blockNumber;
-    this.blockHash = blockHash;
-    this.parentHash = parentHash;
-    this.timestamp = timestamp;
+  constructor(transactions: Transaction[], previousHash: string) {
     this.transactions = transactions;
-    this.transactionReceipts = transactionReceipts;
-    this.stateRoot = stateRoot;
-    this.receiptsRoot = receiptsRoot;
-    this.logsBloom = logsBloom;
+    this.timestamp = Date.now();
+    this.nonce = 0;
+    this.previousHash = previousHash;
+  }
+
+  async validateTransactions(): Promise<boolean> {
+    for (const tx of this.transactions) {
+      if (!tx.verify()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async mine(targetDifficulty: number): Promise<void> {
+    while (true) {
+      const hash = this.getHash();
+      if (this.meetsDifficultyTarget(hash, targetDifficulty)) {
+        return;
+      }
+      this.nonce++;
+    }
+  }
+
+  private getHash(): string {
+    // Implement logic to get the hash of the block
+    return '';
+  }
+
+  private meetsDifficultyTarget(hash: string, targetDifficulty: number): boolean {
+    // Implement logic to check if the hash meets the difficulty target
+    return false;
   }
 }
