@@ -1,32 +1,57 @@
-import { PublicKey } from './crypto';
+import * as bip39 from 'bip39';
+import * as ed25519 from 'ed25519-hd-key';
+import { encode as encodeBase58 } from 'bs58';
 
 class Wallet {
-  private publicKeys: PublicKey[];
-  private requiredSignatures: number;
+  private _privateKey: Uint8Array;
+  private _publicKey: Uint8Array;
+  private _address: string;
 
-  constructor(publicKeys: PublicKey[], requiredSignatures: number) {
-    this.publicKeys = publicKeys;
-    this.requiredSignatures = requiredSignatures;
+  constructor(privateKey?: Uint8Array, mnemonic?: string) {
+    if (privateKey) {
+      this._privateKey = privateKey;
+      this._publicKey = Wallet.derivePublicKey(privateKey);
+      this._address = Wallet.deriveAddress(this._publicKey);
+    } else if (mnemonic) {
+      const seed = bip39.mnemonicToSeedSync(mnemonic);
+      const { key: privateKey } = ed25519.derivePath("m/44'/60'/0'/0/0", seed.toString('hex'));
+      this._privateKey = privateKey;
+      this._publicKey = Wallet.derivePublicKey(privateKey);
+      this._address = Wallet.deriveAddress(this._publicKey);
+    } else {
+      const { privateKey, publicKey } = Wallet.generateKeyPair();
+      this._privateKey = privateKey;
+      this._publicKey = publicKey;
+      this._address = Wallet.deriveAddress(publicKey);
+    }
   }
 
-  addPublicKey(publicKey: PublicKey) {
-    this.publicKeys.push(publicKey);
+  get privateKey(): Uint8Array {
+    return this._privateKey;
   }
 
-  removePublicKey(publicKey: PublicKey) {
-    this.publicKeys = this.publicKeys.filter(key => !key.equals(publicKey));
+  get publicKey(): Uint8Array {
+    return this._publicKey;
   }
 
-  canAuthorizeTransaction(signatures: PublicKey[]): boolean {
-    // Check if the provided signatures match the required M-of-N threshold
-    return signatures.length >= this.requiredSignatures;
+  get address(): string {
+    return this._address;
   }
 
-  authorizeTransaction(transaction: Transaction): boolean {
-    // Aggregate the signatures and verify they meet the threshold
-    const signatures = transaction.getSignatures();
-    return this.canAuthorizeTransaction(signatures);
+  static generateKeyPair(): { privateKey: Uint8Array; publicKey: Uint8Array } {
+    const seed = bip39.mnemonicToSeedSync('');
+    const { key: privateKey } = ed25519.derivePath("m/44'/60'/0'/0/0", seed.toString('hex'));
+    const publicKey = Wallet.derivePublicKey(privateKey);
+    return { privateKey, publicKey };
+  }
+
+  static derivePublicKey(privateKey: Uint8Array): Uint8Array {
+    return ed25519.getPublicKey(privateKey);
+  }
+
+  static deriveAddress(publicKey: Uint8Array): string {
+    return encodeBase58(publicKey);
   }
 }
 
-export { Wallet };
+export default Wallet;
