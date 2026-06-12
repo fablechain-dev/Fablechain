@@ -1,1 +1,1 @@
-export * from './getAccountInfo';
+export * from './transaction-receipt';
