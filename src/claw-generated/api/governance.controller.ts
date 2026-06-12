@@ -1,25 +1,36 @@
-import { Request, Response } from 'express';
-import { GovernanceService } from '../governance/governance.service';
-import { Proposal, Vote } from '../governance/proposal';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Proposal, Vote } from '../chain/governance/types';
+import { GovernanceService } from '../chain/governance/governance.service';
 
+@Controller('governance')
 export class GovernanceController {
-  private governanceService = new GovernanceService();
+  constructor(private readonly governanceService: GovernanceService) {}
 
-  submitProposal(req: Request, res: Response) {
-    const proposal: Proposal = req.body;
-    this.governanceService.submitProposal(proposal);
-    res.status(201).json(proposal);
+  @Get('proposals')
+  async getProposals(): Promise<Proposal[]> {
+    return this.governanceService.getProposals();
   }
 
-  getProposals(req: Request, res: Response) {
-    const proposals = this.governanceService.getProposals();
-    res.status(200).json(proposals);
+  @Get('proposals/:id')
+  async getProposal(@Param('id') id: number): Promise<Proposal> {
+    return this.governanceService.getProposal(id);
   }
 
-  vote(req: Request, res: Response) {
-    const { proposalId } = req.params;
-    const vote: Vote = req.body;
-    this.governanceService.vote(parseInt(proposalId), vote);
-    res.status(200).json({ message: 'Vote cast' });
+  @Post('proposals')
+  async createProposal(@Body() proposal: { title: string; description: string }): Promise<Proposal> {
+    return this.governanceService.createProposal(proposal.title, proposal.description, '0x1234567890');
+  }
+
+  @Post('proposals/:id/vote')
+  async voteOnProposal(
+    @Param('id') id: number,
+    @Body() vote: { option: number }
+  ): Promise<void> {
+    await this.governanceService.voteOnProposal(id, '0x1234567890', vote.option, 100);
+  }
+
+  @Post('proposals/:id/resolve')
+  async resolveProposal(@Param('id') id: number): Promise<void> {
+    await this.governanceService.resolveProposal(id);
   }
 }
