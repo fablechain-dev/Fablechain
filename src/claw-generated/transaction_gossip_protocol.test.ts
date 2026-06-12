@@ -1,49 +1,50 @@
-import { TransactionMempool } from './transaction_mempool';
 import { TransactionGossipProtocol } from './transaction_gossip_protocol';
+import { Transaction } from '../core/transaction';
 import { Peer } from './peer';
-import { Transaction } from '../transaction';
+import { MempoolManager } from '../mempool/mempool_manager';
 
 describe('TransactionGossipProtocol', () => {
-  let mempool: TransactionMempool;
-  let gossipProtocol: TransactionGossipProtocol;
+  let protocol: TransactionGossipProtocol;
+  let mempoolManager: MempoolManager;
   let peer1: Peer;
   let peer2: Peer;
 
   beforeEach(() => {
-    mempool = new TransactionMempool();
-    gossipProtocol = new TransactionGossipProtocol(mempool);
-    peer1 = new Peer();
-    peer2 = new Peer();
-    gossipProtocol.addPeer(peer1);
-    gossipProtocol.addPeer(peer2);
+    mempoolManager = new MempoolManager();
+    protocol = new TransactionGossipProtocol(mempoolManager);
+    peer1 = new Peer('peer1');
+    peer2 = new Peer('peer2');
   });
 
-  it('should broadcast a new transaction to all peers', () => {
-    const tx = new Transaction({ from: 'a', to: 'b', amount: 10 });
-    gossipProtocol.broadcastTransaction(tx);
+  it('should add transaction to mempool and broadcast to peers', () => {
+    const tx = new Transaction({
+      from: '0x123',
+      to: '0x456',
+      value: 100,
+      nonce: 0,
+    });
 
-    expect(mempool.getTransaction(tx.hash())).toBeDefined();
-    expect(peer1.hasTransaction(tx.hash())).toBe(true);
-    expect(peer2.hasTransaction(tx.hash())).toBe(true);
+    protocol.handleNewTransaction(tx, peer1);
+
+    expect(mempoolManager.getTransactions().length).toBe(1);
+    expect(peer1.sentTransactions.length).toBe(0);
+    expect(peer2.sentTransactions.length).toBe(1);
+    expect(peer2.sentTransactions[0].hash()).toEqual(tx.hash());
   });
 
-  it('should not broadcast a transaction twice to the same peer', () => {
-    const tx = new Transaction({ from: 'a', to: 'b', amount: 10 });
-    gossipProtocol.broadcastTransaction(tx);
-    gossipProtocol.broadcastTransaction(tx);
+  it('should not broadcast the same transaction twice', () => {
+    const tx = new Transaction({
+      from: '0x123',
+      to: '0x456',
+      value: 100,
+      nonce: 0,
+    });
 
-    expect(mempool.getTransaction(tx.hash())).toBeDefined();
-    expect(peer1.hasTransaction(tx.hash())).toBe(true);
-    expect(peer2.hasTransaction(tx.hash())).toBe(true);
-    expect(peer1.sendTransaction).toHaveBeenCalledTimes(1);
-    expect(peer2.sendTransaction).toHaveBeenCalledTimes(1);
-  });
+    protocol.handleNewTransaction(tx, peer1);
+    protocol.handleNewTransaction(tx, peer2);
 
-  it('should respond to a transaction request', () => {
-    const tx = new Transaction({ from: 'a', to: 'b', amount: 10 });
-    mempool.addTransaction(tx);
-    gossipProtocol.handleTransactionRequest(peer1, tx.hash());
-
-    expect(peer1.sendTransaction).toHaveBeenCalledWith(tx);
+    expect(mempoolManager.getTransactions().length).toBe(1);
+    expect(peer1.sentTransactions.length).toBe(0);
+    expect(peer2.sentTransactions.length).toBe(1);
   });
 });

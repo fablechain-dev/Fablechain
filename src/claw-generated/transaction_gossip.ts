@@ -1,5 +1,5 @@
 import { Transaction } from '../core/transaction';
-import { Peer } from '../networking/peer';
+import { Peer } from './peer';
 import { MempoolManager } from '../mempool/mempool_manager';
 
 class TransactionGossipProtocol {
