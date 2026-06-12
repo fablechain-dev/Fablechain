@@ -1,38 +1,41 @@
+import { Transaction } from './transaction';
+
 export class Block {
-  version: number;
-  timestamp: number;
-  previousHash: string;
-  transactions: any[];
-  nonce: number;
   hash: string;
+  number: number;
+  timestamp: number;
+  transactions: Transaction[];
+  parentHash: string;
+  difficulty: number;
+  nonce: number;
+  uncles: Block[];
 
   constructor(
-    version: number,
+    hash: string,
+    number: number,
     timestamp: number,
-    previousHash: string,
-    transactions: any[],
-    nonce: number
+    transactions: Transaction[],
+    parentHash: string,
+    difficulty: number,
+    nonce: number,
+    uncles: Block[] = []
   ) {
-    this.version = version;
+    this.hash = hash;
+    this.number = number;
     this.timestamp = timestamp;
-    this.previousHash = previousHash;
     this.transactions = transactions;
+    this.parentHash = parentHash;
+    this.difficulty = difficulty;
     this.nonce = nonce;
-    this.hash = this.calculateHash();
+    this.uncles = uncles;
   }
 
-  calculateHash(): string {
-    // TODO: Implement hash calculation logic
-    return '';
+  isUncle(block: Block): boolean {
+    return this.parentHash === block.parentHash && this.number === block.number - 1;
   }
 
-  isValid(): boolean {
-    // TODO: Implement validation logic
-    return true;
-  }
-
-  serialize(): string {
-    // TODO: Implement serialization logic
-    return '';
+  getUncleReward(block: Block): number {
+    const distance = this.number - block.number;
+    return 8 - distance;
   }
 }

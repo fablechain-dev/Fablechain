@@ -1,46 +1,45 @@
-import { Block, Transaction } from './block';
-import { Checkpoint, CheckpointManager } from './checkpoint';
+import { Block } from './block';
+import { Transaction } from './transaction';
 
 export class Blockchain {
-  private chain: Block[];
-  private pendingTransactions: Transaction[];
-  private confirmationThreshold: number;
-  private checkpointManager: CheckpointManager;
-
-  constructor(confirmationThreshold: number) {
-    this.chain = [];
-    this.pendingTransactions = [];
-    this.confirmationThreshold = confirmationThreshold;
-    this.checkpointManager = new CheckpointManager();
-  }
+  private blocks: Block[] = [];
 
   addBlock(block: Block): void {
-    this.chain.push(block);
-    this.checkpointManager.addCheckpoint(block);
-    this.pendingTransactions = [];
-  }
+    // Check if the block is valid
+    if (this.isValidBlock(block)) {
+      this.blocks.push(block);
 
-  addTransaction(transaction: Transaction): void {
-    this.pendingTransactions.push(transaction);
-  }
+      // Handle uncle blocks
+      this.processUncles(block);
 
-  getFinalizationStatus(blockHash: string): FinalizationStatus {
-    const block = this.chain.find((b) => b.hash === blockHash);
-    if (!block) {
-      return { finalized: false, confirmations: 0 };
+      // Update staking rewards and other state
+      this.updateState(block);
+    } else {
+      // Reject invalid blocks
+      throw new Error('Invalid block');
     }
-
-    const confirmations = this.chain.length - this.chain.findIndex((b) => b.hash === blockHash);
-    const finalized = confirmations >= this.confirmationThreshold;
-    return { finalized, confirmations };
   }
 
-  getCheckpointByBlockNumber(blockNumber: number): Checkpoint | undefined {
-    return this.checkpointManager.getCheckpointByNumber(blockNumber);
+  private isValidBlock(block: Block): boolean {
+    // Implement block validation logic
+    return true;
   }
-}
 
-export interface FinalizationStatus {
-  finalized: boolean;
-  confirmations: number;
+  private processUncles(block: Block): void {
+    // Find all uncle blocks in the current block's ancestry
+    const uncles = this.blocks.filter(b => b.isUncle(block));
+
+    // Add the uncle blocks to the current block
+    block.uncles = uncles;
+
+    // Distribute partial rewards to uncle block miners
+    uncles.forEach(uncle => {
+      const reward = uncle.getUncleReward(block);
+      // Update staking rewards and account balances
+    });
+  }
+
+  private updateState(block: Block): void {
+    // Update staking rewards, account balances, and other state based on the new block
+  }
 }
