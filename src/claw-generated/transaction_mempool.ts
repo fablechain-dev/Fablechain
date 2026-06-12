@@ -1,37 +1,27 @@
-import { Transaction } from '../transaction';
-import { VRFGenerator } from './vrf';
+import { Transaction } from './transaction';
+import { PeerManager } from './networking/peer_manager';
+import { TransactionGossipProtocol } from './networking/transaction-gossip-protocol';
 
 class TransactionMempool {
-  private transactions: Map<string, { transaction: Transaction, orderIndex: number }>;
-  private vrfGenerator: VRFGenerator;
+  private transactions: Map<string, Transaction>;
+  private peerManager: PeerManager;
+  private transactionGossipProtocol: TransactionGossipProtocol;
 
-  constructor() {
+  constructor(peerManager: PeerManager) {
     this.transactions = new Map();
-    this.vrfGenerator = new VRFGenerator();
+    this.peerManager = peerManager;
+    this.transactionGossipProtocol = peerManager.transactionGossipProtocol;
   }
 
   addTransaction(tx: Transaction): void {
     const txHash = tx.hash();
     if (!this.transactions.has(txHash)) {
-      const orderIndex = this.vrfGenerator.generateOrderIndex();
-      this.transactions.set(txHash, { transaction: tx, orderIndex });
+      this.transactions.set(txHash, tx);
+      this.transactionGossipProtocol.broadcastTransaction(tx);
     }
   }
 
-  getTransaction(txHash: string): Transaction | undefined {
-    const txData = this.transactions.get(txHash);
-    return txData?.transaction;
-  }
-
-  removeTransaction(txHash: string): void {
-    this.transactions.delete(txHash);
-  }
-
-  getAll(): Transaction[] {
-    return Array.from(this.transactions.values())
-      .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map(({ transaction }) => transaction);
-  }
+  // Other mempool methods...
 }
 
 export { TransactionMempool };

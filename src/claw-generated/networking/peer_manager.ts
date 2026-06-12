@@ -1,17 +1,26 @@
-import { PeerConnection } from './peer_connection';
+import { Peer } from './peer_connection';
+import { TransactionGossipProtocol } from './transaction-gossip-protocol';
+import { TransactionMempool } from '../transaction_mempool';
 
-export class PeerManager {
-  private peers: PeerConnection[] = [];
+class PeerManager {
+  private peers: Peer[] = [];
+  private transactionGossipProtocol: TransactionGossipProtocol;
 
-  addPeer(peer: PeerConnection) {
+  constructor(mempool: TransactionMempool) {
+    this.transactionGossipProtocol = new TransactionGossipProtocol(mempool);
+  }
+
+  addPeer(peer: Peer): void {
     this.peers.push(peer);
+    this.transactionGossipProtocol.addPeer(peer);
   }
 
-  removePeer(peer: PeerConnection) {
+  removePeer(peer: Peer): void {
     this.peers = this.peers.filter(p => p !== peer);
+    this.transactionGossipProtocol.removePeer(peer);
   }
 
-  broadcastToAll(message: any) {
-    this.peers.forEach(peer => peer.sendMessage(message));
-  }
+  // Other peer management methods...
 }
+
+export { PeerManager };

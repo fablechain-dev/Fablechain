@@ -1,5 +1,5 @@
 import { TransactionMempool } from '../transaction_mempool';
-import { Peer } from './peer';
+import { Peer } from './peer_connection';
 import { Transaction } from '../transaction';
 
 class TransactionGossipProtocol {
@@ -48,6 +48,15 @@ class TransactionGossipProtocol {
     if (tx) {
       peer.sendTransaction(tx);
     }
+  }
+
+  cleanup(): void {
+    const now = Date.now();
+    this.knownTransactions.forEach((peerSet, txHash) => {
+      if (now - this.mempool.getTransactionTimestamp(txHash) > 60 * 60 * 1000) { // 1 hour
+        this.knownTransactions.delete(txHash);
+      }
+    });
   }
 }
 
