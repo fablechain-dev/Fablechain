@@ -1,11 +1,12 @@
 // claw-generated/rpc-methods.ts
 import { RPCMethod } from './rpc-types';
+import { getBalance } from './getBalance';
 
 export const rpcMethods: Record<string, RPCMethod> = {
   'claw_getBalance': async (params) => {
     const [address] = params;
-    // TODO: Implement claw_getBalance method
-    return 0;
+    const balance = await getBalance(address);
+    return balance;
   },
   'claw_sendTransaction': async (params) => {
     const [transaction] = params;
