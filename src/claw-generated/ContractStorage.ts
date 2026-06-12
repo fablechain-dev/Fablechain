@@ -25,12 +25,21 @@ export class ContractStorage extends AccountStorage {
     return this.getContractState(address).getCode();
   }
 
-  setContractStorage(address: string, key: string, value: any): void {
+  // New CRUD methods for contract storage
+  createContractStorage(address: string, key: string, value: any): void {
     this.getContractState(address).setStorage(key, value);
   }
 
-  getContractStorage(address: string, key: string): any {
+  readContractStorage(address: string, key: string): any {
     return this.getContractState(address).getStorage(key);
+  }
+
+  updateContractStorage(address: string, key: string, newValue: any): void {
+    this.getContractState(address).setStorage(key, newValue);
+  }
+
+  deleteContractStorage(address: string, key: string): void {
+    this.getContractState(address).deleteStorage(key);
   }
 
   createContractCheckpoint(address: string, blockHeight: number): void {
