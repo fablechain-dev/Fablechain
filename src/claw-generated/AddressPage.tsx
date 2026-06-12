@@ -7,7 +7,7 @@ import AddressTransactionHistory from './AddressTransactionHistory';
 
 const AddressPage: React.FC = () => {
   const { address } = useParams<{ address: string }>();
-  const [balance, setBalance] = useState(0);
+  const [balance, setBalance] = useState('0');
   const [transactions, setTransactions] = useState([]);
   const [tokens, setTokens] = useState([]);
 
@@ -21,10 +21,12 @@ const AddressPage: React.FC = () => {
   }, [address]);
 
   return (
-    <div>
+    <div className="address-page">
       <h1>Address: {address}</h1>
-      <AddressBalanceCard balance={balance} />
-      <AddressTokenHoldings tokens={tokens} />
+      <div className="address-info">
+        <AddressBalanceCard balance={balance} />
+        <AddressTokenHoldings tokens={tokens} />
+      </div>
       <AddressTransactionHistory transactions={transactions} />
     </div>
   );
