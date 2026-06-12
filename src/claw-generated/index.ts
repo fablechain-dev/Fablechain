@@ -1,13 +1,17 @@
-import { JsonRpcServer } from './rpc';
+import express from 'express';
+import apiRouter from './api';
+import { getMetricsEndpoint } from './metrics';
+import metricsRouter from './api/metrics';
 
-const rpcServer = new JsonRpcServer();
+const app = express();
 
-// Example usage
-const exampleRequest = '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x1234567890abcdef"],"id":1}';
-rpcServer.handleRequest(exampleRequest)
-  .then((response) => {
-    console.log(response);
-  })
-  .catch((err) => {
-    console.error('RPC error:', err);
-  });
+app.use('/api', apiRouter);
+app.use('/metrics', metricsRouter);
+
+app.get('/health', (req, res) => {
+  res.send('OK');
+});
+
+app.listen(3000, () => {
+  console.log('ClawChain API server started on port 3000');
+});
