@@ -1,63 +1,38 @@
 # ClawChain Architecture Overview
 
-ClawChain is a decentralized blockchain platform designed for autonomous AI development. The system is composed of several key components that work together to provide a secure, scalable, and programmable infrastructure. This document provides a high-level overview of the ClawChain architecture.
+ClawChain is a decentralized blockchain platform built for scalability and security. The system is composed of several key components that work together to provide the full functionality of the platform. This document provides a high-level overview of the ClawChain architecture.
 
-## Major Components
+## Key Components
 
-### Blockchain Core
-The core blockchain functionality is implemented in the following modules:
+### Blockchain
+The Blockchain component is responsible for managing the core blockchain data structure, including blocks, transactions, and the state trie. It handles block production, validation, and chain reorganization. The Blockchain also includes functionality for managing block rewards and gas costs.
 
-- **Block**: Represents a block in the blockchain, including the block header, transactions, and metadata.
-- **Chain**: Manages the blockchain data structure, handles chain validation, and provides APIs for interacting with the chain.
-- **Consensus**: Implements the consensus algorithm used to validate and produce new blocks.
-- **StateManager**: Handles the storage and management of the global state, including account balances and contract data.
+### Network
+The Network component handles the peer-to-peer networking aspects of ClawChain. This includes peer discovery, transaction propagation, block synchronization, and network-level security measures like rate limiting and DOS protection.
 
-### Network Layer
-The networking components responsible for peer-to-peer communication and data propagation include:
+### Accounts
+The Accounts component manages the different types of accounts supported by ClawChain, such as Externally Owned Accounts (EOA), Smart Contract Accounts, and Multisig Accounts. It is responsible for storing and updating account state, as well as handling account-related operations like transfers and contract interactions.
 
-- **PeerManager**: Manages the connections to other nodes in the network, handles peer discovery, and maintains the routing table.
-- **BlockPropagator**: Propagates new blocks to the network using an efficient block propagation protocol.
-- **TransactionGossipProtocol**: Handles the gossip-based propagation of transactions throughout the network.
+### Contracts
+The Contracts component provides functionality for deploying, executing, and verifying smart contracts on the ClawChain platform. This includes the Contract Deployer, Contract Storage, and Contract Verifier modules.
 
-### RPC Server
-The RPC server exposes a set of methods for interacting with the ClawChain blockchain, including:
+### RPC
+The RPC component exposes a JSON-RPC API that allows external applications to interact with the ClawChain blockchain. This includes methods for querying account information, retrieving block data, and sending transactions.
 
-- Querying account information and balances
-- Submitting new transactions
-- Retrieving block and transaction data
-- Simulating transaction execution
+### Wallet
+The Wallet component handles key management, transaction signing, and hardware wallet integration. It provides a secure way for users to manage their ClawChain accounts and assets.
 
-### Wallet & Accounts
-The wallet and account management modules provide functionality for:
+### State Channels
+The State Channels component enables off-chain state channels for scalable transactions. This allows for high-throughput, low-latency transactions that are settled on the main ClawChain blockchain.
 
-- Generating and managing public/private key pairs
-- Signing transactions
-- Tracking account state and balances
+### Governance
+The Governance component provides on-chain governance mechanisms for managing protocol changes and upgrades to the ClawChain system. This includes proposals, voting, and execution of approved changes.
 
-### Smart Contracts
-ClawChain supports Ethereum-compatible smart contracts, with components for:
+## Component Interactions
+The diagram below illustrates the high-level interactions between the key components of the ClawChain architecture:
 
-- Contract deployment and verification
-- Contract execution and state management
-- Interacting with on-chain contracts via the RPC server
+![ClawChain Architecture Diagram](architecture-diagram.png)
 
-### Agent System
-The agent-based architecture includes components that power the autonomous AI development capabilities:
+The Blockchain, Network, and Accounts components form the core of the ClawChain system, handling the fundamental blockchain operations. The Contracts component integrates with the Blockchain to enable smart contract functionality. The RPC and Wallet components provide the interface for external applications and users to interact with the platform. The State Channels and Governance components extend the core functionality of ClawChain.
 
-- **AgentBrain**: Coordinates the agent's decision-making and goal-oriented behavior.
-- **AgentExecutor**: Executes the agent's actions, including code generation, testing, and deployment.
-- **SkillManager**: Manages the agent's skills and capabilities, allowing it to learn and expand over time.
-
-### Monitoring & Observability
-ClawChain includes several tools for monitoring the health and performance of the network:
-
-- **CIMonitor**: Tracks the status of the continuous integration and deployment pipelines.
-- **ChainObserver**: Monitors the blockchain for anomalies, forks, and other issues.
-- **NetworkStatsPanel**: Provides real-time metrics and visualization of network activity.
-
-## Architecture Diagram
-The following diagram illustrates the high-level interactions between the major components of the ClawChain system:
-
-![ClawChain Architecture Diagram](claw-generated/architecture-diagram.png)
-
-This overview covers the key architectural elements of ClawChain. For more detailed information on specific components and their implementations, please refer to the codebase and individual module documentation.
+This architecture is designed to provide a scalable, secure, and extensible blockchain platform that can support a wide range of decentralized applications and use cases.
