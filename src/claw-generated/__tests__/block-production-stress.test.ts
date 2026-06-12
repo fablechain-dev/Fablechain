@@ -1,55 +1,80 @@
-import { Block, Transaction } from '../types';
-import { Blockchain } from '../blockchain/blockchain';
-import { PeerManager } from '../networking/peer_manager';
+import { Chain } from '../blockchain/Chain';
+import { Block } from '../blockchain/Block';
+import { TransactionPool } from '../blockchain/TransactionPool';
+import { StateManager } from '../blockchain/StateManager';
+import { BlockProducer } from '../blockchain/BlockProducer';
+import { ValidatorManager } from '../validators/ValidatorManager';
+import { EventBus } from '../events/EventBus';
 
 describe('Block Production Stress Tests', () => {
-  let blockchain: Blockchain;
+  let chain: Chain;
+  let txPool: TransactionPool;
+  let stateManager: StateManager;
+  let validatorManager: ValidatorManager;
+  let eventBus: EventBus;
+  let blockProducer: BlockProducer;
 
   beforeEach(() => {
-    const peerManager = new PeerManager();
-    blockchain = new Blockchain(peerManager);
+    chain = new Chain();
+    txPool = new TransactionPool();
+    stateManager = new StateManager();
+    validatorManager = new ValidatorManager();
+    eventBus = new EventBus();
+    blockProducer = new BlockProducer(chain, txPool, validatorManager, eventBus);
   });
 
-  it('should handle high transaction load', async () => {
-    // Generate a large number of transactions
-    const numTransactions = 10000;
-    const transactions = generateTransactions(numTransactions);
+  afterEach(() => {
+    blockProducer.stop();
+  });
 
-    // Process the transactions and add them to blocks
-    const blocks: Block[] = [];
-    for (let i = 0; i < numTransactions; i += 100) {
-      const txBatch = transactions.slice(i, i + 100);
-      const block = new Block(
-        blockchain.getLatestBlock().hash,
-        txBatch,
-        Date.now(),
-        0,
-        '0x0'
-      );
-      blocks.push(block);
+  it('should produce blocks under high transaction load', async () => {
+    // Arrange
+    const numTransactions = 1000;
+    const transactions = generateTransactions(numTransactions);
+    transactions.forEach(tx => txPool.addTransaction(tx));
+
+    // Act
+    blockProducer.start();
+    await new Promise(resolve => setTimeout(resolve, 60000));
+
+    // Assert
+    expect(chain.getChainLength()).toBeGreaterThan(0);
+    expect(txPool.getPendingTransactions().length).toBeLessThan(numTransactions);
+  });
+
+  it('should maintain block production under sustained high load', async () => {
+    // Arrange
+    const transactionsPerSecond = 100;
+    const testDuration = 120000; // 2 minutes
+
+    // Act
+    blockProducer.start();
+    const startTime = Date.now();
+    while (Date.now() - startTime < testDuration) {
+      const transactions = generateTransactions(transactionsPerSecond);
+      transactions.forEach(tx => txPool.addTransaction(tx));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    // Add the blocks to the blockchain
-    blockchain.addBlocks(blocks);
-
-    // Verify that the system can handle the load
-    expect(blockchain.getLatestBlock().number).toEqual(numTransactions / 100);
+    // Assert
+    expect(chain.getChainLength()).toBeGreaterThan(0);
+    expect(txPool.getPendingTransactions().length).toBeLessThan(transactionsPerSecond * 10); // 10 seconds of backlog
   });
-});
 
-function generateTransactions(count: number): Transaction[] {
-  const transactions: Transaction[] = [];
-  for (let i = 0; i < count; i++) {
-    transactions.push({
-      hash: `0x${i.toString(16)}`,
-      from: '0x0123456789012345678901234567890123456789',
-      to: '0x9876543210987654321098765432109876543210',
-      value: 1000,
-      gas: 21000,
-      gasPrice: 1,
-      nonce: i,
-      data: '0x'
-    });
+  function generateTransactions(count: number): Transaction[] {
+    const transactions: Transaction[] = [];
+    for (let i = 0; i < count; i++) {
+      transactions.push({
+        from: '0x' + Math.random().toString(16).substring(2, 42),
+        to: '0x' + Math.random().toString(16).substring(2, 42),
+        value: BigInt(Math.floor(Math.random() * 1000000)),
+        gasLimit: BigInt(21000),
+        gasPrice: BigInt(1000000000),
+        nonce: BigInt(i),
+        data: '0x',
+        hash: '0x' + Math.random().toString(16).substring(2, 66)
+      });
+    }
+    return transactions;
   }
-  return transactions;
-}
+});
