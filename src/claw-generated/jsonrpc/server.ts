@@ -1,16 +1,49 @@
-import { isArray, isObject } from 'lodash';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { parse } from 'url';
+import { parseJsonRpcRequest, JsonRpcRequest, JsonRpcResponse } from './rpc-methods';
 
-export class JsonRpcServer {
-  private methods: Record<string, (...args: any[]) => Promise<any>> = {};
+class JsonRpcServer {
+  private server: ReturnType<typeof createServer>;
+  private rpcMethods: Record<string, (params: any) => Promise<any>>;
 
-  registerMethod(name: string, handler: (...args: any[]) => Promise<any>) {
-    this.methods[name] = handler;
+  constructor(rpcMethods: Record<string, (params: any) => Promise<any>>) {
+    this.rpcMethods = rpcMethods;
+    this.server = createServer(this.handleRequest.bind(this));
   }
 
-  async handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
-    if (isArray(request)) {
-      // Handle batch request
-      const responses = await Promise.all(request.map(this.handleSingleRequest.bind(this)));
+  start(port: number) {
+    this.server.listen(port, () => {
+      console.log(`JSON-RPC server listening on port ${port}`);
+    });
+  }
+
+  private async handleRequest(req: IncomingMessage, res: ServerResponse) {
+    if (req.method === 'POST' && req.url === '/rpc') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk.toString();
+      });
+      req.on('end', async () => {
+        try {
+          const request = parseJsonRpcRequest(body);
+          const response = await this.handleJsonRpcRequest(request);
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify(response));
+        } catch (error) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: { code: -32700, message: 'Parse error' } }));
+        }
+      });
+    } else {
+      res.statusCode = 404;
+      res.end();
+    }
+  }
+
+  private async handleJsonRpcRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+    if (Array.isArray(request)) {
+      // Handle batch requests
+      const responses = await Promise.all(request.map(async (req) => this.handleSingleRequest(req)));
       return responses;
     } else {
       return this.handleSingleRequest(request);
@@ -18,60 +51,18 @@ export class JsonRpcServer {
   }
 
   private async handleSingleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
-    const { id, method, params } = request;
-
-    if (!method) {
-      return this.createErrorResponse(id, -32600, 'Invalid Request');
-    }
-
-    const handler = this.methods[method];
-    if (!handler) {
-      return this.createErrorResponse(id, -32601, 'Method not found');
+    const { method, params, id } = request;
+    if (typeof this.rpcMethods[method] !== 'function') {
+      return { id, error: { code: -32601, message: 'Method not found' } };
     }
 
     try {
-      const result = await handler(params);
-      return this.createSuccessResponse(id, result);
+      const result = await this.rpcMethods[method](params);
+      return { id, result };
     } catch (error) {
-      const code = (error as any).code || -32000;
-      const message = (error as any).message || 'Internal error';
-      return this.createErrorResponse(id, code, message);
+      return { id, error: { code: -32603, message: 'Internal error' } };
     }
-  }
-
-  private createSuccessResponse(id: string | number | null, result: any): JsonRpcResponse {
-    return {
-      jsonrpc: '2.0',
-      id,
-      result,
-    };
-  }
-
-  private createErrorResponse(id: string | number | null, code: number, message: string): JsonRpcResponse {
-    return {
-      jsonrpc: '2.0',
-      id,
-      error: {
-        code,
-        message,
-      },
-    };
   }
 }
 
-type JsonRpcRequest = {
-  jsonrpc: '2.0';
-  id?: string | number | null;
-  method: string;
-  params?: any;
-} | Array<JsonRpcRequest>;
-
-type JsonRpcResponse = {
-  jsonrpc: '2.0';
-  id?: string | number | null;
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-  };
-};
+export default JsonRpcServer;
