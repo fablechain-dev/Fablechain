@@ -1,6 +1,9 @@
-import { getBlock as getBlockImpl } from '../../rpc/block';
+import { RPCRequest, RPCResponse } from '../rpc-types';
+import { BlockManager } from '../../../blockchain/BlockManager';
 
-export async function getBlock(params: { slot: number }): Promise<any> {
-  const { slot } = params;
-  return await getBlockImpl(slot);
+export async function getBlock(request: RPCRequest): Promise<RPCResponse> {
+  const { blockHash } = request.params;
+  const blockManager = new BlockManager();
+  const block = await blockManager.getBlock(blockHash);
+  return { result: block };
 }

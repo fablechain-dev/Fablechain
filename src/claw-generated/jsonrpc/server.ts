@@ -1,68 +1,88 @@
-import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { parse } from 'url';
-import { parseJsonRpcRequest, JsonRpcRequest, JsonRpcResponse } from './rpc-methods';
+import { RPCRequest, RPCResponse, RPCError } from './rpc-types';
+import { RPCMethods } from './rpc-methods';
 
-class JsonRpcServer {
-  private server: ReturnType<typeof createServer>;
-  private rpcMethods: Record<string, (params: any) => Promise<any>>;
-
-  constructor(rpcMethods: Record<string, (params: any) => Promise<any>>) {
-    this.rpcMethods = rpcMethods;
-    this.server = createServer(this.handleRequest.bind(this));
-  }
-
-  start(port: number) {
-    this.server.listen(port, () => {
-      console.log(`JSON-RPC server listening on port ${port}`);
-    });
-  }
-
-  private async handleRequest(req: IncomingMessage, res: ServerResponse) {
-    if (req.method === 'POST' && req.url === '/rpc') {
-      let body = '';
-      req.on('data', (chunk) => {
-        body += chunk.toString();
-      });
-      req.on('end', async () => {
-        try {
-          const request = parseJsonRpcRequest(body);
-          const response = await this.handleJsonRpcRequest(request);
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify(response));
-        } catch (error) {
-          res.statusCode = 400;
-          res.end(JSON.stringify({ error: { code: -32700, message: 'Parse error' } }));
-        }
-      });
-    } else {
-      res.statusCode = 404;
-      res.end();
-    }
-  }
-
-  private async handleJsonRpcRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
-    if (Array.isArray(request)) {
-      // Handle batch requests
-      const responses = await Promise.all(request.map(async (req) => this.handleSingleRequest(req)));
-      return responses;
-    } else {
-      return this.handleSingleRequest(request);
-    }
-  }
-
-  private async handleSingleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+class RPCServer {
+  async handleRequest(request: RPCRequest): Promise&lt;RPCResponse&gt; {
     const { method, params, id } = request;
-    if (typeof this.rpcMethods[method] !== 'function') {
-      return { id, error: { code: -32601, message: 'Method not found' } };
+
+    if (!RPCMethods[method]) {
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: -32601,
+          message: 'Method not found'
+        }
+      };
     }
 
     try {
-      const result = await this.rpcMethods[method](params);
-      return { id, result };
+      const result = await RPCMethods[method](request);
+      return {
+        jsonrpc: '2.0',
+        id,
+        result
+      };
     } catch (error) {
-      return { id, error: { code: -32603, message: 'Internal error' } };
+      let rpcError: RPCError;
+      if (error instanceof Error) {
+        rpcError = {
+          code: -32603,
+          message: error.message,
+          data: error.stack
+        };
+      } else {
+        rpcError = {
+          code: -32603,
+          message: 'Internal error',
+          data: String(error)
+        };
+      }
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: rpcError
+      };
     }
+  }
+
+  async handleBatchRequest(requests: RPCRequest[]): Promise&lt;RPCResponse[]&gt; {
+    return await Promise.all(requests.map(this.handleRequest.bind(this)));
+  }
+
+  async handleWebSocketRequest(data: any): Promise&lt;void&gt; {
+    let request: RPCRequest;
+    try {
+      request = JSON.parse(data);
+    } catch (error) {
+      this.sendErrorResponse({
+        jsonrpc: '2.0',
+        id: null,
+        error: {
+          code: -32700,
+          message: 'Parse error'
+        }
+      });
+      return;
+    }
+
+    let response: RPCResponse;
+    if (Array.isArray(request)) {
+      response = await this.handleBatchRequest(request);
+    } else {
+      response = await this.handleRequest(request);
+    }
+
+    this.sendResponse(response);
+  }
+
+  sendResponse(response: RPCResponse): void {
+    // Send the response back to the client
+  }
+
+  sendErrorResponse(error: RPCResponse): void {
+    // Send the error response back to the client
   }
 }
 
-export default JsonRpcServer;
+export default RPCServer;

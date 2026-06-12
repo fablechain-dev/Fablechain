@@ -1,16 +1,9 @@
-import { JsonRpcServer } from './server';
-import { getAccountInfo, getBalance, getSignaturesForAddress, getTransaction, getTransactionReceipt } from './rpc-methods/account';
+import { getAccountInfo } from './rpc-methods/account';
 import { getBlock } from './rpc-methods/block';
-import { simulateTransaction } from './rpc-methods/transaction';
-import { getNetworkStats } from './rpc-methods/network-stats';
+import { RPCRequest, RPCResponse } from './rpc-types';
 
-export function registerRpcMethods(rpcServer: JsonRpcServer) {
-  rpcServer.registerMethod('getAccountInfo', getAccountInfo);
-  rpcServer.registerMethod('getBalance', getBalance);
-  rpcServer.registerMethod('getSignaturesForAddress', getSignaturesForAddress);
-  rpcServer.registerMethod('getTransaction', getTransaction);
-  rpcServer.registerMethod('getTransactionReceipt', getTransactionReceipt);
-  rpcServer.registerMethod('getBlock', getBlock);
-  rpcServer.registerMethod('simulateTransaction', simulateTransaction);
-  rpcServer.registerMethod('getNetworkStats', getNetworkStats);
-}
+export const RPCMethods: Record&lt;string, (request: RPCRequest) =&gt; Promise&lt;RPCResponse&gt;&gt; = {
+  'getAccountInfo': getAccountInfo,
+  'getBlock': getBlock,
+  // Add more RPC methods here
+};
