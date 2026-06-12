@@ -1,43 +1,50 @@
-import { AccountState, CommitRevealData, OracleData } from './types';
-import fetch from 'node-fetch';
+import { ethers } from 'ethers';
+import { keccak256 } from 'js-sha3';
 
-export class OracleManager {
-  private commitRevealData: Map<string, CommitRevealData> = new Map();
-  private oracleData: Map<string, OracleData> = new Map();
+class OracleManager {
+  private provider: ethers.providers.Provider;
+  private oracleContracts: { [key: string]: ethers.Contract };
 
-  public async fetchData(dataSource: string): Promise<string> {
-    // Fetch data from the specified external data source
-    const response = await fetch(dataSource);
-    const data = await response.text();
-    return data;
+  constructor(provider: ethers.providers.Provider) {
+    this.provider = provider;
+    this.oracleContracts = {};
   }
 
-  public commitData(provider: string, data: string): void {
-    const hash = this.hashData(data);
-    this.commitRevealData.set(provider, { hash, revealed: false });
+  async registerOracle(oracleAddress: string, abi: any) {
+    this.oracleContracts[oracleAddress] = new ethers.Contract(oracleAddress, abi, this.provider);
   }
 
-  public revealData(provider: string, data: string): void {
-    const commitRevealData = this.commitRevealData.get(provider);
-    if (!commitRevealData || commitRevealData.revealed) {
-      throw new Error('Invalid reveal attempt');
+  generateCommitment(data: any): string {
+    return keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(data)));
+  }
+
+  async submitCommitment(oracleAddress: string, commitment: string): Promise<void> {
+    const oracle = this.oracleContracts[oracleAddress];
+    await oracle.submitCommitment(commitment);
+  }
+
+  async revealData(oracleAddress: string, data: any, proof: any): Promise<any> {
+    const oracle = this.oracleContracts[oracleAddress];
+    const commitment = await this.generateCommitment(data);
+    const valid = await oracle.verifyProof(commitment, proof);
+    if (!valid) {
+      throw new Error('Invalid proof');
     }
-
-    const hash = this.hashData(data);
-    if (hash !== commitRevealData.hash) {
-      throw new Error('Revealed data does not match commit');
-    }
-
-    this.oracleData.set(provider, { data });
-    commitRevealData.revealed = true;
+    return await oracle.revealData(data, proof);
   }
 
-  public getOracleData(provider: string): OracleData | undefined {
-    return this.oracleData.get(provider);
+  async requestData(oracleAddress: string, data: any): Promise<any> {
+    const oracle = this.oracleContracts[oracleAddress];
+    const commitment = await this.generateCommitment(data);
+    await this.submitCommitment(oracleAddress, commitment);
+    const proof = await this.generateProof(data);
+    return await this.revealData(oracleAddress, data, proof);
   }
 
-  private hashData(data: string): string {
-    // Use a cryptographic hash function to hash the data
-    return 'hashed_' + data;
+  private async generateProof(data: any): Promise<any> {
+    // TODO: Implement proof generation logic
+    return 'valid_proof';
   }
 }
+
+export default OracleManager;
