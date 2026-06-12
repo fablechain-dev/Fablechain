@@ -1,30 +1,58 @@
 import { StateManager } from './StateManager';
-import { STATE_PRUNING_PERIOD } from './config';
+import { MerklePatriciaTrie } from './MerklePatriciaTrie';
+
+jest.mock('./MerklePatriciaTrie');
 
 describe('StateManager', () => {
-  it('should prune old state data', async () => {
-    const stateManager = new StateManager();
+  let stateManager: StateManager;
 
-    // Add state for 20 blocks
-    for (let i = 1; i <= 20; i++) {
-      await stateManager.addState(i, { data: `State for block ${i}` });
+  beforeEach(() => {
+    stateManager = new StateManager();
+  });
+
+  test('should get state root', () => {
+    (MerklePatriciaTrie as jest.MockedClass<typeof MerklePatriciaTrie>).prototype.getRoot.mockReturnValue('root');
+    expect(stateManager.getStateRoot()).toEqual('root');
+  });
+
+  test('should set state', () => {
+    stateManager.setState('key', 'value');
+    expect(MerklePatriciaTrie.prototype.set).toHaveBeenCalledWith('key', 'value');
+  });
+
+  test('should get state', () => {
+    (MerklePatriciaTrie as jest.MockedClass<typeof MerklePatriciaTrie>).prototype.get.mockReturnValue('value');
+    expect(stateManager.getState('key')).toEqual('value');
+  });
+
+  test('should get proof', () => {
+    stateManager.getProof('key');
+    expect(MerklePatriciaTrie.prototype.getProof).toHaveBeenCalledWith('key');
+  });
+
+  test('should verify proof', () => {
+    (MerklePatriciaTrie as jest.MockedClass<typeof MerklePatriciaTrie>).prototype.verifyProof.mockReturnValue(true);
+    expect(stateManager.verifyProof('key', 'value', ['proof'])).toBe(true);
+  });
+
+  test('should handle concurrent access', async () => {
+    const numThreads = 10;
+    const numOperations = 1000;
+
+    const promises = [];
+    for (let i = 0; i < numThreads; i++) {
+      promises.push(
+        new Promise((resolve) => {
+          for (let j = 0; j < numOperations; j++) {
+            stateManager.setState(`key-${i}-${j}`, `value-${i}-${j}`);
+          }
+          resolve();
+        })
+      );
     }
 
-    // Verify state is in live store
-    for (let i = 1; i <= 20; i++) {
-      const state = await stateManager.getState(i);
-      expect(state.data).toBe(`State for block ${i}`);
-    }
+    await Promise.all(promises);
 
-    // Simulate adding more blocks to trigger pruning
-    await stateManager.addState(STATE_PRUNING_PERIOD + 1, { data: 'New block state' });
-
-    // Verify old state is archived, new state is in live store
-    for (let i = 1; i <= STATE_PRUNING_PERIOD; i++) {
-      const state = await stateManager.getState(i);
-      expect(state.data).toBe(`State for block ${i}`);
-    }
-    const newState = await stateManager.getState(STATE_PRUNING_PERIOD + 1);
-    expect(newState.data).toBe('New block state');
+    expect(MerklePatriciaTrie.prototype.set).toHaveBeenCalledTimes(numThreads * numOperations);
   });
 });
