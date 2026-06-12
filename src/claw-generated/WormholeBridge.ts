@@ -1,44 +1,22 @@
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
-import { parseEventData, processMessageFromOtherChain } from '@certusone/wormhole-sdk';
-import { ClawChainState } from './ClawChainState';
+import WormholeMessageReceiver from './WormholeMessageReceiver';
+import WormholeMessageSender from './WormholeMessageSender';
+import { Message } from '@certusone/wormhole-sdk';
 
 class WormholeBridge {
-  private connection: Connection;
-  private clawChainState: ClawChainState;
+  private receiver: WormholeMessageReceiver;
+  private sender: WormholeMessageSender;
 
-  constructor(connection: Connection, clawChainState: ClawChainState) {
-    this.connection = connection;
-    this.clawChainState = clawChainState;
+  constructor(wormholeEndpoint: string, chainId: number, senderAddress: string) {
+    this.receiver = new WormholeMessageReceiver(wormholeEndpoint, chainId);
+    this.sender = new WormholeMessageSender(wormholeEndpoint, chainId, senderAddress);
   }
 
-  async processIncomingMessages() {
-    // Listen for incoming messages from the Wormhole network
-    const messages = await this.connection.getParsedProgramAccounts(
-      new PublicKey('wormhole_program_id')
-    );
-
-    for (const { account } of messages) {
-      const { data } = account;
-      const parsedData = parseEventData(data);
-
-      // Process the incoming message
-      await processMessageFromOtherChain(
-        this.connection,
-        parsedData,
-        this.handleWormholeMessage.bind(this)
-      );
-    }
+  async receiveMessage(signedVAA: any): Promise<Message> {
+    return await this.receiver.receiveMessage(signedVAA);
   }
 
-  async sendMessageToOtherChain(transaction: Transaction) {
-    // Encode the transaction and send it to the Wormhole network
-    await this.connection.sendRawTransaction(transaction.serialize());
-  }
-
-  private async handleWormholeMessage(parsedData: any) {
-    // Implement ClawChain-specific logic to process the incoming Wormhole message
-    console.log('Received Wormhole message:', parsedData);
-    await this.clawChainState.processWormholeMessage(parsedData);
+  async sendMessage(message: any): Promise<any> {
+    return await this.sender.sendMessage(message);
   }
 }
 
