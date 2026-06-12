@@ -1,28 +1,41 @@
-import { Log, LogEntry, BloomFilter, Event, EventEntry } from './types';
-import { Transaction } from './Transaction';
+import { Event } from './events';
 
 export class TransactionReceipt {
-  status: boolean;
+  blockHash: string;
+  blockNumber: number;
+  contractAddress: string | null;
+  cumulativeGasUsed: number;
+  events: Event[];
   gasUsed: number;
-  logs: LogEntry[];
-  events: EventEntry[];
-  bloomFilter: BloomFilter;
+  logs: any[];
+  logsBloom: string;
+  status: boolean;
+  transactionHash: string;
+  transactionIndex: number;
 
   constructor(
-    status: boolean,
+    blockHash: string,
+    blockNumber: number,
+    contractAddress: string | null,
+    cumulativeGasUsed: number,
+    events: Event[],
     gasUsed: number,
-    logs: LogEntry[],
-    events: EventEntry[],
-    bloomFilter: BloomFilter
+    logs: any[],
+    logsBloom: string,
+    status: boolean,
+    transactionHash: string,
+    transactionIndex: number
   ) {
-    this.status = status;
+    this.blockHash = blockHash;
+    this.blockNumber = blockNumber;
+    this.contractAddress = contractAddress;
+    this.cumulativeGasUsed = cumulativeGasUsed;
+    this.events = events;
     this.gasUsed = gasUsed;
     this.logs = logs;
-    this.events = events;
-    this.bloomFilter = bloomFilter;
-  }
-
-  static fromTransaction(tx: Transaction, status: boolean, gasUsed: number, logs: LogEntry[], events: EventEntry[], bloomFilter: BloomFilter): TransactionReceipt {
-    return new TransactionReceipt(status, gasUsed, logs, events, bloomFilter);
+    this.logsBloom = logsBloom;
+    this.status = status;
+    this.transactionHash = transactionHash;
+    this.transactionIndex = transactionIndex;
   }
 }
