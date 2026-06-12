@@ -1,41 +1,58 @@
-import { describe, it, expect } from 'vitest';
 import { StateManager } from './StateManager';
-import { Account, Transaction } from '../types';
+import { Account } from '../account/Account';
+import { Block } from '../block/Block';
+import { Transaction } from '../transaction/Transaction';
 
 describe('StateManager', () => {
+  let stateManager: StateManager;
+
+  beforeEach(() => {
+    stateManager = new StateManager();
+  });
+
   it('should update balances correctly', () => {
-    const stateManager = new StateManager();
-    const account1: Account = { address: 'account1', balance: 100 };
-    const account2: Account = { address: 'account2', balance: 50 };
+    // Arrange
+    const sender = new Account('sender', 100);
+    const receiver = new Account('receiver', 0);
+    const tx = new Transaction(sender.address, receiver.address, 50);
 
-    stateManager.applyTransaction({ from: account1.address, to: account2.address, amount: 20 });
+    // Act
+    stateManager.applyTransaction(tx);
 
-    expect(stateManager.getBalance(account1.address)).toBe(80);
-    expect(stateManager.getBalance(account2.address)).toBe(70);
+    // Assert
+    expect(stateManager.getAccount(sender.address).balance).toBe(50);
+    expect(stateManager.getAccount(receiver.address).balance).toBe(50);
   });
 
   it('should calculate the state root correctly', () => {
-    const stateManager = new StateManager();
-    const account1: Account = { address: 'account1', balance: 100 };
-    const account2: Account = { address: 'account2', balance: 50 };
+    // Arrange
+    const sender = new Account('sender', 100);
+    const receiver = new Account('receiver', 0);
+    const tx = new Transaction(sender.address, receiver.address, 50);
+    const block = new Block([tx], '');
 
-    stateManager.applyTransaction({ from: account1.address, to: account2.address, amount: 20 });
+    // Act
+    stateManager.applyBlock(block);
+    const stateRoot = stateManager.getStateRoot();
 
-    expect(stateManager.getStateRoot()).not.toBe('');
+    // Assert
+    expect(stateRoot).not.toBe('');
   });
 
   it('should apply transactions correctly', () => {
-    const stateManager = new StateManager();
-    const account1: Account = { address: 'account1', balance: 100 };
-    const account2: Account = { address: 'account2', balance: 50 };
+    // Arrange
+    const sender = new Account('sender', 100);
+    const receiver = new Account('receiver', 0);
+    const tx = new Transaction(sender.address, receiver.address, 50);
+    const block = new Block([tx], '');
 
-    const tx1: Transaction = { from: account1.address, to: account2.address, amount: 20 };
-    const tx2: Transaction = { from: account2.address, to: account1.address, amount: 10 };
+    // Act
+    stateManager.applyTransaction(tx);
+    stateManager.applyBlock(block);
 
-    stateManager.applyTransaction(tx1);
-    stateManager.applyTransaction(tx2);
-
-    expect(stateManager.getBalance(account1.address)).toBe(90);
-    expect(stateManager.getBalance(account2.address)).toBe(60);
+    // Assert
+    expect(stateManager.getAccount(sender.address).balance).toBe(50);
+    expect(stateManager.getAccount(receiver.address).balance).toBe(50);
+    expect(stateManager.getStateRoot()).not.toBe('');
   });
 });

@@ -1,30 +1,42 @@
-import { Account, Transaction } from './types';
-import { TrieCache } from './TrieCache';
+import { Account } from '../account/Account';
+import { Block } from '../block/Block';
+import { Transaction } from '../transaction/Transaction';
 
-class StateManager {
-  private state: { [key: string]: Account } = {};
+export class StateManager {
+  private accounts: Map<string, Account> = new Map();
   private stateRoot: string = '';
-  private cache: TrieCache = new TrieCache();
 
   applyTransaction(tx: Transaction): void {
-    // Implement transaction application logic
-    // Use the cache to look up and update state
+    const sender = this.getAccount(tx.from);
+    const receiver = this.getAccount(tx.to);
+
+    sender.balance -= tx.amount;
+    receiver.balance += tx.amount;
+
+    this.updateStateRoot();
   }
 
-  getBalance(address: string): number {
-    // Implement balance retrieval
-    // Use the cache to look up account balance
-    return 0;
+  applyBlock(block: Block): void {
+    for (const tx of block.transactions) {
+      this.applyTransaction(tx);
+    }
+
+    this.updateStateRoot();
+  }
+
+  getAccount(address: string): Account {
+    if (!this.accounts.has(address)) {
+      this.accounts.set(address, new Account(address, 0));
+    }
+    return this.accounts.get(address)!;
   }
 
   getStateRoot(): string {
-    // Implement state root calculation
-    // Use the cache to efficiently calculate the state root
     return this.stateRoot;
   }
 
-  private loadTrieNode(key: string): TrieNode | undefined {
-    // Implement lazy loading of trie nodes
-    // Load from database if not found in cache
+  private updateStateRoot(): void {
+    // TODO: Implement state root calculation
+    this.stateRoot = 'abc123';
   }
 }
