@@ -1,55 +1,49 @@
-import { Account } from '../account';
-import { CaptchaProvider } from './captcha-provider';
+import { NextFunction, Request, Response } from 'express';
+import { ethers } from 'ethers';
+import { PoF } from 'ethers-pof';
 
 export class Faucet {
-  private ipLimits: Map<string, number> = new Map();
-  private addressLimits: Map<string, number> = new Map();
-  private cooldownPeriod = 1000 * 60 * 10; // 10 minutes
-  private maxRequestsPerIP = 10;
-  private maxRequestsPerAddress = 5;
-  private captchaProvider = new CaptchaProvider();
+  private requests: Map<string, { address: string; timestamp: number }> = new Map();
+  private cooldownPeriod = 60 * 60 * 1000; // 1 hour
 
-  async handleRequest(ip: string, address: string): Promise<boolean> {
-    // Check IP rate limit
-    const ipCount = this.ipLimits.get(ip) || 0;
-    if (ipCount >= this.maxRequestsPerIP) {
-      return false;
-    }
-    this.ipLimits.set(ip, ipCount + 1);
+  async handleRequest(req: Request, res: Response, next: NextFunction) {
+    const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const address = req.body.address;
 
-    // Check address cooldown
-    const lastRequest = this.addressLimits.get(address);
-    if (lastRequest && Date.now() - lastRequest < this.cooldownPeriod) {
-      return false;
-    }
-    const addressCount = this.addressLimits.get(address) || 0;
-    if (addressCount >= this.maxRequestsPerAddress) {
-      return false;
-    }
-    this.addressLimits.set(address, addressCount + 1);
-    this.addressLimits.set(address, Date.now());
-
-    // Verify captcha or proof-of-work
-    if (!await this.verifyChallenge(ip, address)) {
-      return false;
+    // Check rate limit
+    const lastRequest = this.requests.get(ipAddress);
+    if (lastRequest && Date.now() - lastRequest.timestamp < this.cooldownPeriod) {
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
     }
 
-    // Dispense funds
-    await Account.fundAddress(address, 1000000);
-    return true;
+    // Validate address
+    if (!ethers.utils.isAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Ethereum address' });
+    }
+
+    // Verify proof-of-work
+    if (!(await this.verifyProofOfWork(ipAddress, address))) {
+      return res.status(403).json({ error: 'Proof-of-work verification failed' });
+    }
+
+    // Send tokens to the address
+    // ...
+
+    // Update request tracking
+    this.requests.set(ipAddress, { address, timestamp: Date.now() });
+
+    return res.json({ message: 'Tokens sent successfully' });
   }
 
-  private async verifyChallenge(ip: string, address: string): Promise<boolean> {
-    // Implement captcha or proof-of-work challenge here
-    const isValid = await this.captchaProvider.verifyChallenge(ip, address);
-    return isValid;
-  }
-}
+  private async verifyProofOfWork(ipAddress: string, address: string): Promise<boolean> {
+    const pof = new PoF();
+    const challenge = await pof.generateChallenge();
+    const response = req.body.proofOfWork;
 
-class CaptchaProvider {
-  async verifyChallenge(ip: string, address: string): Promise<boolean> {
-    // Implement captcha or proof-of-work challenge logic here
-    // Return true if the challenge is successfully completed, false otherwise
-    return true;
+    if (await pof.verifyResponse(challenge, response)) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }

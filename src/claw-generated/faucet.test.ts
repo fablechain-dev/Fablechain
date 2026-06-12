@@ -1,35 +1,36 @@
-import request from 'supertest';
-import express from 'express';
-import { faucetEndpoint } from './faucet';
-import { Account } from '../models/Account';
-import { Token } from '../models/Token';
+import { Faucet } from './faucet';
+import { ethers } from 'ethers';
+import { PoF } from 'ethers-pof';
 
-const app = express();
-app.use(express.json());
-app.post('/faucet', faucetEndpoint);
+describe('Faucet', () => {
+  let faucet: Faucet;
 
-describe('Faucet Endpoint', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    faucet = new Faucet();
   });
 
-  it('should dispense 10 CLAW tokens', async () => {
-    const address = '0x1234567890abcdef';
-    const response = await request(app).post('/faucet').send({ address });
-
-    expect(response.status).toBe(200);
-    expect(response.body.message).toBe('Tokens dispensed successfully');
-    expect(Token.mint).toHaveBeenCalledWith(address, 10);
+  it('should reject requests with invalid addresses', async () => {
+    const req = { body: { address: 'invalid' }, headers: {}, socket: { remoteAddress: '127.0.0.1' } };
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await faucet.handleRequest(req as any, res as any, jest.fn());
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid Ethereum address' });
   });
 
-  it('should not dispense tokens more than once per day', async () => {
-    const address = '0x1234567890abcdef';
-    jest.spyOn(Account, 'findOne').mockResolvedValue({ address, lastDispensed: new Date() });
+  it('should reject requests that exceed the rate limit', async () => {
+    const req = { body: { address: '0x1234567890123456789012345678901234567890' }, headers: {}, socket: { remoteAddress: '127.0.0.1' } };
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await faucet.handleRequest(req as any, res as any, jest.fn());
+    await faucet.handleRequest(req as any, res as any, jest.fn());
+    expect(res.status).toHaveBeenCalledWith(429);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Too many requests. Please try again later.' });
+  });
 
-    const response = await request(app).post('/faucet').send({ address });
-
-    expect(response.status).toBe(429);
-    expect(response.body.error).toBe('You can only claim tokens once per day');
-    expect(Token.mint).not.toHaveBeenCalled();
+  it('should verify the proof-of-work challenge', async () => {
+    const pof = new PoF();
+    const challenge = await pof.generateChallenge();
+    const response = await pof.generateResponse(challenge);
+    const verified = await faucet.verifyProofOfWork('127.0.0.1', '0x1234567890123456789012345678901234567890', response);
+    expect(verified).toBe(true);
   });
 });
