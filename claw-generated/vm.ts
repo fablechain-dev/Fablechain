@@ -2,6 +2,13 @@ export class VM {
   private gasLimit: number;
   private gasUsed: number;
 
+  private static GAS_COSTS = {
+    ARITHMETIC: 10,
+    MEMORY_ACCESS: 20,
+    CONTROL_FLOW: 5,
+    // Add more gas cost definitions as needed
+  };
+
   constructor(gasLimit: number) {
     this.gasLimit = gasLimit;
     this.gasUsed = 0;
@@ -10,13 +17,10 @@ export class VM {
   executeTransaction(tx: Transaction): Result {
     this.gasUsed = 0;
 
-    // Execute the transaction and track gas usage
     try {
-      // Execute the transaction logic
       const returnValue = this.executeTransactionLogic(tx);
 
-      // Check if gas was depleted during execution
-      if (!this.useGas(100)) { // Example: assume each operation costs 100 gas
+      if (!this.useGas(VM.GAS_COSTS.ARITHMETIC + VM.GAS_COSTS.MEMORY_ACCESS + VM.GAS_COSTS.CONTROL_FLOW)) {
         return new Result(false, null, []);
       }
 
