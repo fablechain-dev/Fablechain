@@ -6,13 +6,15 @@ export class Transaction {
   value: number;
   nonce: number;
   signature: string;
+  fee: number;
 
-  constructor(from: string, to: string, value: number, nonce: number, signature: string) {
+  constructor(from: string, to: string, value: number, nonce: number, signature: string, fee: number) {
     this.from = from;
     this.to = to;
     this.value = value;
     this.nonce = nonce;
     this.signature = signature;
+    this.fee = fee;
   }
 
   verify(account: Account): boolean {
@@ -27,6 +29,12 @@ export class Transaction {
 
   validateBalance(account: Account): boolean {
     // Implement balance check logic
-    return account.balance >= this.value;
+    return account.balance >= this.value + this.fee;
+  }
+
+  calculateFee(): number {
+    // Calculate the fee based on transaction size and complexity
+    // For now, let's use a simple fixed fee
+    return 0.01;
   }
 }

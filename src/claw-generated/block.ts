@@ -9,6 +9,7 @@ export class Block {
   difficulty: number;
   nonce: number;
   uncles: Block[];
+  reward: number;
 
   constructor(
     hash: string,
@@ -28,6 +29,7 @@ export class Block {
     this.difficulty = difficulty;
     this.nonce = nonce;
     this.uncles = uncles;
+    this.reward = this.calculateReward();
   }
 
   isUncle(block: Block): boolean {
@@ -37,5 +39,17 @@ export class Block {
   getUncleReward(block: Block): number {
     const distance = this.number - block.number;
     return 8 - distance;
+  }
+
+  calculateReward(): number {
+    // Calculate the total transaction fees
+    const totalFees = this.transactions.reduce((sum, tx) => sum + tx.fee, 0);
+    // Add the fees to the base block reward
+    return 10 + totalFees;
+  }
+
+  validateTransactions(): boolean {
+    // Validate all transactions in the block
+    return this.transactions.every((tx) => tx.validateBalance(tx.from) && tx.validateNonce(tx.from));
   }
 }
