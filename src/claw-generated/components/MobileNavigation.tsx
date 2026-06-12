@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
+import React, { useState, useEffect } from 'react';
+import styled, { keyframes } from 'styled-components';
 
 const NavigationContainer = styled.nav`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 1.5rem 1rem;
   background-color: #333;
   color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const fadeOut = keyframes`
+  from { opacity: 1; }
+  to { opacity: 0; }
 `;
 
 const NavLinks = styled.ul`
@@ -15,11 +28,12 @@ const NavLinks = styled.ul`
   list-style: none;
   margin: 0;
   padding: 0;
+  animation: ${({ isOpen }) => (isOpen ? fadeIn : fadeOut)} 0.3s ease-in-out;
 
   li {
-    margin-right: 1rem;
-    font-size: 1.2rem;
-    padding: 0.5rem;
+    margin-right: 1.5rem;
+    font-size: 1.4rem;
+    padding: 0.75rem;
 
     a {
       color: #fff;
@@ -35,7 +49,7 @@ const NavLinks = styled.ul`
     display: ${({ isOpen }) => (isOpen ? 'flex' : 'none')};
     flex-direction: column;
     position: absolute;
-    top: 4rem;
+    top: 5rem;
     left: 0;
     right: 0;
     background-color: #333;
@@ -44,7 +58,7 @@ const NavLinks = styled.ul`
 
     li {
       margin-right: 0;
-      margin-bottom: 0.5rem;
+      margin-bottom: 1rem;
     }
   }
 `;
@@ -54,11 +68,12 @@ const HamburgerButton = styled.button`
   background-color: transparent;
   border: none;
   color: #fff;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   cursor: pointer;
-  padding: 0.5rem;
-  width: 3rem;
-  height: 3rem;
+  padding: 0.75rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  animation: ${({ isOpen }) => (isOpen ? fadeIn : fadeOut)} 0.3s ease-in-out;
 
   @media (max-width: 768px) {
     display: block;
@@ -67,6 +82,18 @@ const HamburgerButton = styled.button`
 
 const MobileNavigation: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.pageYOffset > 0) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const toggleNavigation = () => {
     setIsOpen(!isOpen);
@@ -77,7 +104,7 @@ const MobileNavigation: React.FC = () => {
       <div>
         <a href="/">ClawChain</a>
       </div>
-      <HamburgerButton onClick={toggleNavigation}>
+      <HamburgerButton onClick={toggleNavigation} isOpen={isOpen}>
         {isOpen ? 'X' : '☰'}
       </HamburgerButton>
       <NavLinks isOpen={isOpen}>
