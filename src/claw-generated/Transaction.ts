@@ -4,7 +4,7 @@ export class Transaction {
   to: string;
   amount: number;
   fee: number;
-  nonce: number; // Add nonce property
+  nonce: number;
   timestamp: number;
   status: 'pending' | 'confirmed';
 
@@ -14,7 +14,7 @@ export class Transaction {
     to: string,
     amount: number,
     fee: number,
-    nonce: number, // Accept nonce in constructor
+    nonce: number,
     timestamp: number,
     status: 'pending' | 'confirmed'
   ) {
@@ -23,8 +23,12 @@ export class Transaction {
     this.to = to;
     this.amount = amount;
     this.fee = fee;
-    this.nonce = nonce; // Assign nonce
+    this.nonce = nonce;
     this.timestamp = timestamp;
     this.status = status;
+  }
+
+  static getTransactionHistory(address: string, transactions: Transaction[]): Transaction[] {
+    return transactions.filter(tx => tx.from === address || tx.to === address);
   }
 }

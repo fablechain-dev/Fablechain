@@ -13,6 +13,11 @@ export class AccountState {
     this.storage.set(accountKey + ':' + key, value);
   }
 
+  getBalance(address: string): number {
+    const account = new Account(address);
+    return this.get(account, 'balance') || 0;
+  }
+
   private getAccountKey(account: Account): string {
     return account.address;
   }
