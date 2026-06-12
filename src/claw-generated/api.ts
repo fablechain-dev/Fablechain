@@ -1,8 +1,11 @@
 import express from 'express';
-import { faucetEndpoint } from './faucet';
+import { faucetHandler } from './faucet';
+import { healthHandler, readyHandler } from './health';
 
 const router = express.Router();
 
-router.post('/faucet', faucetEndpoint);
+router.get('/faucet', faucetHandler);
+router.get('/health', healthHandler);
+router.get('/ready', readyHandler);
 
 export default router;

@@ -1,38 +1,22 @@
-import { FastifyInstance } from 'fastify';
+import { Request, Response } from 'express';
+import { ClawChain } from '../chain/ClawChain';
 
-export async function registerHealthCheckRoutes(fastify: FastifyInstance) {
-  fastify.get('/health', async (request, reply) => {
-    // Check node health
-    const isHealthy = await checkNodeHealth();
+export async function healthHandler(req: Request, res: Response) {
+  // Check chain health
+  const chainHealth = ClawChain.isHealthy();
 
-    reply.status(isHealthy ? 200 : 503).send({
-      status: isHealthy ? 'healthy' : 'unhealthy',
-    });
-  });
-
-  fastify.get('/ready', async (request, reply) => {
-    // Check node readiness
-    const isReady = await checkNodeReadiness();
-
-    reply.status(isReady ? 200 : 503).send({
-      status: isReady ? 'ready' : 'not ready',
-    });
+  res.status(chainHealth ? 200 : 503).json({
+    status: chainHealth ? 'healthy' : 'unhealthy',
+    message: chainHealth ? 'ClawChain is healthy' : 'ClawChain is unhealthy'
   });
 }
 
-async function checkNodeHealth(): Promise<boolean> {
-  // Implement node health checks here
-  // e.g., check database connection, memory usage, etc.
-  return true;
-}
+export async function readyHandler(req: Request, res: Response) {
+  // Check if the node is ready to accept requests
+  const isReady = ClawChain.isReady();
 
-async function checkNodeReadiness(): Promise<boolean> {
-  // Implement node readiness checks here
-  // e.g., check if blockchain is fully synced, etc.
-  return true;
-}
-
-// Register the health check routes
-export default async function registerApiRoutes(fastify: FastifyInstance) {
-  await registerHealthCheckRoutes(fastify);
+  res.status(isReady ? 200 : 503).json({
+    status: isReady ? 'ready' : 'not ready',
+    message: isReady ? 'ClawChain is ready' : 'ClawChain is not ready'
+  });
 }
