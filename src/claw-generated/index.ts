@@ -1,19 +1,13 @@
-import express from 'express';
-import { ApolloServer } from 'apollo-server-express';
-import { schema } from './schema';
-import { resolvers } from './resolvers';
+import { JsonRpcServer } from './rpc';
 
-const app = express();
+const rpcServer = new JsonRpcServer();
 
-const server = new ApolloServer({
-  schema,
-  resolvers,
-});
-
-server.start().then(() => {
-  server.applyMiddleware({ app });
-
-  app.listen(4000, () => {
-    console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`);
+// Example usage
+const exampleRequest = '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0x1234567890abcdef"],"id":1}';
+rpcServer.handleRequest(exampleRequest)
+  .then((response) => {
+    console.log(response);
+  })
+  .catch((err) => {
+    console.error('RPC error:', err);
   });
-});
