@@ -1,38 +1,15 @@
-// block.ts
+import { Request, Response } from 'express';
+import { Block } from '../core/Block';
 
-import { Transaction, TransactionReceipt } from './transaction';
+const blockLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 1 minute'
+});
 
-export class Block {
-  transactions: Transaction[] = [];
-
-  addTransaction(tx: Transaction) {
-    this.transactions.push(tx);
-    tx.emit('transaction_added', { blockNumber: this.number });
-  }
-
-  mine() {
-    // Mine the block
-    // ...
-
-    // Emit a block mined event
-    for (const tx of this.transactions) {
-      tx.emit('block_mined', { blockNumber: this.number });
-    }
-
-    return new BlockReceipt(
-      this.hash,
-      this.transactions.map(tx => tx.getReceipt())
-    );
-  }
-}
-
-export class BlockReceipt {
-  constructor(
-    public blockHash: string,
-    public transactionReceipts: TransactionReceipt[]
-  ) {}
-
-  getBloomFilter(): number[] {
-    return this.transactionReceipts.flatMap(r => r.getBloomFilter());
-  }
+export async function getBlockHandler(req: Request, res: Response) {
+  await blockLimiter(req, res, async () => {
+    // TODO: Implement block retrieval logic
+    res.status(200).json({ message: 'Block endpoint' });
+  });
 }
