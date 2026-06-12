@@ -1,11 +1,11 @@
 export class Account {
-  private balance: number = 0;
+  public address: string;
+  public nonce: number;
+  public balance: number;
 
-  getBalance(): number {
-    return this.balance;
-  }
-
-  setBalance(balance: number): void {
-    this.balance = balance;
+  constructor(address: string) {
+    this.address = address;
+    this.nonce = 0;
+    this.balance = 0;
   }
 }

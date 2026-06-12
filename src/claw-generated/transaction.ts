@@ -1,25 +1,30 @@
+import { Account } from './account';
+
 export class Transaction {
-  constructor(
-    public readonly from: string,
-    public readonly to: string,
-    public readonly value: number,
-    public readonly data: string = ''
-  ) {}
+  public nonce: number;
+  public from: Account;
+  public to: Account;
+  public value: number;
+  public data: string;
 
-  calculateFee(): number {
-    // Calculate fee based on data size
-    const dataSize = this.data.length;
-    const baseFee = 0.1;
-    const sizeFee = dataSize * 0.001;
+  constructor(from: Account, to: Account, value: number, data: string) {
+    this.from = from;
+    this.to = to;
+    this.value = value;
+    this.data = data;
+    this.nonce = from.nonce;
+    from.nonce++;
+  }
 
-    // Calculate fee based on complexity
-    let complexityFee = 0;
-    if (this.data.includes('contract.deploy')) {
-      complexityFee = 1;
-    } else if (this.data.includes('contract.call')) {
-      complexityFee = 0.5;
+  validate(): boolean {
+    // Check if the nonce is greater than the account's current nonce
+    if (this.nonce <= this.from.nonce) {
+      return false;
     }
 
-    return baseFee + sizeFee + complexityFee;
+    // Update the account's nonce
+    this.from.nonce = this.nonce;
+
+    return true;
   }
 }
