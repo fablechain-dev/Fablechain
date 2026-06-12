@@ -53,4 +53,64 @@ export class ContractStorage {
   setArray(key: string, array: StorageSlot[]): void {
     this.arrays.set(key, array);
   }
+
+  // New CRUD operations
+
+  read(key: string): StorageSlot {
+    return this.get(key);
+  }
+
+  write(key: string, value: StorageSlot): void {
+    this.set(key, value);
+  }
+
+  update(key: string, value: StorageSlot): void {
+    this.set(key, value);
+  }
+
+  remove(key: string): void {
+    this.delete(key);
+  }
+
+  readMapping(key: string, mapKey: string): StorageSlot {
+    const mapping = this.getMapping(key);
+    return mapping.get(mapKey) || new StorageSlot();
+  }
+
+  writeMapping(key: string, mapKey: string, value: StorageSlot): void {
+    const mapping = this.getMapping(key);
+    mapping.set(mapKey, value);
+    this.setMapping(key, mapping);
+  }
+
+  updateMapping(key: string, mapKey: string, value: StorageSlot): void {
+    this.writeMapping(key, mapKey, value);
+  }
+
+  removeMapping(key: string, mapKey: string): void {
+    const mapping = this.getMapping(key);
+    mapping.delete(mapKey);
+    this.setMapping(key, mapping);
+  }
+
+  readArray(key: string, index: number): StorageSlot {
+    const array = this.getArray(key);
+    return array[index] || new StorageSlot();
+  }
+
+  writeArray(key: string, index: number, value: StorageSlot): void {
+    const array = this.getArray(key);
+    array[index] = value;
+    this.setArray(key, array);
+  }
+
+  updateArray(key: string, index: number, value: StorageSlot): void {
+    this.writeArray(key, index, value);
+  }
+
+  removeArray(key: string, index: number): void {
+    const array = this.getArray(key);
+    array.splice(index, 1);
+    this.setArray(key, array);
+  }
 }
