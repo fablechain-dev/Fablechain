@@ -1,27 +1,42 @@
-import { Instruction } from './Instruction';
+import { Contract } from '../contracts/Contract';
+import { ExecutionContext } from './ExecutionContext';
 
 export class VM {
-  private memory: Uint8Array;
-  private stack: number[];
-  private pc: number;
+  private contracts: Map<string, Contract> = new Map();
 
-  constructor() {
-    this.memory = new Uint8Array(1024 * 1024); // 1MB memory
-    this.stack = [];
-    this.pc = 0;
+  public registerContract(contract: Contract) {
+    this.contracts.set(contract.address, contract);
   }
 
-  execute(instructions: Instruction[]) {
-    for (const instruction of instructions) {
-      this.executeInstruction(instruction);
+  public executeContract(context: ExecutionContext): any {
+    const contract = this.contracts.get(context.to);
+    if (!contract) {
+      throw new Error(`Contract at ${context.to} not found`);
     }
+
+    if (context.opcode === 'CALL') {
+      const { to, value, gas } = context.parameters;
+      const result = this.executeCall(to, value, gas, context);
+      return result;
+    }
+
+    return contract.execute(context);
   }
 
-  private executeInstruction(instruction: Instruction) {
-    switch (instruction.opcode) {
-      // Implement opcode handling here
-      default:
-        throw new Error(`Unknown opcode: ${instruction.opcode}`);
+  private executeCall(to: string, value: bigint, gas: bigint, context: ExecutionContext): any {
+    const calledContract = this.contracts.get(to);
+    if (!calledContract) {
+      throw new Error(`Contract at ${to} not found`);
     }
+
+    const callContext: ExecutionContext = {
+      ...context,
+      to,
+      value,
+      gas,
+      opcode: 'CALL'
+    };
+
+    return calledContract.execute(callContext);
   }
 }

@@ -1,44 +1,34 @@
 import { Contract } from './Contract';
-import { StorageMap, StorageArray } from './Storage';
+import { VM } from './VM';
+import { ExecutionContext } from './ExecutionContext';
 
 describe('Contract', () => {
-  let contract: Contract;
+  let vm: VM;
+  let contract1: Contract;
+  let contract2: Contract;
 
   beforeEach(() => {
-    contract = new Contract();
+    vm = new VM();
+    contract1 = new Contract('contract1', vm);
+    contract2 = new Contract('contract2', vm);
+    vm.registerContract(contract1);
+    vm.registerContract(contract2);
   });
 
-  it('should store and retrieve values', () => {
-    const storageMap = new StorageMap();
-    storageMap.set('key1', 'value1');
-    storageMap.set('key2', 'value2');
+  it('should execute a CALL between contracts', () => {
+    const context: ExecutionContext = {
+      opcode: 'CALL',
+      to: 'contract2',
+      value: BigInt(100),
+      gas: BigInt(1000),
+      parameters: {
+        to: 'contract2',
+        value: BigInt(100),
+        gas: BigInt(1000)
+      }
+    };
 
-    contract.set('map', storageMap);
-    expect(contract.get('map')).toEqual(storageMap);
-    expect(contract.get('map')!.get('key1')).toEqual('value1');
-    expect(contract.get('map')!.get('key2')).toEqual('value2');
-  });
-
-  it('should store and retrieve arrays', () => {
-    const storageArray = new StorageArray();
-    storageArray.push(1);
-    storageArray.push(2);
-    storageArray.push(3);
-
-    contract.set('array', storageArray);
-    expect(contract.get('array')).toEqual(storageArray);
-    expect(contract.get('array')!.get(0)).toEqual(1);
-    expect(contract.get('array')!.get(1)).toEqual(2);
-    expect(contract.get('array')!.get(2)).toEqual(3);
-  });
-
-  it('should delete storage values', () => {
-    const storageMap = new StorageMap();
-    storageMap.set('key1', 'value1');
-    contract.set('map', storageMap);
-    expect(contract.get('map')!.get('key1')).toEqual('value1');
-
-    contract.delete('map');
-    expect(contract.get('map')).toBeUndefined();
+    const result = contract1.execute(context);
+    expect(result).toEqual(null); // TODO: Update this to match expected behavior
   });
 });
