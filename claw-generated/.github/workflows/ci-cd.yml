@@ -1,0 +1,69 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  build-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+    - run: cd backend && npm ci
+    - run: cd backend && npm run build
+    - run: cd backend && npm test
+    
+  build-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js 
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+    - run: cd frontend && npm ci
+    - run: cd frontend && npm run build
+    - run: cd frontend && npm test
+    
+  deploy-backend:
+    needs: [build-backend]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Deploy to DigitalOcean
+      env:
+        DO_TOKEN: ${{ secrets.DO_TOKEN }}
+      run: |
+        # Deploy backend to DigitalOcean
+        # (example commands)
+        apt-get update
+        apt-get install -y nodejs
+        cd backend
+        npm install
+        npm run start
+    
+  deploy-frontend:
+    needs: [build-frontend]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Deploy to Vercel
+      env:
+        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      run: |
+        # Deploy frontend to Vercel
+        # (example commands)
+        npm install -g vercel
+        cd frontend
+        vercel --token=$VERCEL_TOKEN --prod
