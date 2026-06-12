@@ -1,26 +1,26 @@
-import { Peer } from './peer_connection';
-import { TransactionGossipProtocol } from './transaction-gossip-protocol';
-import { TransactionMempool } from '../transaction_mempool';
+import { Peer } from './peer';
+import { BlockPropagation } from '../block_propagation';
+import { BlockManager } from '../blockchain/BlockManager';
 
-class PeerManager {
+export class PeerManager {
   private peers: Peer[] = [];
-  private transactionGossipProtocol: TransactionGossipProtocol;
+  private blockPropagation: BlockPropagation;
 
-  constructor(mempool: TransactionMempool) {
-    this.transactionGossipProtocol = new TransactionGossipProtocol(mempool);
+  constructor(blockManager: BlockManager) {
+    this.blockPropagation = new BlockPropagation(blockManager);
   }
 
-  addPeer(peer: Peer): void {
+  addPeer(peer: Peer) {
     this.peers.push(peer);
-    this.transactionGossipProtocol.addPeer(peer);
+    this.blockPropagation.addPeer(peer);
   }
 
-  removePeer(peer: Peer): void {
+  removePeer(peer: Peer) {
     this.peers = this.peers.filter(p => p !== peer);
-    this.transactionGossipProtocol.removePeer(peer);
+    this.blockPropagation.addPeer(peer);
   }
 
-  // Other peer management methods...
+  start() {
+    this.blockPropagation.start();
+  }
 }
-
-export { PeerManager };
