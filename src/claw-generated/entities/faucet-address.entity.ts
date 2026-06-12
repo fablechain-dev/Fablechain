@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
-export class FaucetAddress {
+export class FaucetAddressEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -10,4 +10,7 @@ export class FaucetAddress {
 
   @Column()
   lastRequestTimestamp: Date;
+
+  @Column()
+  requestCount: number;
 }
