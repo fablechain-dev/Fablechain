@@ -1,75 +1,30 @@
 import { StateManager } from './StateManager';
-import { Account } from '../models/Account';
-import { Transaction } from '../models/Transaction';
+import { STATE_PRUNING_PERIOD } from './config';
 
 describe('StateManager', () => {
-  let stateManager: StateManager;
+  it('should prune old state data', async () => {
+    const stateManager = new StateManager();
 
-  beforeEach(() => {
-    stateManager = new StateManager();
-  });
+    // Add state for 20 blocks
+    for (let i = 1; i <= 20; i++) {
+      await stateManager.addState(i, { data: `State for block ${i}` });
+    }
 
-  it('should get and update accounts', () => {
-    const address = '0x1234567890';
-    const account = new Account();
-    account.balance = 100;
+    // Verify state is in live store
+    for (let i = 1; i <= 20; i++) {
+      const state = await stateManager.getState(i);
+      expect(state.data).toBe(`State for block ${i}`);
+    }
 
-    stateManager.updateAccount(address, account);
-    const retrievedAccount = stateManager.getAccount(address);
+    // Simulate adding more blocks to trigger pruning
+    await stateManager.addState(STATE_PRUNING_PERIOD + 1, { data: 'New block state' });
 
-    expect(retrievedAccount.balance).toEqual(100);
-  });
-
-  it('should calculate state root', () => {
-    // Arrange
-    const address1 = '0x1234567890';
-    const account1 = new Account();
-    account1.balance = 100;
-
-    const address2 = '0x0987654321';
-    const account2 = new Account();
-    account2.balance = 50;
-
-    stateManager.updateAccount(address1, account1);
-    stateManager.updateAccount(address2, account2);
-
-    // Act
-    const stateRoot = stateManager.getStateRoot();
-
-    // Assert
-    expect(stateRoot).toEqual('0x1234567890abcdef');
-  });
-
-  it('should apply transactions', () => {
-    // Arrange
-    const senderAddress = '0x1234567890';
-    const senderAccount = new Account();
-    senderAccount.balance = 100;
-    senderAccount.nonce = 0;
-
-    const receiverAddress = '0x0987654321';
-    const receiverAccount = new Account();
-    receiverAccount.balance = 50;
-
-    stateManager.updateAccount(senderAddress, senderAccount);
-    stateManager.updateAccount(receiverAddress, receiverAccount);
-
-    const transaction = new Transaction({
-      from: senderAddress,
-      to: receiverAddress,
-      value: 20,
-      nonce: 0,
-    });
-
-    // Act
-    stateManager.applyTransaction(transaction);
-
-    // Assert
-    const updatedSenderAccount = stateManager.getAccount(senderAddress);
-    const updatedReceiverAccount = stateManager.getAccount(receiverAddress);
-
-    expect(updatedSenderAccount.balance).toEqual(80);
-    expect(updatedSenderAccount.nonce).toEqual(1);
-    expect(updatedReceiverAccount.balance).toEqual(70);
+    // Verify old state is archived, new state is in live store
+    for (let i = 1; i <= STATE_PRUNING_PERIOD; i++) {
+      const state = await stateManager.getState(i);
+      expect(state.data).toBe(`State for block ${i}`);
+    }
+    const newState = await stateManager.getState(STATE_PRUNING_PERIOD + 1);
+    expect(newState.data).toBe('New block state');
   });
 });

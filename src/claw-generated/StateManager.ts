@@ -1,30 +1,33 @@
-import { Account } from '../state/Account';
-import { TransactionReceipt } from '../types';
+import { STATE_PRUNING_PERIOD } from './config';
 
-export class StateManager {
-  private accounts: Map<string, Account> = new Map();
-  private stateRoot: string = '';
+class StateManager {
+  private stateStore: Map<number, StateData> = new Map();
+  private archivedStates: Map<number, StateData> = new Map();
 
-  public getAccount(address: string): Account {
-    if (!this.accounts.has(address)) {
-      this.accounts.set(address, new Account());
+  async getState(blockNumber: number): Promise<StateData> {
+    if (this.stateStore.has(blockNumber)) {
+      return this.stateStore.get(blockNumber)!;
     }
-    return this.accounts.get(address)!;
+    if (this.archivedStates.has(blockNumber)) {
+      return this.archivedStates.get(blockNumber)!;
+    }
+    // Fetch state from archive or rebuild from history
   }
 
-  public updateBalance(address: string, amount: number): void {
-    this.getAccount(address).balance += amount;
+  async addState(blockNumber: number, state: StateData): Promise<void> {
+    this.stateStore.set(blockNumber, state);
+    this.maybeArchiveOldState(blockNumber);
   }
 
-  public calculateStateRoot(): string {
-    // Implement state root calculation logic
-    this.stateRoot = '0x1234567890abcdef';
-    return this.stateRoot;
-  }
-
-  public applyTransaction(tx: TransactionReceipt): void {
-    // Implement transaction application logic
-    this.updateBalance(tx.from, -tx.value);
-    this.updateBalance(tx.to, tx.value);
+  private maybeArchiveOldState(currentBlockNumber: number): void {
+    const oldestBlockNumber = currentBlockNumber - STATE_PRUNING_PERIOD;
+    if (oldestBlockNumber > 0) {
+      for (let i = 1; i <= oldestBlockNumber; i++) {
+        if (this.stateStore.has(i)) {
+          this.archivedStates.set(i, this.stateStore.get(i)!);
+          this.stateStore.delete(i);
+        }
+      }
+    }
   }
 }

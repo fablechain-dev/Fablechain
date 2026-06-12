@@ -1,48 +1,14 @@
-import { GenesisConfig } from './GenesisConfig';
+import { StateManager } from './StateManager';
 
-export class Blockchain {
-  private blocks: Block[] = [];
-  private accounts: { [address: string]: Account } = {};
-  private contracts: { [address: string]: Contract } = {};
+class Blockchain {
+  private stateManager: StateManager = new StateManager();
 
-  constructor(genesisConfig: GenesisConfig) {
-    this.initializeGenesisBlock(genesisConfig);
+  async addBlock(block: Block): Promise<void> {
+    // Add block to chain
+    await this.stateManager.addState(block.number, block.state);
   }
 
-  private initializeGenesisBlock(config: GenesisConfig) {
-    // Create the genesis block
-    const genesisBlock = new Block({
-      timestamp: config.blockTimestamp,
-      difficulty: config.blockDifficulty,
-      transactions: [],
-      parentHash: '0x0'
-    });
-
-    // Initialize accounts from genesis config
-    for (const [address, balance] of Object.entries(config.initialAccounts)) {
-      this.accounts[address] = new Account(address, balance);
-    }
-
-    // Initialize contracts from genesis config
-    for (const [address, code] of Object.entries(config.initialContracts)) {
-      this.contracts[address] = new Contract(address, code);
-    }
-
-    // Add the genesis block to the chain
-    this.blocks.push(genesisBlock);
+  async getBlockState(blockNumber: number): Promise<StateData> {
+    return await this.stateManager.getState(blockNumber);
   }
-
-  // Add other blockchain methods here
-}
-
-class Block {
-  // Block properties and methods
-}
-
-class Account {
-  // Account properties and methods  
-}
-
-class Contract {
-  // Contract properties and methods
 }
