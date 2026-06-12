@@ -1,2 +1,6 @@
-// zk-SNARK verification module
-export * from './verifier';
+// src/claw-generated/crypto/index.ts
+import { verifyZkSnark } from './verifier';
+
+export {
+  verifyZkSnark
+};
