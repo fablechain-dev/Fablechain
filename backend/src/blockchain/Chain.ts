@@ -13,7 +13,7 @@ const MAX_REORG_DEPTH = 100;
 // FIXED GENESIS - Block height is calculated from time
 // This NEVER resets across deployments
 // =====================================================
-const FIXED_GENESIS_TIMESTAMP = 1769731200000; // Jan 30, 2026 00:00:00 UTC (CORRECT)
+const FIXED_GENESIS_TIMESTAMP = 1773043200000; // Mar 7, 2026 00:00:00 UTC
 const BLOCK_INTERVAL_MS = 10000; // 10 seconds per block
 
 export class Chain {
@@ -35,20 +35,16 @@ export class Chain {
     console.log(`[CHAIN] ========================================`);
     
     try {
-      // Try to load stored blocks from database
-      const dbBlocks = await db.query('SELECT * FROM blocks ORDER BY height ASC LIMIT 100');
-      
-      if (dbBlocks.rows.length > 0) {
-        this.blocks = dbBlocks.rows.map(row => this.rowToBlock(row));
-        const txCount = await db.query('SELECT COUNT(*) as count FROM transactions');
-        this.totalTransactions = parseInt(txCount.rows[0]?.count || '0', 10);
-        console.log(`[CHAIN] Loaded ${this.blocks.length} stored blocks`);
-      } else {
-        // Create genesis block
-        const genesis = this.createGenesisBlock();
-        this.blocks.push(genesis);
-        console.log('[CHAIN] Created genesis block');
-      }
+      // Reset chain data for fresh start
+      console.log('[CHAIN] Resetting chain data for fresh genesis...');
+      await db.query('DELETE FROM transactions').catch(() => {});
+      await db.query('DELETE FROM blocks').catch(() => {});
+      this.totalTransactions = 0;
+
+      // Create fresh genesis block
+      const genesis = this.createGenesisBlock();
+      this.blocks.push(genesis);
+      console.log('[CHAIN] Created fresh genesis block');
       
       // Update cache with time-based values
       await chainState.saveChainStartTime(FIXED_GENESIS_TIMESTAMP);
