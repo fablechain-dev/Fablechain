@@ -2,135 +2,148 @@
 
 ## Overview
 
-Staking is the process of locking FABLE tokens in the network to participate in consensus and earn rewards. Stakers secure the Fablechain network and receive proportional rewards based on their stake and validator performance.
+FABLE staking is the core mechanism for network security and validator participation in the Fablechain consensus protocol. By staking FABLE tokens, participants can become validators, earn rewards, and contribute to network consensus through Proof-of-Stake (PoS).
 
-## How to Stake
+## Getting Started with Staking
 
-### Prerequisites
+### Minimum Stake Requirements
 
-- Minimum stake: 1,000 FABLE tokens
-- Active validator node running Fablechain software
-- Sufficient gas fees (paid in FABLE)
+- **Minimum stake per validator**: 32 FABLE tokens
+- **Maximum stake per validator**: 10,000 FABLE tokens
+- **Recommended stake**: 100+ FABLE tokens for optimal rewards
 
-### Staking Process
+### How to Stake
 
-1. **Prepare Your Validator**
-   - Download and install Fablechain node software
-   - Configure validator identity and commission rates
-   - Ensure your node is fully synchronized
-
-2. **Submit Staking Transaction**
-   ```bash
-   fabled tx staking create-validator \
-     --amount=1000000000ufable \
-     --pubkey=$(fabled tendermint show-validator) \
-     --moniker="MyValidator" \
-     --chain-id=fablechain-1 \
-     --commission-rate=0.10 \
-     --commission-max-rate=0.20 \
-     --commission-max-change-rate=0.01 \
-     --min-self-delegation=1000000000ufable
+1. **Install Fable CLI or Web Wallet**
+   ```
+   Visit https://fablechain.io/wallet or install fable-cli
    ```
 
-3. **Delegate Tokens**
-   - Token holders can delegate to validators without running infrastructure
-   - Delegation command: `fabled tx staking delegate [validator-address] [amount]`
+2. **Create or Import Validator Account**
+   - Generate new keypair or import existing private key
+   - Ensure account has sufficient FABLE tokens plus gas fees
+
+3. **Submit Staking Transaction**
+   - Navigate to Staking dashboard
+   - Enter stake amount between minimum and maximum
+   - Review validator metadata (moniker, website, commission rate)
+   - Approve transaction and confirm on-chain
+
+4. **Become Active**
+   - Stake becomes active after 1 consensus epoch (~12 hours)
+   - Validator begins earning rewards immediately upon activation
 
 ## Unbonding Period
 
-The unbonding period ensures network security by preventing rapid stake withdrawal during attacks or slashing events.
+Staked tokens are illiquid during active validation. To withdraw:
 
-- **Standard unbonding duration: 21 days**
-- Tokens remain locked during this period
-- No rewards are earned on unbonding tokens
-- Unbonding can be initiated at any time but must complete the full period
-- Multiple unbonding transactions are tracked separately
+1. **Initiate Unbond**
+   - Call `unbond()` transaction on your validator
+   - Tokens immediately stop earning rewards
+   - Validator removed from active set
 
-### Unbonding Transaction
+2. **Waiting Period**
+   - **Duration**: 21 days (504 epochs)
+   - **Purpose**: Security measure against validator attacks
+   - Cannot re-stake during unbonding period
 
-```bash
-fabled tx staking unbond [validator-address] [amount] \
-  --chain-id=fablechain-1 \
-  --from=[your-address]
-```
+3. **Claim Unbonded Tokens**
+   - After 21 days, call `claim_unbond()` to receive tokens
+   - Tokens return to liquid balance
 
 ## Rewards Calculation
 
-Staking rewards are distributed from inflation and transaction fees, calculated dynamically based on network conditions.
+### Annual Reward Rate
 
-### Reward Formula
+The FABLE network uses an algorithmic reward schedule:
 
 ```
-Annual Reward = (Stake Amount × Annual Inflation Rate) / Total Network Stake
+Base APR = 12% (Year 1-2)
+Base APR = 8% (Year 3-4)
+Base APR = 5% (Year 5+)
 ```
 
-### Key Variables
+### Individual Validator Rewards
 
-- **Annual inflation rate**: 7-20% (adjusted based on bonded ratio)
-- **Target bonding ratio**: 66.7% of total supply
-- **Commission**: Validators earn 5-20% of delegator rewards
-- **Reward distribution**: Every block (approximately 6 seconds)
+```
+Validator Reward = (Stake / Total Staked) × Annual Reward
+Commission Deduction = Validator Reward × Commission Rate
+Delegator Reward = Validator Reward - Commission Deduction
+```
 
-### Example Calculation
+**Example**: 100 FABLE staked, 20% network participation, 10% commission
+- Annual base: 100 × (12% ÷ 0.20) = 600 FABLE
+- Commission taken: 600 × 10% = 60 FABLE
+- Net reward: 540 FABLE (~5.4% effective APR after commission)
 
-- Network stake: 100M FABLE
-- Your stake: 100,000 FABLE (0.1%)
-- Annual inflation: 10%
-- Total annual rewards: 10M FABLE
-- Your share: 10,000 FABLE (0.1% of 10M)
-- Validator commission: 10% → You receive 9,000 FABLE
+### Reward Distribution
+
+- Rewards credited daily to validator balance
+- Automatic reinvestment available (compound staking)
+- Manual claim required for delegated stakes
 
 ## Slashing Risks
 
-Validators face penalties for protocol violations or downtime, protecting network integrity.
+Validators face penalties for protocol violations:
 
-### Slashing Conditions
+### Slashing Events
 
-**Downtime Slashing**
-- Triggered: Missing >50% of blocks in 10,000-block window
-- Penalty: 0.01% of stake
-- Recovery possible: Re-enable validator to regain eligibility
+| Violation | Penalty | Recovery |
+|-----------|---------|----------|
+| Double-signing (signing same block twice) | 5% of stake | Permanent |
+| Downtime (>50% epochs offline) | 1% of stake | Jail for 7 days |
+| Attempted stake increase during unbond | 2% of stake | Jail for 3 days |
 
-**Double-signing Slashing**
-- Triggered: Signing conflicting blocks
-- Penalty: 5% of stake
-- Consequence: Permanent jailing, validator must be unjailed manually
+### Slashing Mechanics
 
-**Byzantine Violation**
-- Triggered: Consensus violations
-- Penalty: Up to 20% of stake
-- Risk level: Critical
+- Penalties applied immediately when detected
+- Jailed validators cannot propose blocks
+- Automatic unjail after jail period expires
+- Slashed amounts burned (removed from circulation)
 
-## Delegation Strategy
+## Delegation
 
-### Best Practices
+### What is Delegation?
 
-1. **Diversify across validators** to reduce single-point-of-failure risk
-2. **Monitor validator performance** - check uptime, commission rates, and voting participation
-3. **Review commission changes** - validators can adjust rates (maximum change: 1% per day)
-4. **Participate in governance** - delegate your voting power to trusted addresses
-5. **Track unbonding periods** - plan liquidity needs carefully
+Delegation allows token holders to delegate stake to professional validators without running infrastructure.
 
-### Validator Selection Criteria
+### How to Delegate
 
-- **Uptime**: Target >99%
-- **Commission**: 5-15% is competitive
-- **Self-delegation**: Higher self-delegation indicates validator confidence
-- **Community reputation**: Check governance participation and security history
-- **Hardware quality**: Ensure reliable infrastructure
+1. **Select Validator**
+   - Review commission rates (0-100%)
+   - Check uptime history (target: >99%)
+   - Verify validator identity and reputation
 
-## Security Recommendations
+2. **Submit Delegation**
+   - Amount can be any value (no minimum)
+   - Rewards accrue after 1 epoch
+   - Commission automatically deducted from rewards
 
-- Use hardware wallets for validator signing keys
-- Maintain offline backup of validator private keys
-- Enable two-factor authentication on exchange accounts
-- Monitor validator metrics via dashboard
-- Join validator communities for updates and support
-- Implement automated alerting for downtime/slashing events
+3. **Redelegate or Undelegate**
+   - Switch validators instantly (no unbonding)
+   - Unbond delegated stake for 21-day period
+   - Rewards remain at validator until claimed
 
-## Resources
+### Commission Structure
 
-- Staking dashboard: https://staking.fablechain.io
-- Validator registry: https://validators.fablechain.io
-- Community forum: https://community.fablechain.io
-- Technical documentation: https://docs.fablechain.io
+Validators set commission rates (0-100%):
+- **Low commission** (5-15%): Attracts more delegation
+- **High commission** (30%+): Targets institutional stakes
+- **Variable commission**: Some validators adjust based on performance
+
+## Best Practices
+
+- **Diversify delegations** across 3-5 validators to reduce risk
+- **Monitor validator performance** weekly via on-chain analytics
+- **Keep rewards compounded** for exponential growth
+- **Plan unbonding timeline** - allow 3 weeks minimum for liquidity needs
+- **Use hardware wallet** for validator keys (Ledger, Trezor support available)
+
+## Security Considerations
+
+- Never share private validator keys
+- Use separate accounts for operations and rewards
+- Enable 2FA on web wallet interfaces
+- Verify validator addresses via official DNS records
+
+For technical documentation, see [validator-setup.md](./validator-setup.md)
