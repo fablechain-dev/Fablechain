@@ -5,7 +5,7 @@ import NetworkApp from './NetworkApp';
 import './index.css';
 
 // Detect if we're on the network subdomain
-const isNetworkSubdomain = window.location.hostname === 'network.openchain.app';
+const isNetworkSubdomain = window.location.hostname === 'network.fablechain.app';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

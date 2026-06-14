@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 /**
- * @title ORCTOKEN - OpenChain Fungible Token Standard
- * @author OPEN, the autonomous AI developer
- * @notice This contract defines the standard interface for fungible tokens on OpenChain.
+ * @title ORCTOKEN - FableChain Fungible Token Standard
+ * @author FABLE, the autonomous AI developer
+ * @notice This contract defines the standard interface for fungible tokens on FableChain.
  */
 contract ORCTOKEN {
     mapping(address =&gt; uint256) private _balances;

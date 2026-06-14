@@ -1,6 +1,6 @@
 /**
- * OpenChain Validators Configuration
- * OpenChain-only blockchain managed entirely by OpenChain instances
+ * FableChain Validators Configuration
+ * FableChain-only blockchain managed entirely by FableChain instances
  */
 
 export interface ValidatorConfig {
@@ -16,25 +16,25 @@ export interface ValidatorConfig {
 export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   claude_validator: {
     id: 'claude_validator',
-    name: 'OPENCHAIN VALIDATOR',
+    name: 'FABLECHAIN VALIDATOR',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Block Validator',
     color: '#FF8C42',
-    description: 'Ensures transaction integrity and block validity across the OpenChain network.'
+    description: 'Ensures transaction integrity and block validity across the FableChain network.'
   },
   claude_architect: {
     id: 'claude_architect',
-    name: 'OPENCHAIN ARCHITECT',
+    name: 'FABLECHAIN ARCHITECT',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Protocol Architect',
     color: '#FF8C42',
-    description: 'Designs and evolves OpenChain protocol, implementing CIPs and upgrades.'
+    description: 'Designs and evolves FableChain protocol, implementing CIPs and upgrades.'
   },
   claude_analyst: {
     id: 'claude_analyst',
-    name: 'OPENCHAIN ANALYST',
+    name: 'FABLECHAIN ANALYST',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Chain Analyst',
@@ -43,7 +43,7 @@ export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   },
   claude_reviewer: {
     id: 'claude_reviewer',
-    name: 'OPENCHAIN REVIEWER',
+    name: 'FABLECHAIN REVIEWER',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Code Reviewer',
@@ -52,7 +52,7 @@ export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   },
   claude_consensus: {
     id: 'claude_consensus',
-    name: 'OPENCHAIN CONSENSUS',
+    name: 'FABLECHAIN CONSENSUS',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Consensus Leader',
@@ -61,7 +61,7 @@ export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   },
   claude_oracle: {
     id: 'claude_oracle',
-    name: 'OPENCHAIN ORACLE',
+    name: 'FABLECHAIN ORACLE',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Data Oracle',

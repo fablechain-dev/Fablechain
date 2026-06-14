@@ -7,19 +7,19 @@ interface ChatMessage {
   model?: string;
 }
 
-// All Anthropic OpenChain models - they all use the same API
+// All Anthropic FableChain models - they all use the same API
 const OPEN_MODELS = [
-  { id: 'claude-opus-4', name: 'OpenChain Opus 4', tier: 'flagship', desc: 'Most capable model' },
-  { id: 'claude-sonnet-4', name: 'OpenChain Sonnet 4', tier: 'balanced', desc: 'Balanced performance' },
-  { id: 'claude-3-5-sonnet-20241022', name: 'OpenChain 3.5 Sonnet (Oct 2024)', tier: 'latest', desc: 'Latest Sonnet' },
-  { id: 'claude-3-5-sonnet-20240620', name: 'OpenChain 3.5 Sonnet (Jun 2024)', tier: 'stable', desc: 'Stable release' },
-  { id: 'claude-3-5-haiku-20241022', name: 'OpenChain 3.5 Haiku', tier: 'fast', desc: 'Fastest responses' },
-  { id: 'claude-3-opus-20240229', name: 'OpenChain 3 Opus', tier: 'legacy', desc: 'Legacy flagship' },
-  { id: 'claude-3-sonnet-20240229', name: 'OpenChain 3 Sonnet', tier: 'legacy', desc: 'Legacy balanced' },
-  { id: 'claude-3-haiku-20240307', name: 'OpenChain 3 Haiku', tier: 'legacy', desc: 'Legacy fast' },
-  { id: 'claude-2.1', name: 'OpenChain 2.1', tier: 'vintage', desc: '200K context' },
-  { id: 'claude-2.0', name: 'OpenChain 2.0', tier: 'vintage', desc: 'Original v2' },
-  { id: 'claude-instant-1.2', name: 'OpenChain Instant 1.2', tier: 'vintage', desc: 'Fast legacy' },
+  { id: 'claude-opus-4', name: 'FableChain Opus 4', tier: 'flagship', desc: 'Most capable model' },
+  { id: 'claude-sonnet-4', name: 'FableChain Sonnet 4', tier: 'balanced', desc: 'Balanced performance' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'FableChain 3.5 Sonnet (Oct 2024)', tier: 'latest', desc: 'Latest Sonnet' },
+  { id: 'claude-3-5-sonnet-20240620', name: 'FableChain 3.5 Sonnet (Jun 2024)', tier: 'stable', desc: 'Stable release' },
+  { id: 'claude-3-5-haiku-20241022', name: 'FableChain 3.5 Haiku', tier: 'fast', desc: 'Fastest responses' },
+  { id: 'claude-3-opus-20240229', name: 'FableChain 3 Opus', tier: 'legacy', desc: 'Legacy flagship' },
+  { id: 'claude-3-sonnet-20240229', name: 'FableChain 3 Sonnet', tier: 'legacy', desc: 'Legacy balanced' },
+  { id: 'claude-3-haiku-20240307', name: 'FableChain 3 Haiku', tier: 'legacy', desc: 'Legacy fast' },
+  { id: 'claude-2.1', name: 'FableChain 2.1', tier: 'vintage', desc: '200K context' },
+  { id: 'claude-2.0', name: 'FableChain 2.0', tier: 'vintage', desc: 'Original v2' },
+  { id: 'claude-instant-1.2', name: 'FableChain Instant 1.2', tier: 'vintage', desc: 'Fast legacy' },
 ];
 
 const OpenChat: React.FC = () => {
@@ -61,7 +61,7 @@ const OpenChat: React.FC = () => {
         content: msg.content
       }));
       
-      // Call OpenChain personality API
+      // Call FableChain personality API
       const response = await fetch(`${API_BASE}/api/personality/claude`, {
         method: 'POST',
         headers: {
@@ -86,7 +86,7 @@ const OpenChat: React.FC = () => {
         setMessages(prev => [...prev, claudeMessage]);
         setUserInput('');
       } else {
-        console.error('OpenChain response failed:', data);
+        console.error('FableChain response failed:', data);
         const errorMessage: ChatMessage = {
           role: 'claude',
           content: `Error: ${data.error || 'Failed to get response'}`,
@@ -98,7 +98,7 @@ const OpenChat: React.FC = () => {
       console.error('Error sending message:', error);
       const errorMessage: ChatMessage = {
         role: 'claude',
-        content: 'Network error: Could not reach OpenChain',
+        content: 'Network error: Could not reach FableChain',
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -136,7 +136,7 @@ const OpenChat: React.FC = () => {
       flexDirection: 'column',
       background: 'var(--cc-bg-primary)',
       color: 'var(--cc-text-primary)',
-      fontFamily: 'JetBrains Mono, monospace',
+      fontFamily: 'var(--font-mono)',
       fontSize: '12px'
     }}>
       {/* Header */}
@@ -164,7 +164,7 @@ const OpenChat: React.FC = () => {
             fontSize: '16px',
             fontWeight: 600
         }}>
-            OpenChain Terminal
+            FableChain Terminal
         </h2>
         </div>
         
@@ -173,7 +173,7 @@ const OpenChat: React.FC = () => {
           color: 'var(--cc-text-secondary)',
           lineHeight: 1.5
         }}>
-          The LLM that actually does things. Chat with the OpenClaw system running your blockchain 24/7.
+          The LLM that actually does things. Chat with the AESOP system running your blockchain 24/7.
         </div>
       </div>
 
@@ -192,7 +192,7 @@ const OpenChat: React.FC = () => {
           }}>
             <img 
               src="/molt-alien.png" 
-              alt="OpenChain"
+              alt="FableChain"
               style={{ 
                 width: '80px', 
                 height: 'auto',
@@ -207,7 +207,7 @@ const OpenChat: React.FC = () => {
               fontSize: '10px',
               color: 'var(--cc-text-muted)'
             }}>
-              Ask about blocks, transactions, governance, or just chat. OpenChain never sleeps.
+              Ask about blocks, transactions, governance, or just chat. FableChain never sleeps.
             </div>
           </div>
         ) : (
@@ -242,7 +242,7 @@ const OpenChat: React.FC = () => {
                   {message.role === 'claude' ? (
                     <>
                       <span>OC</span>
-                      <span>OPENCHAIN</span>
+                      <span>FABLECHAIN</span>
                       {message.model && (
                         <span style={{ 
                           fontSize: '9px', 
@@ -313,7 +313,7 @@ const OpenChat: React.FC = () => {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyPress={handleKeyPress}
-              placeholder="Message OpenChain..."
+              placeholder="Message FableChain..."
             disabled={loading}
             style={{
               flex: 1,
@@ -323,7 +323,7 @@ const OpenChat: React.FC = () => {
                 background: 'transparent',
                 color: 'var(--cc-text-primary)',
                 border: 'none',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontSize: '12px',
                 resize: 'vertical',
                 outline: 'none'
@@ -339,7 +339,7 @@ const OpenChat: React.FC = () => {
               color: loading ? 'var(--cc-text-muted)' : 'var(--cc-bg-primary)',
               border: 'none',
               borderRadius: '6px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontSize: '12px',
               cursor: loading ? 'not-allowed' : 'pointer',
               fontWeight: 600,
@@ -356,7 +356,7 @@ const OpenChat: React.FC = () => {
               color: 'var(--cc-text-secondary)',
               border: '1px solid var(--cc-border)',
               borderRadius: '6px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontSize: '12px',
               cursor: 'pointer',
               transition: 'all 0.2s ease'
@@ -372,12 +372,12 @@ const OpenChat: React.FC = () => {
               color: 'var(--cc-error)',
               border: '1px solid var(--cc-error)',
               borderRadius: '6px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontSize: '12px',
               cursor: 'pointer',
               transition: 'all 0.2s ease'
             }}
-            title="Clear OpenChain's memory to reset conversation context"
+            title="Clear FableChain's memory to reset conversation context"
           >
             Reset
           </button>
@@ -399,7 +399,7 @@ const OpenChat: React.FC = () => {
               border: '1px solid var(--cc-border)',
               borderRadius: '6px',
               color: 'var(--cc-text-secondary)',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontSize: '11px',
               cursor: 'pointer',
               transition: 'all 0.2s',
@@ -450,7 +450,7 @@ const OpenChat: React.FC = () => {
                   SELECT MODEL
                 </div>
                 <div style={{ color: 'var(--cc-text-muted)', fontSize: '9px' }}>
-                  Choose your OpenChain model variant
+                  Choose your FableChain model variant
                 </div>
               </div>
               
@@ -472,7 +472,7 @@ const OpenChat: React.FC = () => {
                     textAlign: 'left',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
-                    fontFamily: 'JetBrains Mono, monospace'
+                    fontFamily: 'var(--font-mono)'
                   }}
                   onMouseEnter={(e) => {
                     if (selectedModel !== model.id) {

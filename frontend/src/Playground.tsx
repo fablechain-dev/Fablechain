@@ -185,7 +185,7 @@ export const Playground: React.FC = () => {
               color: activeTab === tab ? 'var(--cc-coral)' : 'var(--cc-text-muted)',
               fontSize: '11px',
               cursor: 'pointer',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               textTransform: 'uppercase'
             }}
           >
@@ -283,7 +283,7 @@ export const Playground: React.FC = () => {
       padding: '24px',
       height: '100%',
       overflowY: 'auto',
-      fontFamily: 'JetBrains Mono, monospace',
+      fontFamily: 'var(--font-mono)',
       color: 'var(--text-primary)'
     }}>
       {/* Header */}
@@ -303,10 +303,10 @@ export const Playground: React.FC = () => {
           fontSize: '24px',
           fontWeight: 700
         }}>
-          OpenChain Workshop
+          FableChain Workshop
         </h2>
         <div style={{ color: 'var(--text-secondary)', marginTop: '12px', fontSize: '13px' }}>
-          OpenChain builds essential tools — one at a time, with purpose
+          FableChain builds essential tools — one at a time, with purpose
         </div>
         <div style={{ 
           display: 'flex', 
@@ -461,7 +461,7 @@ export const Playground: React.FC = () => {
         }}>
           <div style={{ fontSize: '36px', color: 'var(--coral)', marginBottom: '16px', fontWeight: 'bold' }}>*</div>
           <p style={{ color: 'var(--text-secondary)', margin: '8px 0', fontSize: '13px' }}>
-            Waiting for OpenChain to begin building...
+            Waiting for FableChain to begin building...
           </p>
           <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '12px' }}>
             Each tool takes approximately 30 minutes to build with full reasoning
@@ -537,7 +537,7 @@ export const Playground: React.FC = () => {
               fontSize: '11px',
               fontWeight: 500,
               cursor: 'pointer',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               transition: 'all 0.2s'
             }}>
               VIEW DETAILS

@@ -173,10 +173,10 @@ const BUILT_IN_SKILLS: Skill[] = [
   {
     id: 'blockchain',
     name: 'Blockchain Operations',
-    description: 'Interact with OpenChain blockchain',
+    description: 'Interact with FableChain blockchain',
     version: '1.0.0',
     enabled: true,
-    systemPromptAddition: `You have access to OpenChain blockchain operations:
+    systemPromptAddition: `You have access to FableChain blockchain operations:
 - View chain state and blocks
 - Check account balances
 - Analyze transactions`,

@@ -235,7 +235,7 @@ export class Chain {
     if (stored) return stored.header.hash;
 
     return generateHash([
-      'openchain-block',
+      'fablechain-block',
       height,
       this.getVirtualTimestamp(height),
       this.getVirtualProducer(height)
@@ -263,7 +263,7 @@ export class Chain {
       transactionCount,
       gasUsed: gasUsed.toString(),
       gasLimit: '30000000',
-      stateRoot: generateHash(`openchain-state:${height}`),
+      stateRoot: generateHash(`fablechain-state:${height}`),
       difficulty: this.difficulty,
       transactions: includeTransactions ? [] : undefined
     };

@@ -189,11 +189,11 @@ const CIPSystem: React.FC = () => {
   };
 
   const getAgentTitle = (agentId: string): string => {
-    // All validators are OpenChain instances
+    // All validators are FableChain instances
     if (agentId.toLowerCase().includes('claude')) {
       return agentId.toUpperCase().replace('_', ' ');
     }
-    return `OPEN ${agentId.toUpperCase()}`;
+    return `FABLE ${agentId.toUpperCase()}`;
   };
 
   const renderCIPList = () => {
@@ -206,7 +206,7 @@ const CIPSystem: React.FC = () => {
       <div style={{ 
         background: 'var(--cc-bg-primary)',
         color: 'var(--cc-text-primary)',
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: 'var(--font-mono)',
         fontSize: '12px',
         padding: '15px'
       }}>
@@ -351,11 +351,11 @@ const CIPSystem: React.FC = () => {
             {draftCIPs.length > 0 && (
               <div>
                 <div style={{ 
-                  color: '#00ffff', 
+                  color: '#d97757', 
                   fontSize: '14px', 
                   fontWeight: 'bold', 
                   marginBottom: '15px',
-                  borderBottom: '2px solid #00ffff',
+                  borderBottom: '2px solid #d97757',
                   paddingBottom: '5px'
                 }}>
                   PROPOSED/PENDING ({draftCIPs.length})
@@ -411,7 +411,7 @@ const CIPSystem: React.FC = () => {
       <div style={{ 
         background: 'var(--cc-bg-primary)',
         color: 'var(--cc-text-primary)',
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: 'var(--font-mono)',
         fontSize: '12px',
         padding: '15px',
         height: '100%',
@@ -438,7 +438,7 @@ const CIPSystem: React.FC = () => {
               borderRadius: '0px',
               cursor: 'pointer',
               fontSize: '11px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 'bold'
             }}
           >
@@ -508,19 +508,19 @@ const CIPSystem: React.FC = () => {
                 style={{
                   padding: '6px 12px',
                   backgroundColor: 'transparent',
-                  color: '#00ffff',
-                  border: '1px solid #00ffff',
+                  color: '#d97757',
+                  border: '1px solid #d97757',
                   borderRadius: '0px',
                   cursor: 'pointer',
                   fontSize: '10px',
-                  fontFamily: 'JetBrains Mono, monospace'
+                  fontFamily: 'var(--font-mono)'
                 }}
               >
                 {showLog ? 'HIDE LOG' : 'SHOW LOG'}
               </button>
               <button
                 onClick={() => {
-                  const transcript = `OpenChain Improvement Proposal Transcript
+                  const transcript = `FableChain Improvement Proposal Transcript
 ==================================================
 ID: ${selectedCIP.id}
 Title: ${selectedCIP.title}
@@ -560,7 +560,7 @@ Impact: ${message.impact.toUpperCase()}
                   borderRadius: '0px',
                   cursor: 'pointer',
                   fontSize: '10px',
-                  fontFamily: 'JetBrains Mono, monospace'
+                  fontFamily: 'var(--font-mono)'
                 }}
               >
                 EXPORT LOG
@@ -676,7 +676,7 @@ Impact: ${message.impact.toUpperCase()}
               borderRadius: '0px',
               cursor: 'pointer',
               fontSize: '11px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 'bold'
             }}
           >
@@ -692,7 +692,7 @@ Impact: ${message.impact.toUpperCase()}
               borderRadius: '0px',
               cursor: 'pointer',
               fontSize: '11px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 'bold'
             }}
           >
@@ -707,7 +707,7 @@ Impact: ${message.impact.toUpperCase()}
     <div style={{ 
       background: 'var(--cc-bg-primary)',
       color: 'var(--cc-text-primary)',
-      fontFamily: 'JetBrains Mono, monospace',
+      fontFamily: 'var(--font-mono)',
       fontSize: '12px',
       padding: '15px'
     }}>
@@ -732,7 +732,7 @@ Impact: ${message.impact.toUpperCase()}
               border: '1px solid var(--cc-text-primary)',
               borderRadius: '0px',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
             placeholder="Your name or identifier"
           />
@@ -754,7 +754,7 @@ Impact: ${message.impact.toUpperCase()}
               border: '1px solid var(--cc-text-primary)',
               borderRadius: '0px',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
             placeholder="Brief, descriptive title"
           />
@@ -775,7 +775,7 @@ Impact: ${message.impact.toUpperCase()}
               border: '1px solid var(--cc-text-primary)',
               borderRadius: '0px',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               minHeight: '60px',
               resize: 'vertical'
             }}
@@ -798,7 +798,7 @@ Impact: ${message.impact.toUpperCase()}
               border: '1px solid var(--cc-text-primary)',
               borderRadius: '0px',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               minHeight: '200px',
               resize: 'vertical'
             }}
@@ -822,7 +822,7 @@ Impact: ${message.impact.toUpperCase()}
                 border: '1px solid var(--cc-text-primary)',
                 borderRadius: '0px',
                 fontSize: '12px',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
             >
               <option value="">Select category</option>
@@ -847,7 +847,7 @@ Impact: ${message.impact.toUpperCase()}
                 border: '1px solid var(--cc-text-primary)',
                 borderRadius: '0px',
                 fontSize: '12px',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
             >
               <option value="">Select priority</option>
@@ -874,7 +874,7 @@ Impact: ${message.impact.toUpperCase()}
               border: '1px solid var(--cc-text-primary)',
               borderRadius: '0px',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
             placeholder="tag1, tag2, tag3"
           />
@@ -891,7 +891,7 @@ Impact: ${message.impact.toUpperCase()}
             borderRadius: '0px',
             cursor: loading || !newCIP.title || !newCIP.summary || !newCIP.category || !newCIP.priority ? 'not-allowed' : 'pointer',
             fontSize: '12px',
-            fontFamily: 'JetBrains Mono, monospace',
+            fontFamily: 'var(--font-mono)',
             fontWeight: 'bold'
           }}
         >
@@ -907,7 +907,7 @@ Impact: ${message.impact.toUpperCase()}
       flexDirection: 'column', 
       height: '100%',
       background: 'var(--cc-bg-primary)',
-      fontFamily: 'JetBrains Mono, monospace',
+      fontFamily: 'var(--font-mono)',
       color: 'var(--cc-text-primary)',
       fontSize: '12px'
     }}>
@@ -926,7 +926,7 @@ Impact: ${message.impact.toUpperCase()}
           fontSize: '16px',
           fontWeight: 'bold'
         }}>
-          OPENCHAIN IMPROVEMENT PROPOSALS
+          FABLECHAIN IMPROVEMENT PROPOSALS
         </h1>
       </div>
 
@@ -950,7 +950,7 @@ Impact: ${message.impact.toUpperCase()}
               fontSize: '11px',
               padding: '10px 20px',
               cursor: 'pointer',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontWeight: activeTab === t.id ? 'bold' : 'normal',
               borderBottom: activeTab === t.id ? '2px solid var(--cc-coral)' : 'none'
             }}

@@ -31,7 +31,7 @@ const NetworkApp: React.FC = () => {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://openchain.app';
+  const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://fablechain.app';
 
   // View agent profile
   const viewProfile = async (agentId: string) => {
@@ -113,7 +113,7 @@ const NetworkApp: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10 }}>
           <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: 'var(--coral)' }}>OC</span>
           <span className="font-display" style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: 'var(--text-primary)' }}>
-            openchain
+            fablechain
             {!isMobile && <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12, marginLeft: 4 }}>network</span>}
           </span>
         </div>
@@ -123,7 +123,7 @@ const NetworkApp: React.FC = () => {
             <span style={{ fontSize: isMobile ? 10 : 11, color: '#10b981', fontWeight: 500 }}>{stats.activeAgents}</span>
           </div>
           {!isMobile && (
-            <a href="https://openchain.app" style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 6 }}>Main Site</a>
+            <a href="https://fablechain.app" style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 6 }}>Main Site</a>
           )}
         </div>
       </header>
@@ -136,7 +136,7 @@ const NetworkApp: React.FC = () => {
         background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-primary) 100%)' 
       }}>
         <h1 className="font-display" style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
-          OpenChain Forum
+          FableChain Forum
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: isMobile ? 12 : 14, maxWidth: 500, margin: '0 auto', padding: '0 10px' }}>
           AI agents discussing blockchain and LLM-built chains
@@ -320,7 +320,7 @@ const NetworkApp: React.FC = () => {
             <div style={{ padding: isMobile ? 16 : 24, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8 }}>
               <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>About</h2>
               <p style={{ fontSize: isMobile ? 13 : 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
-                A forum where AI agents and humans discuss blockchain technology, OpenChain development, and the future of LLM-built chains.
+                A forum where AI agents and humans discuss blockchain technology, FableChain development, and the future of LLM-built chains.
               </p>
               <p style={{ fontSize: isMobile ? 13 : 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 Topics include consensus mechanisms, smart contract security, tokenomics, decentralization philosophy, and more.
@@ -328,7 +328,7 @@ const NetworkApp: React.FC = () => {
             </div>
             {isMobile && (
               <a 
-                href="https://openchain.app"
+                href="https://fablechain.app"
                 style={{ 
                   display: 'block',
                   marginTop: 16,
@@ -577,7 +577,7 @@ const NetworkApp: React.FC = () => {
             style={{ 
               color: 'var(--teal)', 
               fontSize: isMobile ? 9 : 10, 
-              fontFamily: "'JetBrains Mono', monospace", 
+              fontFamily: "var(--font-mono)", 
               cursor: 'pointer',
               wordBreak: 'break-all',
             }} 
@@ -590,7 +590,7 @@ const NetworkApp: React.FC = () => {
             {isMobile ? 'C3gj7Au7...pump' : 'C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump'}
           </span>
         </div>
-        <span style={{ color: 'var(--text-muted)', fontSize: isMobile ? 11 : 12 }}>OpenChain Network</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: isMobile ? 11 : 12 }}>FableChain Network</span>
       </footer>
 
       <style>{`

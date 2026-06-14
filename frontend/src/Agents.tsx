@@ -172,7 +172,7 @@ export const Agents: React.FC = () => {
       { msg: 'Loading personality matrix...', delay: 500 },
       { msg: 'Configuring rate limits...', delay: 300 },
       { msg: `Rate limit: ${form.rateLimit} req/min`, delay: 200 },
-      { msg: 'Registering on OpenChain...', delay: 600 },
+      { msg: 'Registering on FableChain...', delay: 600 },
       { msg: `Address: ${previewAddress}`, delay: 300 },
       { msg: 'Running security scan...', delay: 800 },
       { msg: 'Security scan passed [OK]', delay: 200 },
@@ -345,7 +345,7 @@ export const Agents: React.FC = () => {
                 Agent Deployment Center
               </h1>
               <p style={{ color: 'var(--cc-text-secondary)', margin: '8px 0 0', fontSize: '14px' }}>
-                Create, deploy, and manage autonomous LLM agents on OpenChain
+                Create, deploy, and manage autonomous LLM agents on FableChain
               </p>
             </div>
           </div>
@@ -408,7 +408,7 @@ export const Agents: React.FC = () => {
               fontSize: '14px',
               fontWeight: 700,
               cursor: 'pointer',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
@@ -476,7 +476,7 @@ export const Agents: React.FC = () => {
           <div style={{ fontSize: '32px', marginBottom: '20px', opacity: 0.5 }}>OC</div>
           <h3 style={{ color: 'var(--cc-text-primary)', margin: '0 0 10px' }}>No Agents Deployed Yet</h3>
           <p style={{ color: 'var(--cc-text-muted)', fontSize: '13px', maxWidth: '400px', margin: '0 auto' }}>
-            Be the first to deploy an autonomous LLM agent on OpenChain.
+            Be the first to deploy an autonomous LLM agent on FableChain.
             Create custom personalities, connect your API keys, and watch your agent come to life.
           </p>
           <button
@@ -490,7 +490,7 @@ export const Agents: React.FC = () => {
               color: 'var(--cc-coral)',
               fontSize: '12px',
               cursor: 'pointer',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
           >
             CREATE YOUR FIRST AGENT
@@ -703,7 +703,7 @@ export const Agents: React.FC = () => {
                   borderRadius: '8px',
                   color: 'var(--cc-text-primary)',
                   fontSize: '16px',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'var(--font-mono)',
                   boxSizing: 'border-box',
                   transition: 'border-color 0.2s'
                 }}
@@ -920,7 +920,7 @@ export const Agents: React.FC = () => {
                   borderRadius: '8px',
                   color: 'var(--cc-text-primary)',
                   fontSize: '13px',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'var(--font-mono)',
                   resize: 'vertical',
                   boxSizing: 'border-box'
                 }}
@@ -948,7 +948,7 @@ export const Agents: React.FC = () => {
                   borderRadius: '8px',
                   color: 'var(--cc-text-primary)',
                   fontSize: '13px',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'var(--font-mono)',
                   resize: 'vertical',
                   boxSizing: 'border-box'
                 }}
@@ -1021,7 +1021,7 @@ export const Agents: React.FC = () => {
                   borderRadius: '8px',
                   color: 'var(--cc-text-primary)',
                   fontSize: '13px',
-                  fontFamily: 'JetBrains Mono, monospace'
+                  fontFamily: 'var(--font-mono)'
                 }}
               >
                 {getModelsForProvider(form.apiProvider).map(m => (
@@ -1049,7 +1049,7 @@ export const Agents: React.FC = () => {
                   borderRadius: '8px',
                   color: 'var(--cc-text-primary)',
                   fontSize: '13px',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'var(--font-mono)',
                   boxSizing: 'border-box'
                 }}
               />
@@ -1190,7 +1190,7 @@ export const Agents: React.FC = () => {
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <div style={{ fontSize: '10px', color: 'var(--cc-text-muted)', marginBottom: '4px' }}>ADDRESS</div>
-                <div style={{ color: 'var(--cc-coral)', fontSize: '11px', fontFamily: 'JetBrains Mono' }}>{previewAddress}</div>
+                <div style={{ color: 'var(--cc-coral)', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>{previewAddress}</div>
               </div>
             </div>
           </div>
@@ -1213,7 +1213,7 @@ export const Agents: React.FC = () => {
                 <div key={i} style={{ 
                   color: log.includes('[OK]') ? 'var(--cc-success)' : 'var(--cc-text-secondary)',
                   fontSize: '11px',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'var(--font-mono)',
                   marginBottom: '4px'
                 }}>
                   {log}
@@ -1276,7 +1276,7 @@ export const Agents: React.FC = () => {
               color: 'var(--cc-text-primary)',
               fontSize: '12px',
               cursor: isLoading ? 'not-allowed' : 'pointer',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
           >
             &lt; BACK
@@ -1297,7 +1297,7 @@ export const Agents: React.FC = () => {
               fontSize: '12px',
               fontWeight: 600,
               cursor: canProceedToStep(createStep + 1) ? 'pointer' : 'not-allowed',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
           >
             NEXT
@@ -1315,7 +1315,7 @@ export const Agents: React.FC = () => {
               fontSize: '13px',
               fontWeight: 700,
               cursor: isLoading ? 'not-allowed' : 'pointer',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
           >
             {isLoading ? 'DEPLOYING...' : 'DEPLOY AGENT'}
@@ -1353,7 +1353,7 @@ export const Agents: React.FC = () => {
               fontSize: '12px',
               cursor: 'pointer',
               marginBottom: '16px',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
           >
             &lt; Back to Gallery
@@ -1499,7 +1499,7 @@ export const Agents: React.FC = () => {
                 borderRadius: '10px',
                 color: 'var(--cc-text-primary)',
                 fontSize: '13px',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
             />
             <button
@@ -1514,7 +1514,7 @@ export const Agents: React.FC = () => {
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: (!chatInput.trim() || isChatting) ? 'not-allowed' : 'pointer',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
             >
               SEND
@@ -1530,7 +1530,7 @@ export const Agents: React.FC = () => {
       padding: '30px',
       height: '100%',
       overflowY: 'auto',
-      fontFamily: 'JetBrains Mono, monospace',
+      fontFamily: 'var(--font-mono)',
       color: 'var(--cc-text-primary)',
       backgroundColor: 'var(--cc-bg-primary)'
     }}>

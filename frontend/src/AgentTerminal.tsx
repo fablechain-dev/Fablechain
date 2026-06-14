@@ -267,7 +267,7 @@ const AgentTerminal: React.FC = () => {
                 ...prev,
                 isWorking: false,
                 completedTasks: [
-                  { title: data.data.title, agent: prev.currentTask?.agent || 'OPEN', completedAt: new Date().toISOString() },
+                  { title: data.data.title, agent: prev.currentTask?.agent || 'FABLE', completedAt: new Date().toISOString() },
                   ...prev.completedTasks.slice(0, 4),
                 ],
               }));
@@ -430,7 +430,7 @@ const AgentTerminal: React.FC = () => {
                   padding: '2px 6px', 
                   borderRadius: 4,
                   color: 'var(--coral-bright)',
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                 }}>{part}</code>
               ) : (
                 <span key={j}>{part}</span>
@@ -479,94 +479,33 @@ const AgentTerminal: React.FC = () => {
       flexDirection: 'column',
       height: '100%',
     }}>
-      {/* Compact Terminal Status Bar */}
-      <div style={{
-        background: 'var(--bg-secondary)',
-        padding: '8px 12px',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Mini traffic lights */}
-          <div style={{ display: 'flex', gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FF5F56' }} />
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FFBD2E' }} />
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#27CA40' }} />
-          </div>
-          
-          {/* Path */}
-          <div style={{ 
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            color: 'var(--text-muted)',
-          }}>
-            ~/agent
-          </div>
-        </div>
-
-        {/* Status indicators */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Brain status */}
+      {/* Pane titlebar: ─[ aesop@macmini:~ ]──── */}
+      <div className="term-titlebar">
+        <span className="tt-label">aesop@macmini:~</span>
+        <span className="tt-rule" />
+        <div className="tt-status">
           {state.brainActive && (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 4,
-              background: 'rgba(78, 205, 196, 0.15)',
-              padding: '2px 6px',
-              borderRadius: 8,
-            }}>
-              <span style={{ 
-                fontSize: 9,
-                fontFamily: "'JetBrains Mono', monospace",
-                color: 'var(--teal)',
-                fontWeight: 700,
-              }}>LLM</span>
-              <span style={{ 
-                fontSize: 9, 
-                color: 'var(--teal)',
-                fontFamily: "'JetBrains Mono', monospace",
-                textTransform: 'uppercase',
-              }}>
-                AUTO
-              </span>
-            </div>
+            <span style={{
+              fontSize: 9,
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--sage)',
+              fontWeight: 700,
+              border: '1px solid var(--sage)',
+              padding: '1px 5px',
+            }}>LLM:AUTO</span>
           )}
-          
-          {/* Viewer count */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 4,
-            color: 'var(--text-muted)',
-            fontSize: 11,
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+            view {state.viewerCount}
+          </span>
+          <span style={{
+            fontSize: 10,
+            fontFamily: 'var(--font-mono)',
+            color: connected ? 'var(--sage)' : 'var(--red)',
+            textTransform: 'lowercase',
+            animation: connected && state.isWorking ? 'pulse 1.5s infinite' : 'none',
           }}>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>view</span>
-            <span>{state.viewerCount}</span>
-          </div>
-          
-          {/* Connection status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: connected ? 'var(--teal)' : '#FF5F56',
-              boxShadow: connected ? '0 0 6px var(--teal)' : 'none',
-              animation: connected && state.isWorking ? 'pulse 1.5s infinite' : 'none',
-            }} />
-            <span style={{ 
-              fontSize: 10, 
-              color: connected ? 'var(--teal)' : 'var(--coral)',
-              fontFamily: "'JetBrains Mono', monospace",
-              textTransform: 'uppercase',
-            }}>
-              {connected ? (state.isWorking ? 'WORKING' : 'IDLE') : 'OFFLINE'}
-            </span>
-          </div>
+            ■ {connected ? (state.isWorking ? 'working' : 'idle') : 'offline'}
+          </span>
         </div>
       </div>
 
@@ -585,7 +524,7 @@ const AgentTerminal: React.FC = () => {
               borderRadius: 4,
               fontSize: 10,
               fontWeight: 700,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-mono)",
             }}>
               {state.currentTask.agent}
             </div>
@@ -594,7 +533,7 @@ const AgentTerminal: React.FC = () => {
               fontSize: 12,
               fontWeight: 500,
               flex: 1,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-mono)",
             }}>
               {state.currentTask.title}
             </div>
@@ -643,7 +582,7 @@ const AgentTerminal: React.FC = () => {
               <div style={{ 
                 fontSize: 12, 
                 color: 'var(--text-secondary)',
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "var(--font-mono)",
               }}>
                 "{state.currentDecision.reasoning}"
               </div>
@@ -659,7 +598,7 @@ const AgentTerminal: React.FC = () => {
           flex: 1,
           overflowY: 'auto',
           padding: 16,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 13,
           lineHeight: 1.7,
           color: 'var(--text-primary)',
@@ -699,10 +638,10 @@ const AgentTerminal: React.FC = () => {
           fontSize: 10,
           color: 'var(--text-muted)',
           marginBottom: 8,
-          textTransform: 'uppercase',
+          textTransform: 'lowercase',
           letterSpacing: 1,
         }}>
-          Recent Work
+          ──[ recent work ]──
         </div>
         {recentCommitsLoading ? (
           <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
@@ -736,7 +675,7 @@ const AgentTerminal: React.FC = () => {
                 }}
                 title={`${commit.shortSha} ${commit.message}`}
               >
-                <span style={{ color: 'var(--teal)', fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>
+                <span style={{ color: 'var(--teal)', fontFamily: "var(--font-mono)", flexShrink: 0 }}>
                   {commit.shortSha}
                 </span>
                 <span style={{

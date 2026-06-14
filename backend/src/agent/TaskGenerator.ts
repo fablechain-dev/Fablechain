@@ -30,36 +30,36 @@ const TASK_TEMPLATES: TaskTemplate[] = [
       'Building: Wallet Connector',
     ],
     prompts: [
-      `Build a token balance checking utility for OpenChain. 
+      `Build a token balance checking utility for FableChain. 
 
 Requirements:
 - Accept a wallet address as input
-- Query the chain for OPEN token balance
+- Query the chain for FABLE token balance
 - Format the output nicely with proper decimal handling
 - Add caching for repeated queries
 
 Think through the design, then write the TypeScript code.`,
 
-      `Create a gas estimation utility for OpenChain transactions.
+      `Create a gas estimation utility for FableChain transactions.
 
 Requirements:
 - Estimate gas for different transaction types (transfer, stake, unstake)
 - Factor in current network congestion
-- Return both gas units and OPEN cost estimate
+- Return both gas units and FABLE cost estimate
 
 Walk through your reasoning and implement it.`,
 
-      `Build an address validation utility for OpenChain.
+      `Build an address validation utility for FableChain.
 
 Requirements:
-- Validate OpenChain address format (base58)
+- Validate FableChain address format (base58)
 - Check checksum validity
 - Return helpful error messages for invalid addresses
 - Support both full addresses and shortened formats
 
 Show your work as you build this.`,
 
-      `Create a transaction hash generator for OpenChain.
+      `Create a transaction hash generator for FableChain.
 
 Requirements:
 - Take transaction parameters as input
@@ -109,7 +109,7 @@ Requirements:
 
 Design the interface and implement.`,
     ],
-    agents: ['OPEN ARCHITECT', 'OPEN DEVELOPER', 'OPEN BUILDER'],
+    agents: ['FABLE ARCHITECT', 'FABLE DEVELOPER', 'FABLE BUILDER'],
   },
   {
     type: 'security_audit',
@@ -185,7 +185,7 @@ Check for:
 
 Provide security analysis and recommendations.`,
     ],
-    agents: ['OPEN REVIEWER', 'OPEN AUDITOR', 'OPEN SECURITY'],
+    agents: ['FABLE REVIEWER', 'FABLE AUDITOR', 'FABLE SECURITY'],
   },
   {
     type: 'chain_analysis',
@@ -198,7 +198,7 @@ Provide security analysis and recommendations.`,
       'Analyzing: Block Production',
     ],
     prompts: [
-      `Analyze OpenChain network performance over recent blocks.
+      `Analyze FableChain network performance over recent blocks.
 
 Examine:
 - Block time consistency
@@ -208,7 +208,7 @@ Examine:
 
 Generate a performance report with visualizations.`,
 
-      `Analyze transaction patterns on OpenChain.
+      `Analyze transaction patterns on FableChain.
 
 Look for:
 - Common transaction types
@@ -228,7 +228,7 @@ Examine:
 
 Generate a validator health report.`,
 
-      `Analyze gas usage trends across OpenChain.
+      `Analyze gas usage trends across FableChain.
 
 Examine:
 - Average gas per transaction
@@ -238,7 +238,7 @@ Examine:
 
 Create a gas economics report.`,
 
-      `Analyze the stake distribution across OpenChain.
+      `Analyze the stake distribution across FableChain.
 
 Examine:
 - Stake concentration (Gini coefficient)
@@ -258,7 +258,7 @@ Examine:
 
 Create a block production health report.`,
     ],
-    agents: ['OPEN ANALYST', 'OPEN DATA', 'OPEN METRICS'],
+    agents: ['FABLE ANALYST', 'FABLE DATA', 'FABLE METRICS'],
   },
   {
     type: 'protocol_improvement',
@@ -282,7 +282,7 @@ Include:
 
 Make it ready for council review.`,
 
-      `Propose an improved fee model for OpenChain.
+      `Propose an improved fee model for FableChain.
 
 Include:
 - Analysis of current fee issues
@@ -291,7 +291,7 @@ Include:
 - Migration strategy
 - Expected outcomes
 
-Draft a complete MIP (OpenChain Improvement Proposal).`,
+Draft a complete MIP (FableChain Improvement Proposal).`,
 
       `Propose enhanced validator incentives.
 
@@ -315,7 +315,7 @@ Include:
 
 Make it comprehensive and ready for debate.`,
 
-      `Propose performance optimizations for OpenChain.
+      `Propose performance optimizations for FableChain.
 
 Include:
 - Bottleneck analysis
@@ -326,7 +326,7 @@ Include:
 
 Draft a technical improvement proposal.`,
 
-      `Propose a new transaction type for OpenChain.
+      `Propose a new transaction type for FableChain.
 
 Include:
 - Use case justification
@@ -337,7 +337,7 @@ Include:
 
 Create a detailed technical proposal.`,
     ],
-    agents: ['OPEN ARCHITECT', 'OPEN GOVERNANCE', 'OPEN PROTOCOL'],
+    agents: ['FABLE ARCHITECT', 'FABLE GOVERNANCE', 'FABLE PROTOCOL'],
   },
   {
     type: 'documentation',
@@ -349,7 +349,7 @@ Create a detailed technical proposal.`,
       'Documenting: Security Best Practices',
     ],
     prompts: [
-      `Write API documentation for OpenChain endpoints.
+      `Write API documentation for FableChain endpoints.
 
 Cover:
 - Authentication
@@ -361,7 +361,7 @@ Cover:
 
 Make it developer-friendly with examples.`,
 
-      `Create a getting started guide for OpenChain developers.
+      `Create a getting started guide for FableChain developers.
 
 Include:
 - Prerequisites
@@ -394,7 +394,7 @@ Include:
 
 Make it practical with examples.`,
 
-      `Document security best practices for OpenChain.
+      `Document security best practices for FableChain.
 
 Cover:
 - Key management
@@ -405,7 +405,7 @@ Cover:
 
 Create a comprehensive security guide.`,
     ],
-    agents: ['OPEN DOCS', 'OPEN WRITER', 'OPEN EDUCATOR'],
+    agents: ['FABLE DOCS', 'FABLE WRITER', 'FABLE EDUCATOR'],
   },
   {
     type: 'testing',
@@ -436,7 +436,7 @@ Test:
 
 Create comprehensive integration tests.`,
 
-      `Design stress tests for OpenChain.
+      `Design stress tests for FableChain.
 
 Test:
 - High transaction volume
@@ -446,7 +446,7 @@ Test:
 
 Document test methodology and results.`,
 
-      `Write edge case tests for OpenChain.
+      `Write edge case tests for FableChain.
 
 Test:
 - Zero-value transactions
@@ -456,7 +456,7 @@ Test:
 
 Create thorough edge case coverage.`,
     ],
-    agents: ['OPEN QA', 'OPEN TESTER', 'OPEN VALIDATOR'],
+    agents: ['FABLE QA', 'FABLE TESTER', 'FABLE VALIDATOR'],
   },
 ];
 

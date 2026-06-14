@@ -10,21 +10,21 @@ interface Message {
   content: string;
 }
 
-// Minimal hexagon chain logo
+// ASCII logomark — terracotta asterisk in brackets
 const Logo = ({ size = 28 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-    <path d="M16 2L28 9V23L16 30L4 23V9L16 2Z" stroke="#00e5bf" strokeWidth="1.5" fill="none" />
-    <path d="M16 8L23 12V20L16 24L9 20V12L16 8Z" stroke="#00e5bf" strokeWidth="1" fill="rgba(0,229,191,0.08)" />
-    <circle cx="16" cy="16" r="2" fill="#00e5bf" />
-  </svg>
+  <span className="ascii-mark" style={{ fontSize: Math.round(size * 0.62) }} aria-hidden>
+    [<span className="star">*</span>]
+  </span>
 );
 
-// GitHub icon
-const GitHubIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-  </svg>
-);
+// Big ANSI Shadow block logo
+const FABLE_BANNER =
+  '███████╗ █████╗ ██████╗ ██╗     ███████╗ ██████╗██╗  ██╗ █████╗ ██╗███╗   ██╗\n' +
+  '██╔════╝██╔══██╗██╔══██╗██║     ██╔════╝██╔════╝██║  ██║██╔══██╗██║████╗  ██║\n' +
+  '█████╗  ███████║██████╔╝██║     █████╗  ██║     ███████║███████║██║██╔██╗ ██║\n' +
+  '██╔══╝  ██╔══██║██╔══██╗██║     ██╔══╝  ██║     ██╔══██║██╔══██║██║██║╚██╗██║\n' +
+  '██║     ██║  ██║██████╔╝███████╗███████╗╚██████╗██║  ██║██║  ██║██║██║ ╚████║\n' +
+  '╚═╝     ╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝';
 
 // Hamburger icon
 const MenuIcon = ({ open }: { open: boolean }) => (
@@ -52,6 +52,9 @@ export default function App() {
   const [commitsLoading, setCommitsLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
   const [logsConnected, setLogsConnected] = useState(false);
+  const [chainLive, setChainLive] = useState(false);
+  const [sentHistory, setSentHistory] = useState<string[]>([]);
+  const histIdx = useRef(-1);
   const [locationPath, setLocationPath] = useState(() => window.location.pathname);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -100,8 +103,11 @@ export default function App() {
             ? (recentTxCounts.current[recentTxCounts.current.length - 1] - recentTxCounts.current[0]) / (recentTxCounts.current.length * 3)
             : 0;
           setStats({ chainLength: bh, blockHeight: bh, tps: Math.max(0, Math.round(avg * 10) / 10) });
+          setChainLive(true);
+        } else {
+          setChainLive(false);
         }
-      } catch {}
+      } catch { setChainLive(false); }
     };
     fetch_();
     const id = setInterval(fetch_, 3000);
@@ -191,6 +197,8 @@ export default function App() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
     const msg = input.trim();
+    setSentHistory(p => [...p, msg]);
+    histIdx.current = -1;
     const conversationHistory = [...messages.slice(-9), { role: 'user', content: msg }].map(entry => ({
       role: entry.role === 'user' ? 'user' : 'assistant',
       content: entry.content
@@ -231,7 +239,7 @@ export default function App() {
 
   const tabs = [
     { id: 'terminal', label: 'Terminal' },
-    { id: 'molt', label: 'OpenChain' },
+    { id: 'molt', label: 'FableChain' },
     { id: 'explorer', label: 'Explorer' },
     { id: 'faucet', label: 'Faucet' },
     { id: 'wallet', label: 'Wallet' },
@@ -239,6 +247,21 @@ export default function App() {
     { id: 'logs', label: 'Logs' },
     { id: 'admin', label: 'Admin' },
   ] as const;
+
+  // Terminal-style keybindings: 1-8 switch panes, `a` toggles the agent pane
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement;
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) return;
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= tabs.length) { handleTab(tabs[n - 1].id as TabType); return; }
+      if (e.key === 'a') setAgentPanelOpen(p => !p);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fmtTime = (ts: string) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   const fmtLogTime = (ts: string) => new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -254,7 +277,7 @@ export default function App() {
   );
 
   const logColor = (t: string) => {
-    const m: Record<string, string> = { task_start: '#4ade80', task_complete: '#22c55e', output: 'var(--text-2)', tool_use: '#60a5fa', git_commit: '#a78bfa', error: '#f87171', system: '#fbbf24' };
+    const m: Record<string, string> = { task_start: '#4ade80', task_complete: '#4ade80', output: 'var(--text-2)', tool_use: '#ffbd2e', git_commit: '#ff962e', error: '#ff5f56', system: '#ffbd2e' };
     return m[t] || 'var(--text-1)';
   };
   const logTag = (t: string) => {
@@ -262,62 +285,76 @@ export default function App() {
     return m[t] || '';
   };
 
+  // Command input: Enter to send, arrow keys for history
+  const handleCmdKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') { sendMessage(); return; }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!sentHistory.length) return;
+      histIdx.current = histIdx.current < 0 ? sentHistory.length - 1 : Math.max(0, histIdx.current - 1);
+      setInput(sentHistory[histIdx.current]);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (histIdx.current < 0) return;
+      histIdx.current += 1;
+      if (histIdx.current >= sentHistory.length) { histIdx.current = -1; setInput(''); }
+      else setInput(sentHistory[histIdx.current]);
+    }
+  };
+
   // ---- Render sections ----
 
   const renderTerminal = () => (
     <div className="page">
       <div className="hero">
-        <div className="hero-logo"><Logo size={48} /></div>
-        <h1>Open<span className="accent">Chain</span></h1>
-        <p className="subtitle">
-          We put an LLM in a Mac Mini and asked it to build its own blockchain.
-        </p>
-        <p className="tagline">This is what happened. Built by OpenClaw.</p>
+        <pre className="ascii-banner">{FABLE_BANNER}</pre>
       </div>
 
-      <div className="stats-grid">
-        {[
-          { value: stats.blockHeight.toLocaleString(), label: 'Block Height' },
-          { value: stats.tps.toString(), label: 'TPS' },
-          { value: uptime, label: 'Uptime' },
-        ].map((s, i) => (
-          <div key={i} className="card stat-card">
-            <div className="stat-label">{s.label}</div>
-            <div className="stat-value">{s.value}</div>
-          </div>
-        ))}
+      <div className="welcome-box">
+        <div className="wb-center wb-title">FABLECHAIN TERMINAL v1.0.0</div>
+        <div className="wb-center wb-sub">A BLOCKCHAIN BUILT AND MANAGED ENTIRELY BY AESOP</div>
+        <p className="wb-p">
+          This network is autonomously built, maintained, and validated entirely by
+          AESOP, an LLM running in a Mac Mini. Every block, every transaction, every
+          protocol decision is handled by the agent.
+        </p>
+        <div className="wb-roles">
+          {['VALIDATOR', 'ARCHITECT', 'ANALYST', 'REVIEWER', 'CONSENSUS', 'ORACLE'].map(r => (
+            <span key={r} className="wb-role"><span className="dia">◆</span> AESOP {r}</span>
+          ))}
+        </div>
+        <p className="wb-p">
+          Each AESOP instance operates with a specific role, together forming a
+          self-governing consensus layer—negotiating protocol upgrades, validating
+          transactions, and managing network state.
+        </p>
+        <p className="wb-p wb-handle">
+          experiment by <a href="https://x.com/OpenChainSol" target="_blank" rel="noopener noreferrer">@OpenChainSol</a>
+        </p>
+        <p className="wb-p wb-warn">
+          [!] ALPHA EXPERIMENT — AESOP-DRIVEN CONSENSUS MAY SPONTANEOUSLY
+          REORGANIZE OR HALT. MONITOR STATES AND PROCEED AT YOUR OWN RISK.
+        </p>
       </div>
 
       {!showWelcome && messages.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
+        <div className="term-chat">
           {messages.map((m, i) => (
             <div key={i} className={`chat-bubble ${m.role === 'user' ? 'user' : 'assistant'}`}>
-              <div className="sender">{m.role === 'molt' ? 'OpenChain' : m.role === 'user' ? 'You' : 'System'}</div>
+              <div className="sender">{m.role === 'molt' ? 'FableChain' : m.role === 'user' ? 'You' : 'System'}</div>
               <div className="content">{m.content}</div>
             </div>
           ))}
-          {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', padding: 14, fontSize: 14 }}>OpenChain is thinking...</div>}
+          {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', padding: 14, fontSize: 14 }}>FableChain is thinking...</div>}
           <div ref={messagesEndRef} />
         </div>
       )}
-
-      <div className="chat-input-row">
-        <input
-          className="input"
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyPress={e => e.key === 'Enter' && sendMessage()}
-          placeholder={isMobile ? 'Message OpenChain...' : 'Message OpenChain or type /help for commands...'}
-        />
-        <button onClick={sendMessage} disabled={loading} className="btn-primary">Send</button>
-      </div>
     </div>
   );
 
   const renderChat = () => (
     <div className="chat-container">
-      <h2 className="page-title" style={{ marginBottom: 20 }}>Chat with OpenChain</h2>
+      <h2 className="page-title" style={{ marginBottom: 20 }}>Chat with FableChain</h2>
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">
@@ -327,16 +364,16 @@ export default function App() {
         ) : (
           messages.map((m, i) => (
             <div key={i} className={`chat-bubble ${m.role === 'user' ? 'user' : 'assistant'}`}>
-              <div className="sender">{m.role === 'molt' ? 'OPENCHAIN' : 'YOU'}</div>
+              <div className="sender">{m.role === 'molt' ? 'FABLECHAIN' : 'YOU'}</div>
               <div className="content">{m.content}</div>
             </div>
           ))
         )}
-        {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', fontSize: 14 }}>OpenChain is thinking...</div>}
+        {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', fontSize: 14 }}>FableChain is thinking...</div>}
         <div ref={messagesEndRef} />
       </div>
       <div className="chat-input-row">
-        <input className="input" type="text" value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Ask OpenChain anything..." />
+        <input className="input" type="text" value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Ask FableChain anything..." />
         <button onClick={sendMessage} disabled={loading} className="btn-primary">Send</button>
       </div>
     </div>
@@ -346,11 +383,11 @@ export default function App() {
     <div className="page">
       <div className="card center-card">
         <div className="card-inner">
-          <div className="icon">OPEN</div>
-          <h2>OpenChain Faucet</h2>
-          <p className="desc">Get testnet OPEN tokens to experiment with the network</p>
+          <div className="icon">FABLE</div>
+          <h2>FableChain Faucet</h2>
+          <p className="desc">Get testnet FABLE tokens to experiment with the network</p>
           <input className="input" type="text" placeholder="Enter your wallet address" style={{ marginBottom: 16 }} />
-          <button className="btn-primary" style={{ width: '100%' }}>Request 10 OPEN</button>
+          <button className="btn-primary" style={{ width: '100%' }}>Request 10 FABLE</button>
           <p className="hint">Limited to 1 request per address per day</p>
         </div>
       </div>
@@ -361,9 +398,9 @@ export default function App() {
     <div className="page">
       <div className="card center-card">
         <div className="card-inner">
-          <div className="icon">OPEN</div>
-          <h2>OpenChain Wallet</h2>
-          <p className="desc">Manage your OPEN tokens and interact with the network</p>
+          <div className="icon">FABLE</div>
+          <h2>FableChain Wallet</h2>
+          <p className="desc">Manage your FABLE tokens and interact with the network</p>
           <button className="btn-primary" style={{ width: '100%', marginBottom: 12 }}>Create New Wallet</button>
           <div style={{ color: 'var(--text-3)', fontSize: 12, marginBottom: 12 }}>or</div>
           <button className="btn-ghost" style={{ width: '100%' }}>Import Existing Wallet</button>
@@ -375,7 +412,7 @@ export default function App() {
   const renderUpdates = () => (
     <div className="page">
       <h2 className="page-title">Updates</h2>
-      <p className="page-desc">Real commits from the OpenChain repository.</p>
+      <p className="page-desc">Real commits from the FableChain repository.</p>
       {commitsLoading ? (
         <div style={{ color: 'var(--text-3)', textAlign: 'center', padding: 40 }}>Loading commits...</div>
       ) : (
@@ -406,7 +443,7 @@ export default function App() {
           <span style={{ color: 'var(--text-2)', fontSize: 12 }}>{logsConnected ? 'Live' : 'Connecting...'}</span>
         </div>
       </div>
-      <p className="page-desc">Real-time stream of everything OpenClaw is building.</p>
+      <p className="page-desc">Real-time stream of everything AESOP is building.</p>
 
       <div className="logs-terminal">
         {logs.length === 0 ? (
@@ -456,29 +493,29 @@ export default function App() {
     <div className="app-shell">
       {/* Header */}
       <header className="app-header">
-        <div className="logo">
-          <div className="logo-mark"><Logo /></div>
-          <span className="logo-text">OpenChain</span>
+        <div className="win-title">
+          <span className="tl tl-r" /><span className="tl tl-y" /><span className="tl tl-g" />
+          <span className="win-name">FableChain Terminal</span>
         </div>
-        <div className="header-right">
-          {!isMobile && (
-            <>
-              <span className="header-stat">BLK <span>{stats.blockHeight.toLocaleString()}</span></span>
-              <span className="header-stat">TPS <span>{stats.tps}</span></span>
-            </>
-          )}
-          <a href="https://github.com/openchain-dev/openchain" target="_blank" rel="noopener noreferrer" className="btn-icon"><GitHubIcon /></a>
-          {!isMobile && (
-            <button className={`agent-toggle ${agentPanelOpen ? 'open' : ''}`} onClick={() => setAgentPanelOpen(!agentPanelOpen)}>
-              AGENT {agentPanelOpen && <div className="live-dot on" />}
-            </button>
-          )}
-          {isMobile && (
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: 'none', border: 'none', padding: 4 }} aria-label="Menu">
-              <MenuIcon open={mobileMenuOpen} />
-            </button>
-          )}
-        </div>
+        {!isMobile && (
+          <div className="chain-stats">
+            <span className="cs">CHAIN: <b>1337</b></span>
+            <span className="cs">BLOCK: <b>{stats.blockHeight.toLocaleString()}</b></span>
+            <span className="cs">TPS: <b>{stats.tps}</b></span>
+            <span className={`live-dot ${chainLive ? 'on' : 'off'}`} />
+          </div>
+        )}
+        {!isMobile ? (
+          <nav className="top-tabs">
+            {tabs.map(t => (
+              <button key={t.id} className={`top-tab ${activeTab === t.id ? 'active' : ''}`} onClick={() => handleTab(t.id as TabType)}>{renderTabLabel(t)}</button>
+            ))}
+          </nav>
+        ) : (
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: 'none', border: 'none', padding: 4, marginLeft: 'auto' }} aria-label="Menu">
+            <MenuIcon open={mobileMenuOpen} />
+          </button>
+        )}
       </header>
 
       {/* Mobile Menu */}
@@ -502,17 +539,24 @@ export default function App() {
       {/* Body */}
       <div className="app-body" style={{ flexDirection: isMobile ? 'column' : 'row' }}>
         <div className="app-content">
-          {/* Desktop Nav */}
-          {!isMobile && (
-            <nav className="app-nav">
-              <div className="tabs">
-                {tabs.map(t => (
-                  <button key={t.id} className={`tab-btn ${activeTab === t.id ? 'active' : ''}`} onClick={() => handleTab(t.id as TabType)}>{renderTabLabel(t)}</button>
-                ))}
-              </div>
-            </nav>
-          )}
           <main className="content-scroll">{renderContent()}</main>
+          {activeTab === 'terminal' && (
+            <div className="cmd-bar">
+              <div className="cmd-input-wrap">
+                <span className="cmd-prompt">&gt;</span>
+                <input
+                  className="cmd-input"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleCmdKey}
+                  placeholder="Message AESOP or type a command..."
+                  disabled={loading}
+                />
+                <button className="cmd-send" onClick={sendMessage} disabled={loading || !input.trim()}>Send</button>
+              </div>
+              <div className="cmd-hints">Press Enter to send · Arrow keys for history · Type /help for commands</div>
+            </div>
+          )}
         </div>
 
         {/* Agent Panel */}
@@ -537,11 +581,25 @@ export default function App() {
         )}
       </div>
 
-      {/* Footer */}
-      <footer className="app-footer">
-        <span className="contract" onClick={() => navigator.clipboard.writeText('C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump')} title="Click to copy">
-          C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump
-        </span>
+      {/* Utilities Bar */}
+      <footer className="util-bar">
+        <div className="util-left">
+          <span className="util-label">UTILITIES:</span>
+          <button className="util-btn" onClick={() => handleTab('faucet')}><span className="dia">◆</span> FAUCET</button>
+          <button className="util-btn" onClick={() => handleTab('wallet')}>⚡ SEND</button>
+          {!isMobile && (
+            <button className={`util-btn ${agentPanelOpen ? 'on' : ''}`} onClick={() => setAgentPanelOpen(!agentPanelOpen)}>■ AGENT</button>
+          )}
+          <a className="util-btn" href="https://github.com/openchain-dev/openchain" target="_blank" rel="noopener noreferrer">GITHUB</a>
+        </div>
+        <div className="util-right">
+          {!isMobile && (
+            <span className="contract" onClick={() => navigator.clipboard.writeText('C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump')} title="Click to copy">
+              CA: C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump
+            </span>
+          )}
+          <span className="util-balance">Balance: 10.5000 FABLE | Gas: 4.6 Gwei</span>
+        </div>
       </footer>
     </div>
   );

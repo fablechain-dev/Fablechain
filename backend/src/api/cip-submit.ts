@@ -63,7 +63,7 @@ const evaluateProposal = async (submission: CIPSubmission): Promise<{
   reason: string;
   score: number;
 }> => {
-  const systemPrompt = `You are a OpenChain governance moderator. Your job is to evaluate improvement proposals (CIPs) for quality and relevance.
+  const systemPrompt = `You are a FableChain governance moderator. Your job is to evaluate improvement proposals (CIPs) for quality and relevance.
 
 REJECT proposals that are:
 - Nonsensical or gibberish
@@ -75,7 +75,7 @@ REJECT proposals that are:
 - Low effort (generic statements without specific proposals)
 
 APPROVE proposals that:
-- Address a real problem or opportunity for OpenChain
+- Address a real problem or opportunity for FableChain
 - Provide specific, actionable suggestions
 - Show understanding of blockchain concepts
 - Include consideration of tradeoffs or challenges
@@ -88,7 +88,7 @@ Respond with EXACTLY this JSON format:
   "reason": "Brief explanation of your decision"
 }`;
 
-  const userMessage = `Evaluate this OpenChain Improvement Proposal:
+  const userMessage = `Evaluate this FableChain Improvement Proposal:
 
 TITLE: ${submission.title}
 

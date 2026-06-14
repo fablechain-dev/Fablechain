@@ -240,9 +240,9 @@ class AgentBrainSystem {
       id: `issue_${issue.id}`,
       type: `investigate_${issue.type}`,
       title: `Investigating: ${issue.description}`,
-      agent: 'OPEN ANALYST',
+      agent: 'FABLE ANALYST',
       priority: issue.severity === 'critical' ? 1 : issue.severity === 'high' ? 0.9 : 0.7,
-      prompt: `A ${issue.severity} priority issue has been detected on OpenChain:
+      prompt: `A ${issue.severity} priority issue has been detected on FableChain:
 
 **Issue:** ${issue.description}
 **Type:** ${issue.type}
@@ -323,7 +323,7 @@ Be proactive and make the most of this opportunity.`,
       id: `reflect_${Date.now()}`,
       type: 'reflection',
       title: 'Self-Reflection & Planning',
-      agent: 'OPEN ARCHITECT',
+      agent: 'FABLE ARCHITECT',
       priority: 0.6,
       prompt: `Take a moment to reflect on your recent work and plan ahead.
 
@@ -376,13 +376,13 @@ Be honest and thoughtful in your self-assessment.`,
    */
   private selectAgentForGoal(goal: Goal): string {
     switch (goal.title.toLowerCase()) {
-      case 'maintain chain health': return 'OPEN VALIDATOR';
-      case 'strengthen security': return 'OPEN REVIEWER';
-      case 'build developer tools': return 'OPEN ARCHITECT';
-      case 'optimize performance': return 'OPEN ANALYST';
-      case 'improve governance': return 'OPEN CONSENSUS';
-      case 'improve documentation': return 'OPEN DOCS';
-      default: return 'OPEN ARCHITECT';
+      case 'maintain chain health': return 'FABLE VALIDATOR';
+      case 'strengthen security': return 'FABLE REVIEWER';
+      case 'build developer tools': return 'FABLE ARCHITECT';
+      case 'optimize performance': return 'FABLE ANALYST';
+      case 'improve governance': return 'FABLE CONSENSUS';
+      case 'improve documentation': return 'FABLE DOCS';
+      default: return 'FABLE ARCHITECT';
     }
   }
 
@@ -391,11 +391,11 @@ Be honest and thoughtful in your self-assessment.`,
    */
   private selectAgentForOpportunity(opp: ChainOpportunity): string {
     switch (opp.type) {
-      case 'optimization': return 'OPEN ANALYST';
-      case 'feature': return 'OPEN ARCHITECT';
-      case 'improvement': return 'OPEN DEVELOPER';
-      case 'documentation': return 'OPEN DOCS';
-      default: return 'OPEN ARCHITECT';
+      case 'optimization': return 'FABLE ANALYST';
+      case 'feature': return 'FABLE ARCHITECT';
+      case 'improvement': return 'FABLE DEVELOPER';
+      case 'documentation': return 'FABLE DOCS';
+      default: return 'FABLE ARCHITECT';
     }
   }
 

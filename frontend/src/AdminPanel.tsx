@@ -105,17 +105,17 @@ const AdminPanel: React.FC = () => {
       <div style={{ 
         background: '#000000',
         color: '#ffffff',
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: 'var(--font-mono)',
         fontSize: '12px',
         padding: '20px'
       }}>
-        <h2 style={{ color: '#ff0000', fontSize: '16px', marginBottom: '20px' }}>
+        <h2 style={{ color: '#e0604c', fontSize: '16px', marginBottom: '20px' }}>
           ADMIN ACCESS
         </h2>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '400px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#00ff00' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#8aa874' }}>
               USERNAME:
             </label>
             <input
@@ -130,14 +130,14 @@ const AdminPanel: React.FC = () => {
                 border: '1px solid #ffffff',
                 borderRadius: '0px',
                 fontSize: '12px',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
               placeholder="admin"
             />
           </div>
           
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#00ff00' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#8aa874' }}>
               PASSWORD:
             </label>
             <input
@@ -152,9 +152,9 @@ const AdminPanel: React.FC = () => {
                 border: '1px solid #ffffff',
                 borderRadius: '0px',
                 fontSize: '12px',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
-              placeholder="openchain-admin-2024"
+              placeholder="fablechain-admin-2024"
             />
           </div>
           
@@ -163,13 +163,13 @@ const AdminPanel: React.FC = () => {
             disabled={loading || !username || !password}
             style={{
               padding: '12px 24px',
-              backgroundColor: loading || !username || !password ? '#333333' : '#ff0000',
+              backgroundColor: loading || !username || !password ? '#333333' : '#e0604c',
               color: loading || !username || !password ? '#666666' : '#ffffff',
               border: '1px solid #ffffff',
               borderRadius: '0px',
               cursor: loading || !username || !password ? 'not-allowed' : 'pointer',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 'bold'
             }}
           >
@@ -178,7 +178,7 @@ const AdminPanel: React.FC = () => {
           
           {message && (
             <div style={{ 
-              color: message.includes('successful') ? '#00ff00' : '#ff0000',
+              color: message.includes('successful') ? '#8aa874' : '#e0604c',
               fontSize: '11px'
             }}>
               {message}
@@ -193,33 +193,33 @@ const AdminPanel: React.FC = () => {
     <div style={{ 
       background: '#000000',
       color: '#ffffff',
-      fontFamily: 'JetBrains Mono, monospace',
+      fontFamily: 'var(--font-mono)',
       fontSize: '12px',
       padding: '20px'
     }}>
-      <h2 style={{ color: '#ff0000', fontSize: '16px', marginBottom: '20px' }}>
+      <h2 style={{ color: '#e0604c', fontSize: '16px', marginBottom: '20px' }}>
         [!] ADMIN PANEL
       </h2>
       
       {dashboard && (
         <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ color: '#00ff00', fontSize: '14px', marginBottom: '15px' }}>
+          <h3 style={{ color: '#8aa874', fontSize: '14px', marginBottom: '15px' }}>
             SYSTEM OVERVIEW
           </h3>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
             <div style={{ background: '#1a1a1a', padding: '15px', border: '1px solid #333' }}>
-              <div style={{ color: '#00ff00', fontSize: '11px' }}>TOTAL CIPS</div>
+              <div style={{ color: '#8aa874', fontSize: '11px' }}>TOTAL CIPS</div>
               <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{dashboard.totalCIPs}</div>
             </div>
             
             <div style={{ background: '#1a1a1a', padding: '15px', border: '1px solid #333' }}>
-              <div style={{ color: '#00ff00', fontSize: '11px' }}>ACTIVE CIPS</div>
+              <div style={{ color: '#8aa874', fontSize: '11px' }}>ACTIVE CIPS</div>
               <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{dashboard.activeCIPs}</div>
             </div>
             
             <div style={{ background: '#1a1a1a', padding: '15px', border: '1px solid #333' }}>
-              <div style={{ color: '#00ff00', fontSize: '11px' }}>ARCHIVED CIPS</div>
+              <div style={{ color: '#8aa874', fontSize: '11px' }}>ARCHIVED CIPS</div>
               <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{dashboard.archivedCIPs}</div>
             </div>
             
@@ -229,7 +229,7 @@ const AdminPanel: React.FC = () => {
             </div>
             
             <div style={{ background: '#1a1a1a', padding: '15px', border: '1px solid #333' }}>
-              <div style={{ color: '#00ff00', fontSize: '11px' }}>SYSTEM CIPS</div>
+              <div style={{ color: '#8aa874', fontSize: '11px' }}>SYSTEM CIPS</div>
               <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{dashboard.systemCIPs}</div>
             </div>
           </div>
@@ -237,7 +237,7 @@ const AdminPanel: React.FC = () => {
       )}
       
       <div style={{ marginBottom: '30px' }}>
-        <h3 style={{ color: '#ff0000', fontSize: '14px', marginBottom: '15px' }}>
+        <h3 style={{ color: '#e0604c', fontSize: '14px', marginBottom: '15px' }}>
           DANGEROUS ACTIONS
         </h3>
         
@@ -247,13 +247,13 @@ const AdminPanel: React.FC = () => {
             disabled={loading}
             style={{
               padding: '12px 24px',
-              backgroundColor: loading ? '#333333' : '#ff0000',
+              backgroundColor: loading ? '#333333' : '#e0604c',
               color: loading ? '#666666' : '#ffffff',
               border: '1px solid #ffffff',
               borderRadius: '0px',
               cursor: loading ? 'not-allowed' : 'pointer',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 'bold'
             }}
           >
@@ -270,7 +270,7 @@ const AdminPanel: React.FC = () => {
               borderRadius: '0px',
               cursor: 'pointer',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 'bold'
             }}
           >
@@ -281,7 +281,7 @@ const AdminPanel: React.FC = () => {
       
       {message && (
         <div style={{ 
-          color: message.includes('successful') ? '#00ff00' : '#ff0000',
+          color: message.includes('successful') ? '#8aa874' : '#e0604c',
           fontSize: '11px',
           background: '#1a1a1a',
           padding: '10px',

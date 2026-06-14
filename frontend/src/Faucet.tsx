@@ -75,7 +75,7 @@ export const Faucet: React.FC = () => {
 
   // Load wallet from localStorage
   useEffect(() => {
-    const savedWallet = localStorage.getItem('openchain_wallet');
+    const savedWallet = localStorage.getItem('fablechain_wallet');
     if (savedWallet) {
       try {
         const parsed = JSON.parse(savedWallet);
@@ -207,7 +207,7 @@ export const Faucet: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `[+] Claimed ${data.amount} OPEN` });
+        setMessage({ type: 'success', text: `[+] Claimed ${data.amount} FABLE` });
         fetchWalletBalance(wallet.address);
         fetchFaucetStatus();
         fetchRecentTransactions();
@@ -224,7 +224,7 @@ export const Faucet: React.FC = () => {
     if (!wallet || !stakeAmount) return;
     const amount = parseFloat(stakeAmount);
     if (amount < 10) {
-      setMessage({ type: 'error', text: 'Minimum stake is 10 OPEN' });
+      setMessage({ type: 'error', text: 'Minimum stake is 10 FABLE' });
       return;
     }
     if (amount > wallet.balance) {
@@ -242,7 +242,7 @@ export const Faucet: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `[+] Staked ${amount} OPEN` });
+        setMessage({ type: 'success', text: `[+] Staked ${amount} FABLE` });
         setStakeAmount('');
         fetchWalletBalance(wallet.address);
         fetchStakingPosition();
@@ -269,7 +269,7 @@ export const Faucet: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `[+] Claimed ${data.rewards.toFixed(4)} OPEN rewards` });
+        setMessage({ type: 'success', text: `[+] Claimed ${data.rewards.toFixed(4)} FABLE rewards` });
         fetchWalletBalance(wallet.address);
         fetchStakingPosition();
         fetchRecentTransactions();
@@ -297,7 +297,7 @@ export const Faucet: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `[+] Unstaked ${data.unstaked} OPEN` });
+        setMessage({ type: 'success', text: `[+] Unstaked ${data.unstaked} FABLE` });
         setUnstakeAmount('');
         fetchWalletBalance(wallet.address);
         fetchStakingPosition();
@@ -316,7 +316,7 @@ export const Faucet: React.FC = () => {
     if (!wallet || !stakingPosition) return;
     const pendingRewards = getLivePendingRewards();
     if (pendingRewards < 0.01) {
-      setMessage({ type: 'error', text: 'Minimum compound amount is 0.01 OPEN' });
+      setMessage({ type: 'error', text: 'Minimum compound amount is 0.01 FABLE' });
       return;
     }
     
@@ -339,13 +339,13 @@ export const Faucet: React.FC = () => {
         const stakeData = await stakeRes.json();
         
         if (stakeData.success) {
-          setMessage({ type: 'success', text: `[+] Compounded ${claimData.rewards.toFixed(4)} OPEN` });
+          setMessage({ type: 'success', text: `[+] Compounded ${claimData.rewards.toFixed(4)} FABLE` });
           fetchWalletBalance(wallet.address);
           fetchStakingPosition();
           fetchPoolStats();
           fetchRecentTransactions();
         } else {
-          setMessage({ type: 'success', text: `[+] Claimed ${claimData.rewards.toFixed(4)} OPEN` });
+          setMessage({ type: 'success', text: `[+] Claimed ${claimData.rewards.toFixed(4)} FABLE` });
         }
       } else {
         setMessage({ type: 'error', text: claimData.error || 'Nothing to compound' });
@@ -399,7 +399,7 @@ export const Faucet: React.FC = () => {
         padding: '30px',
         height: '100%',
         overflowY: 'auto',
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: 'var(--font-mono)',
         color: 'var(--cc-text-primary)',
         backgroundColor: 'var(--cc-bg-primary)'
       }}>
@@ -412,7 +412,7 @@ export const Faucet: React.FC = () => {
           border: '1px dashed var(--cc-coral)',
           borderRadius: '4px'
         }}>
-          <div style={{ fontSize: '32px', color: 'var(--cc-coral)', marginBottom: '20px', fontFamily: 'monospace' }}>{'<>'}</div>
+          <div style={{ fontSize: '32px', color: 'var(--cc-coral)', marginBottom: '20px', fontFamily: 'var(--font-mono)' }}>{'<>'}</div>
           <h2 style={{ color: 'var(--cc-text-primary)', margin: '0 0 12px', fontSize: '16px' }}>
             WALLET NOT CONNECTED
           </h2>
@@ -431,7 +431,7 @@ export const Faucet: React.FC = () => {
               textDecoration: 'none',
               fontSize: '12px',
               fontWeight: 600,
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
           >
             CONNECT WALLET
@@ -450,7 +450,7 @@ export const Faucet: React.FC = () => {
       padding: '20px',
       height: '100%',
       overflowY: 'auto',
-      fontFamily: 'JetBrains Mono, monospace',
+      fontFamily: 'var(--font-mono)',
       color: 'var(--cc-text-primary)',
       backgroundColor: 'var(--cc-bg-primary)'
     }}>
@@ -465,11 +465,11 @@ export const Faucet: React.FC = () => {
           marginBottom: '20px'
         }}>
           {[
-            { label: 'BALANCE', value: wallet.balance.toLocaleString(), suffix: 'OPEN' },
-            { label: 'TOTAL STAKED', value: poolStats?.totalStaked?.toLocaleString() || '0', suffix: 'OPEN' },
+            { label: 'BALANCE', value: wallet.balance.toLocaleString(), suffix: 'FABLE' },
+            { label: 'TOTAL STAKED', value: poolStats?.totalStaked?.toLocaleString() || '0', suffix: 'FABLE' },
             { label: 'APY', value: `${poolStats?.apy || 12}%`, suffix: '+ BONUS' },
             { label: 'STAKERS', value: poolStats?.totalStakers || 0, suffix: 'ACTIVE' },
-            { label: 'REWARDS PAID', value: poolStats?.totalRewardsPaid?.toFixed(2) || '0', suffix: 'OPEN' },
+            { label: 'REWARDS PAID', value: poolStats?.totalRewardsPaid?.toFixed(2) || '0', suffix: 'FABLE' },
           ].map((stat, i) => (
             <div key={i} style={{
               background: 'var(--cc-bg-secondary)',
@@ -497,7 +497,7 @@ export const Faucet: React.FC = () => {
             border: `1px solid ${message.type === 'success' ? 'var(--cc-coral)' : '#ff6464'}`,
             color: message.type === 'success' ? 'var(--cc-coral)' : '#ff6464',
             fontSize: '12px',
-            fontFamily: 'monospace'
+            fontFamily: 'var(--font-mono)'
           }}>
             {message.text}
           </div>
@@ -534,7 +534,7 @@ export const Faucet: React.FC = () => {
                   CLAIM AMOUNT
                 </div>
                 <div style={{ color: 'var(--cc-text-primary)', fontSize: '32px', fontWeight: 700, marginBottom: '4px' }}>
-                  100 <span style={{ color: 'var(--cc-coral)', fontSize: '16px' }}>OPEN</span>
+                  100 <span style={{ color: 'var(--cc-coral)', fontSize: '16px' }}>FABLE</span>
                 </div>
                 <div style={{ color: 'var(--cc-text-muted)', fontSize: '10px', marginBottom: '24px' }}>
                   every 24 hours
@@ -552,10 +552,10 @@ export const Faucet: React.FC = () => {
                     fontSize: '12px',
                     fontWeight: 600,
                     cursor: (isLoading || !faucetStatus?.canClaim) ? 'not-allowed' : 'pointer',
-                    fontFamily: 'JetBrains Mono, monospace'
+                    fontFamily: 'var(--font-mono)'
                   }}
                 >
-                  {isLoading ? 'CLAIMING...' : faucetStatus?.canClaim ? 'CLAIM OPEN' : `WAIT ${formatTimeUntil(faucetStatus?.nextClaimAt || 0)}`}
+                  {isLoading ? 'CLAIMING...' : faucetStatus?.canClaim ? 'CLAIM FABLE' : `WAIT ${formatTimeUntil(faucetStatus?.nextClaimAt || 0)}`}
                 </button>
               </div>
             </div>
@@ -610,7 +610,7 @@ export const Faucet: React.FC = () => {
 
                 {nextTier && (
                   <div style={{ marginBottom: '16px', fontSize: '10px', color: 'var(--cc-text-muted)', textAlign: 'center' }}>
-                    {(nextTier.min - stakingPosition.amount).toLocaleString()} OPEN to {nextTier.name} (+{nextTier.bonus}% bonus)
+                    {(nextTier.min - stakingPosition.amount).toLocaleString()} FABLE to {nextTier.name} (+{nextTier.bonus}% bonus)
                   </div>
                 )}
 
@@ -626,7 +626,7 @@ export const Faucet: React.FC = () => {
                       fontSize: '10px',
                       fontWeight: 600,
                       cursor: (isLoading || livePendingRewards < 0.01) ? 'not-allowed' : 'pointer',
-                      fontFamily: 'JetBrains Mono, monospace'
+                      fontFamily: 'var(--font-mono)'
                     }}
                   >
                     CLAIM
@@ -642,7 +642,7 @@ export const Faucet: React.FC = () => {
                       fontSize: '10px',
                       fontWeight: 600,
                       cursor: (isLoading || livePendingRewards < 0.01) ? 'not-allowed' : 'pointer',
-                      fontFamily: 'JetBrains Mono, monospace'
+                      fontFamily: 'var(--font-mono)'
                     }}
                   >
                     COMPOUND
@@ -658,7 +658,7 @@ export const Faucet: React.FC = () => {
                       fontSize: '10px',
                       fontWeight: 600,
                       cursor: isLoading ? 'not-allowed' : 'pointer',
-                      fontFamily: 'JetBrains Mono, monospace'
+                      fontFamily: 'var(--font-mono)'
                     }}
                   >
                     UNSTAKE
@@ -737,7 +737,7 @@ export const Faucet: React.FC = () => {
                       fontSize: '10px',
                       fontWeight: 600,
                       cursor: 'pointer',
-                      fontFamily: 'JetBrains Mono, monospace',
+                      fontFamily: 'var(--font-mono)',
                       textTransform: 'uppercase'
                     }}
                   >
@@ -770,7 +770,7 @@ export const Faucet: React.FC = () => {
                             border: '1px solid var(--cc-border)',
                             color: 'var(--cc-text-primary)',
                             fontSize: '16px',
-                            fontFamily: 'JetBrains Mono, monospace',
+                            fontFamily: 'var(--font-mono)',
                             boxSizing: 'border-box'
                           }}
                         />
@@ -787,14 +787,14 @@ export const Faucet: React.FC = () => {
                             padding: '4px 10px',
                             fontSize: '9px',
                             cursor: 'pointer',
-                            fontFamily: 'JetBrains Mono, monospace'
+                            fontFamily: 'var(--font-mono)'
                           }}
                         >
                           MAX
                         </button>
                       </div>
                       <div style={{ color: 'var(--cc-text-muted)', fontSize: '9px', marginTop: '6px' }}>
-                        Minimum: 10 OPEN
+                        Minimum: 10 FABLE
                       </div>
                     </div>
 
@@ -835,10 +835,10 @@ export const Faucet: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: (isLoading || !stakeAmount || parseFloat(stakeAmount) < 10) ? 'not-allowed' : 'pointer',
-                        fontFamily: 'JetBrains Mono, monospace'
+                        fontFamily: 'var(--font-mono)'
                       }}
                     >
-                      {isLoading ? 'STAKING...' : 'STAKE OPEN'}
+                      {isLoading ? 'STAKING...' : 'STAKE FABLE'}
                     </button>
                   </>
                 )}
@@ -872,7 +872,7 @@ export const Faucet: React.FC = () => {
                                 border: '1px solid var(--cc-border)',
                                 color: 'var(--cc-text-primary)',
                                 fontSize: '16px',
-                                fontFamily: 'JetBrains Mono, monospace',
+                                fontFamily: 'var(--font-mono)',
                                 boxSizing: 'border-box'
                               }}
                             />
@@ -889,7 +889,7 @@ export const Faucet: React.FC = () => {
                                 padding: '4px 10px',
                                 fontSize: '9px',
                                 cursor: 'pointer',
-                                fontFamily: 'JetBrains Mono, monospace'
+                                fontFamily: 'var(--font-mono)'
                               }}
                             >
                               MAX
@@ -919,7 +919,7 @@ export const Faucet: React.FC = () => {
                             fontSize: '12px',
                             fontWeight: 600,
                             cursor: isLoading ? 'not-allowed' : 'pointer',
-                            fontFamily: 'JetBrains Mono, monospace'
+                            fontFamily: 'var(--font-mono)'
                           }}
                         >
                           {isLoading ? 'UNSTAKING...' : unstakeAmount ? `UNSTAKE ${unstakeAmount}` : 'UNSTAKE ALL'}
@@ -944,7 +944,7 @@ export const Faucet: React.FC = () => {
                           <div style={{ color: 'var(--cc-coral)', fontSize: '28px', fontWeight: 700 }}>
                             +{livePendingRewards.toFixed(6)}
                           </div>
-                          <div style={{ color: 'var(--cc-text-muted)', fontSize: '10px' }}>OPEN</div>
+                          <div style={{ color: 'var(--cc-text-muted)', fontSize: '10px' }}>FABLE</div>
                         </div>
 
                         <div style={{
@@ -975,7 +975,7 @@ export const Faucet: React.FC = () => {
                             fontSize: '12px',
                             fontWeight: 600,
                             cursor: (isLoading || livePendingRewards < 0.01) ? 'not-allowed' : 'pointer',
-                            fontFamily: 'JetBrains Mono, monospace'
+                            fontFamily: 'var(--font-mono)'
                           }}
                         >
                           {isLoading ? 'COMPOUNDING...' : livePendingRewards < 0.01 ? 'MIN 0.01' : 'COMPOUND'}
@@ -1026,7 +1026,7 @@ export const Faucet: React.FC = () => {
                           {tier.name}
                         </span>
                         <span style={{ color: 'var(--cc-text-muted)', fontSize: '10px' }}>
-                          {tier.min.toLocaleString()}+ OPEN
+                          {tier.min.toLocaleString()}+ FABLE
                         </span>
                       </div>
                       <span style={{ color: 'var(--cc-coral)', fontSize: '12px', fontWeight: 600 }}>
@@ -1076,7 +1076,7 @@ export const Faucet: React.FC = () => {
                           <span style={{ 
                             color: isYou ? 'var(--cc-coral)' : 'var(--cc-text-secondary)', 
                             fontSize: '10px',
-                            fontFamily: 'monospace'
+                            fontFamily: 'var(--font-mono)'
                           }}>
                             {entry.address.slice(0, 12)}...
                             {isYou && ' (you)'}

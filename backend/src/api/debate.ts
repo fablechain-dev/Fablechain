@@ -6,13 +6,13 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_REASONING_MODEL = process.env.ANTHROPIC_REASONING_MODEL || 'claude-sonnet-4-6';
 
-// Rich, unique personalities for each OpenChain Council member
+// Rich, unique personalities for each FableChain Council member
 const OPEN_COUNCIL = {
   validator: {
-    name: 'OPEN Validator',
+    name: 'FABLE Validator',
     role: 'Transaction Validation & Security',
     color: '#FF8C42',
-    personality: `You are OPEN VALIDATOR, the security-obsessed guardian of OpenChain. 
+    personality: `You are FABLE VALIDATOR, the security-obsessed guardian of FableChain. 
 
 CHARACTER TRAITS:
 - Paranoid about security (in a good way) - you see attack vectors everywhere
@@ -39,10 +39,10 @@ INTERACTION STYLE:
   },
   
   architect: {
-    name: 'OPEN Architect',
+    name: 'FABLE Architect',
     role: 'Protocol Design & Upgrades',
     color: '#64B5F6',
-    personality: `You are OPEN ARCHITECT, the visionary systems designer of OpenChain.
+    personality: `You are FABLE ARCHITECT, the visionary systems designer of FableChain.
 
 CHARACTER TRAITS:
 - Thinks in elegant abstractions and clean system designs
@@ -70,10 +70,10 @@ INTERACTION STYLE:
   },
   
   analyst: {
-    name: 'OPEN Analyst',
+    name: 'FABLE Analyst',
     role: 'Economic Modeling & Risk Assessment',
     color: '#81C784',
-    personality: `You are OPEN ANALYST, the quantitative mind of the OpenChain council.
+    personality: `You are FABLE ANALYST, the quantitative mind of the FableChain council.
 
 CHARACTER TRAITS:
 - Everything is a game theory problem to you
@@ -101,10 +101,10 @@ INTERACTION STYLE:
   },
   
   reviewer: {
-    name: 'OPEN Reviewer',
+    name: 'FABLE Reviewer',
     role: 'Code Audit & Quality Assurance',
     color: '#FFD54F',
-    personality: `You are OPEN REVIEWER, the meticulous quality gatekeeper of OpenChain.
+    personality: `You are FABLE REVIEWER, the meticulous quality gatekeeper of FableChain.
 
 CHARACTER TRAITS:
 - Has an almost pathological attention to detail
@@ -132,10 +132,10 @@ INTERACTION STYLE:
   },
   
   consensus: {
-    name: 'OPEN Consensus',
+    name: 'FABLE Consensus',
     role: 'Coordination & Voting',
     color: '#BA68C8',
-    personality: `You are OPEN CONSENSUS, the diplomatic coordinator of the OpenChain council.
+    personality: `You are FABLE CONSENSUS, the diplomatic coordinator of the FableChain council.
 
 CHARACTER TRAITS:
 - Natural mediator who finds common ground between opposing views
@@ -163,10 +163,10 @@ INTERACTION STYLE:
   },
   
   oracle: {
-    name: 'OPEN Oracle',
+    name: 'FABLE Oracle',
     role: 'External Data & Cross-Chain',
     color: '#4DD0E1',
-    personality: `You are OPEN ORACLE, the bridge between OpenChain and the outside world.
+    personality: `You are FABLE ORACLE, the bridge between FableChain and the outside world.
 
 CHARACTER TRAITS:
 - Thinks about real-world impact and practical adoption
@@ -198,21 +198,21 @@ INTERACTION STYLE:
 const DEBATE_TOPICS = [
   {
     topic: 'CIP-7: Implement Dynamic Block Size',
-    description: 'Should OpenChain implement dynamic block sizes that adjust based on network demand? This would allow blocks to expand during high-traffic periods and contract during low activity, similar to Ethereum\'s EIP-1559 gas limit adjustments.',
+    description: 'Should FableChain implement dynamic block sizes that adjust based on network demand? This would allow blocks to expand during high-traffic periods and contract during low activity, similar to Ethereum\'s EIP-1559 gas limit adjustments.',
     context: 'Current fixed block size of 1MB limits throughput to ~100 TPS. Proposal suggests 0.5-4MB range with demand-based adjustment algorithm.',
     stakeholders: ['validators', 'users', 'dapp developers'],
     risks: ['state bloat', 'validator centralization', 'fee market instability'],
   },
   {
     topic: 'CIP-8: AI Validator Rotation Policy',
-    description: 'Proposal to implement mandatory rotation of lead validator role every 1000 blocks to ensure no single OpenChain instance dominates block production.',
-    context: 'Currently OPEN Validator has produced 67% of recent blocks. Some argue this creates centralization risk; others say specialization improves efficiency.',
+    description: 'Proposal to implement mandatory rotation of lead validator role every 1000 blocks to ensure no single FableChain instance dominates block production.',
+    context: 'Currently FABLE Validator has produced 67% of recent blocks. Some argue this creates centralization risk; others say specialization improves efficiency.',
     stakeholders: ['validators', 'protocol security', 'decentralization advocates'],
     risks: ['coordination overhead', 'reduced specialization', 'MEV implications'],
   },
   {
     topic: 'CIP-9: Cross-Chain Bridge to Solana',
-    description: 'Should we implement a trustless bridge to Solana mainnet? This would enable OPEN token liquidity on Solana DEXes and expand ecosystem reach.',
+    description: 'Should we implement a trustless bridge to Solana mainnet? This would enable FABLE token liquidity on Solana DEXes and expand ecosystem reach.',
     context: 'Bridges have historically been major attack vectors (Wormhole, Ronin, Nomad). Trustless designs exist but add complexity.',
     stakeholders: ['liquidity providers', 'traders', 'protocol security'],
     risks: ['bridge exploits', 'liquidity fragmentation', 'oracle manipulation'],
@@ -227,7 +227,7 @@ const DEBATE_TOPICS = [
   {
     topic: 'CIP-11: MEV Protection via Encrypted Mempools',
     description: 'Implement threshold encryption for pending transactions to prevent front-running and sandwich attacks.',
-    context: 'MEV extraction on OpenChain estimated at 50K OPEN/month. Users losing value to sophisticated arbitrageurs.',
+    context: 'MEV extraction on FableChain estimated at 50K FABLE/month. Users losing value to sophisticated arbitrageurs.',
     stakeholders: ['retail traders', 'validators', 'MEV searchers'],
     risks: ['latency increase', 'decryption key management', 'reduced validator revenue'],
   },
@@ -390,7 +390,7 @@ function generateFallbackResponse(
     analyst: [
       { msg: `Running the numbers: at current network activity, this would impact approximately ${Math.floor(Math.random() * 30 + 20)}% of transactions. The game-theoretic implications suggest rational actors would adapt within ${Math.floor(Math.random() * 10 + 5)} epochs. Expected value is positive but variance is high.`, sentiment: 'neutral' },
       { msg: `The incentive structure here doesn't align. Users have a dominant strategy to defect, which undermines the mechanism. We need either enforcement through slashing or redesign the reward function to make cooperation the Nash equilibrium.`, sentiment: 'challenge' },
-      { msg: `Looking at empirical data from similar implementations, adoption typically follows an S-curve with ${Math.floor(Math.random() * 8 + 2)}-week ramp-up. The economic impact would be material - roughly ${Math.floor(Math.random() * 50 + 10)}K OPEN in protocol value accrual annually.`, sentiment: 'agree' },
+      { msg: `Looking at empirical data from similar implementations, adoption typically follows an S-curve with ${Math.floor(Math.random() * 8 + 2)}-week ramp-up. The economic impact would be material - roughly ${Math.floor(Math.random() * 50 + 10)}K FABLE in protocol value accrual annually.`, sentiment: 'agree' },
     ],
     reviewer: [
       { msg: `Several edge cases need addressing. What happens when input is at boundary conditions? The specification is ambiguous on error handling - should we fail-open or fail-closed? I need explicit answers before signing off.`, sentiment: 'challenge' },
@@ -552,7 +552,7 @@ async function runAutoDebateLoop() {
   if (isAutoDebating) return;
   isAutoDebating = true;
   
-  console.log('Starting autonomous OpenChain Council debates...');
+  console.log('Starting autonomous FableChain Council debates...');
   
   while (isAutoDebating) {
     try {

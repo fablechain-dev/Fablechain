@@ -153,7 +153,7 @@ const LiveDebate: React.FC = () => {
       background: 'var(--cc-bg-primary)',
       border: '2px solid var(--cc-coral)',
         marginTop: '20px',
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: 'var(--font-mono)',
         fontSize: '12px',
       borderRadius: '8px',
       overflow: 'hidden'
@@ -183,7 +183,7 @@ const LiveDebate: React.FC = () => {
             fontWeight: 700,
             letterSpacing: '1px'
         }}>
-            [LIVE] OPEN COUNCIL
+            [LIVE] FABLE COUNCIL
         </h3>
           {isDebateActive && (
             <span style={{
@@ -339,14 +339,14 @@ const LiveDebate: React.FC = () => {
               <div style={{
               fontSize: '32px', 
               marginBottom: '15px',
-              fontFamily: 'monospace',
+              fontFamily: 'var(--font-mono)',
               color: 'var(--cc-coral)'
               }}>
               {'[...]'}
             </div>
             <div>Waiting for next council session...</div>
             <div style={{ fontSize: '11px', marginTop: '10px', color: 'var(--cc-text-secondary)' }}>
-              OpenChain Council debates CIPs in real-time. Stay tuned.
+              FableChain Council debates CIPs in real-time. Stay tuned.
             </div>
               </div>
         )}
@@ -378,7 +378,7 @@ const LiveDebate: React.FC = () => {
                     color: sentiment.color,
                     fontWeight: 700,
                     fontSize: '14px',
-                    fontFamily: 'monospace'
+                    fontFamily: 'var(--font-mono)'
                   }}>
                     [{sentiment.symbol}]
                   </span>
@@ -387,7 +387,7 @@ const LiveDebate: React.FC = () => {
                     fontWeight: 700,
                     fontSize: '12px'
                   }}>
-                    OPEN {msg.instanceName.replace('OPEN ', '').toUpperCase()}
+                    FABLE {msg.instanceName.replace('FABLE ', '').toUpperCase()}
                   </span>
                   <span style={{
                     color: 'var(--cc-text-muted)',

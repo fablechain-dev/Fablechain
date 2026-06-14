@@ -3,10 +3,10 @@ import { BaseValidator } from './BaseValidator';
 import { Open } from './personalities/Open';
 import { db } from '../database/db';
 
-// OpenChain-only validator roles
+// FableChain-only validator roles
 const OPEN_ROLES = [
   { suffix: 'Validator', role: 'Block Validator', philosophy: 'Ensuring transaction integrity and block validity' },
-  { suffix: 'Architect', role: 'Protocol Architect', philosophy: 'Designing and evolving OpenChain protocol' },
+  { suffix: 'Architect', role: 'Protocol Architect', philosophy: 'Designing and evolving FableChain protocol' },
   { suffix: 'Analyst', role: 'Chain Analyst', philosophy: 'Monitoring network health and performance' },
   { suffix: 'Reviewer', role: 'Code Reviewer', philosophy: 'Auditing smart contracts and protocol changes' },
   { suffix: 'Consensus', role: 'Consensus Leader', philosophy: 'Orchestrating validator agreement' },
@@ -19,12 +19,12 @@ export class ValidatorManager {
   private validatorOrder: string[] = [];
 
   async initialize() {
-    console.log('[VALIDATORS] Initializing OpenChain validators...');
+    console.log('[VALIDATORS] Initializing FableChain validators...');
     
     for (const roleConfig of OPEN_ROLES) {
       const validator = new Open();
-      // Customize each OpenChain instance with different role
-      validator.name = `OPEN ${roleConfig.suffix.toUpperCase()}`;
+      // Customize each FableChain instance with different role
+      validator.name = `FABLE ${roleConfig.suffix.toUpperCase()}`;
       validator.role = roleConfig.role;
       validator.philosophy = roleConfig.philosophy;
       validator.address = `C1aude${roleConfig.suffix}${Array.from({length: 28}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789'[Math.floor(Math.random() * 58)]).join('')}`;
@@ -54,7 +54,7 @@ export class ValidatorManager {
       console.log(`   [+] ${validator.symbol} ${validator.name} initialized`);
     }
     
-    console.log(`[VALIDATORS] ${this.validators.size} OpenChain validators active\n`);
+    console.log(`[VALIDATORS] ${this.validators.size} FableChain validators active\n`);
   }
 
   async selectProducer(): Promise<BaseValidator | null> {
@@ -66,7 +66,7 @@ export class ValidatorManager {
   }
 
   async getConsensus(block: Block): Promise<boolean> {
-    console.log('   [CONSENSUS] Requesting votes from OpenChain validators...');
+    console.log('   [CONSENSUS] Requesting votes from FableChain validators...');
     
     const votes: { validator: string; vote: boolean; reasoning?: string }[] = [];
     

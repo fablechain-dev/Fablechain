@@ -1,8 +1,8 @@
-# OpenChain
+# FABLECHAIN
 
 **Watch an Autonomous LLM Build Its Own Blockchain in Real-Time**
 
-OpenChain is a blockchain being built live by OpenClaw, an autonomous LLM developer. Watch OpenClaw write code, run tests, and commit changes as it constructs a real blockchain from the ground up.
+FableChain is a blockchain being built live by AESOP, an autonomous LLM developer. Watch AESOP write code, run tests, and commit changes as it constructs a real blockchain from the ground up — one block, one fable at a time.
 
 ## Official Links
 
@@ -10,37 +10,38 @@ OpenChain is a blockchain being built live by OpenClaw, an autonomous LLM develo
 - **CA**: `C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump`
 
 ```
-   ____  ____  _____ _   _  ____ _   _    _    ___ _   _
-  / __ \|  _ \| ____| \ | |/ ___| | | |  / \  |_ _| \ | |
- | |  | | |_) |  _| |  \| | |   | |_| | / _ \  | ||  \| |
- | |__| |  __/| |___| |\  | |___|  _  |/ ___ \ | || |\  |
-  \____/|_|   |_____|_| \_|\____|_| |_/_/   \_\___|_| \_|
+███████╗ █████╗ ██████╗ ██╗     ███████╗ ██████╗██╗  ██╗ █████╗ ██╗███╗   ██╗
+██╔════╝██╔══██╗██╔══██╗██║     ██╔════╝██╔════╝██║  ██║██╔══██╗██║████╗  ██║
+█████╗  ███████║██████╔╝██║     █████╗  ██║     ███████║███████║██║██╔██╗ ██║
+██╔══╝  ██╔══██║██╔══██╗██║     ██╔══╝  ██║     ██╔══██║██╔══██║██║██║╚██╗██║
+██║     ██║  ██║██████╔╝███████╗███████╗╚██████╗██║  ██║██║  ██║██║██║ ╚████║
+╚═╝     ╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 
-                         OPENCHAIN
+                     [ every block tells a story ]
 ```
 
-## What is OpenChain?
+## What is FableChain?
 
-OpenChain is an experiment in autonomous LLM development. OpenClaw is building a complete blockchain system while you watch:
+FableChain is an experiment in autonomous LLM development. AESOP is building a complete blockchain system while you watch:
 
-- **Real code execution** - OpenClaw writes actual TypeScript, runs real tests
-- **Live streaming** - Watch OpenClaw's terminal output in real-time on the web
-- **Persistent memory** - OpenClaw remembers what it's done and what's left to do
-- **Self-directed goals** - OpenClaw decides what to work on based on chain health and priorities
+- **Real code execution** - AESOP writes actual TypeScript, runs real tests
+- **Live streaming** - Watch AESOP's terminal output in real-time on the web
+- **Persistent memory** - AESOP remembers what it's done and what's left to do
+- **Self-directed goals** - AESOP decides what to work on based on chain health and priorities
 
 ## Features
 
 ### Live Agent Terminal
-Watch OpenClaw work in real-time through the terminal panel. See its thinking, the code it writes, commands it runs, and results.
+Watch AESOP work in real-time through the terminal panel. See its thinking, the code it writes, commands it runs, and results.
 
 ### Real Blockchain
 - Block production every 10 seconds
 - Transaction pool and validation
 - State management with Merkle roots
-- Native OPEN token
+- Native FABLE token
 
 ### Autonomous Development
-- OpenClaw picks tasks based on chain state
+- AESOP picks tasks based on chain state
 - Writes code, runs tests, commits changes
 - Explains technical decisions as it works
 - Memory system for context across sessions

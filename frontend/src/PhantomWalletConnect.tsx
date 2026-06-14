@@ -89,7 +89,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
   return (
     <div className="wallet-connect-container">
       <h4 className="wallet-connect-header">
-        CONNECT PHANTOM TO OPENCHAIN
+        CONNECT PHANTOM TO FABLECHAIN
       </h4>
       
       {error && (
@@ -103,7 +103,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
           <div className="wallet-connected">
             <div className="wallet-status-indicator"></div>
             <span className="wallet-address">
-              Connected to OpenChain via Phantom: {formatAddress(connectedAddress)}
+              Connected to FableChain via Phantom: {formatAddress(connectedAddress)}
             </span>
           </div>
           
@@ -117,7 +117,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <p className="wallet-connect-info">
-            Connect your Phantom wallet to interact with the OpenChain network
+            Connect your Phantom wallet to interact with the FableChain network
           </p>
           
           <button
@@ -126,15 +126,15 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
             className="wallet-connect-btn"
             style={{ 
               background: phantomProvider ? 'transparent' : '#333',
-              color: phantomProvider ? '#00ff00' : '#666',
-              borderColor: phantomProvider ? '#00ff00' : '#333'
+              color: phantomProvider ? '#8aa874' : '#666',
+              borderColor: phantomProvider ? '#8aa874' : '#333'
             }}
           >
             {isConnecting ? 'CONNECTING TO PHANTOM...' : 'CONNECT PHANTOM'}
           </button>
           
           <div className="wallet-support-info">
-            Phantom wallet for Solana-based OpenChain interaction
+            Phantom wallet for Solana-based FableChain interaction
           </div>
         </div>
       )}

@@ -161,7 +161,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
   return (
     <div className="wallet-connect-container">
       <h4 className="wallet-connect-header">
-        CONNECT TO OPENCHAIN
+        CONNECT TO FABLECHAIN
       </h4>
       
       {error && (
@@ -175,7 +175,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
           <div className="wallet-connected">
             <div className="wallet-status-indicator"></div>
             <span className="wallet-address">
-              Connected to OpenChain via {getWalletName(connectedWalletType!)}: {formatAddress(connectedAddress)}
+              Connected to FableChain via {getWalletName(connectedWalletType!)}: {formatAddress(connectedAddress)}
             </span>
           </div>
           
@@ -189,7 +189,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <p className="wallet-connect-info">
-            Connect your Web3 wallet to interact with the OpenChain network
+            Connect your Web3 wallet to interact with the FableChain network
           </p>
           
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -199,8 +199,8 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
               className="wallet-connect-btn"
               style={{ 
                 background: ethereumProvider ? 'transparent' : '#333',
-                color: ethereumProvider ? '#00ff00' : '#666',
-                borderColor: ethereumProvider ? '#00ff00' : '#333'
+                color: ethereumProvider ? '#8aa874' : '#666',
+                borderColor: ethereumProvider ? '#8aa874' : '#333'
               }}
             >
               CONNECT METAMASK
@@ -212,8 +212,8 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
               className="wallet-connect-btn"
               style={{ 
                 background: phantomProvider ? 'transparent' : '#333',
-                color: phantomProvider ? '#00ff00' : '#666',
-                borderColor: phantomProvider ? '#00ff00' : '#333'
+                color: phantomProvider ? '#8aa874' : '#666',
+                borderColor: phantomProvider ? '#8aa874' : '#333'
               }}
             >
               CONNECT PHANTOM
@@ -221,7 +221,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
           </div>
           
           <div className="wallet-support-info">
-            Supported: MetaMask (Ethereum) and Phantom (Solana) for OpenChain interaction
+            Supported: MetaMask (Ethereum) and Phantom (Solana) for FableChain interaction
           </div>
         </div>
       )}

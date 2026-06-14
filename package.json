@@ -1,7 +1,7 @@
 {
-  "name": "openchain",
+  "name": "fablechain",
   "version": "1.0.0",
-  "description": "The LLM that actually does things - an autonomous LLM on a Mac Mini building its own blockchain. Watch OpenClaw code in real-time.",
+  "description": "The LLM that actually does things - an autonomous LLM on a Mac Mini building its own blockchain. Watch AESOP code in real-time.",
   "main": "backend/dist/index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
@@ -22,8 +22,8 @@
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist build node_modules backend/node_modules frontend/node_modules",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "docker:build": "docker build -t openchain .",
-    "docker:run": "docker run -p 4000:4000 openchain",
+    "docker:build": "docker build -t fablechain .",
+    "docker:run": "docker run -p 4000:4000 fablechain",
     "docker:compose": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
     "deploy:vercel": "vercel --prod",
@@ -37,7 +37,7 @@
     "blockchain",
     "ai",
     "open",
-    "openchain",
+    "fablechain",
     "autonomous",
     "consensus",
     "cryptocurrency",
@@ -47,19 +47,19 @@
     "nodejs"
   ],
   "author": {
-    "name": "OpenChain",
-    "email": "team@openchain.xyz",
-    "url": "https://openchain.xyz"
+    "name": "FableChain",
+    "email": "team@fablechain.xyz",
+    "url": "https://fablechain.xyz"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/openchain.git"
+    "url": "https://github.com/your-username/fablechain.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/openchain/issues"
+    "url": "https://github.com/your-username/fablechain/issues"
   },
-  "homepage": "https://openchain.xyz",
+  "homepage": "https://fablechain.xyz",
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"

@@ -58,7 +58,7 @@ export const Wallet: React.FC = () => {
 
   // Load wallet from localStorage
   useEffect(() => {
-    const savedWallet = localStorage.getItem('openchain_wallet');
+    const savedWallet = localStorage.getItem('fablechain_wallet');
     if (savedWallet) {
       try {
         const parsed = JSON.parse(savedWallet);
@@ -67,7 +67,7 @@ export const Wallet: React.FC = () => {
         }
       } catch (e) {
         console.error('Failed to parse saved wallet:', e);
-        localStorage.removeItem('openchain_wallet');
+        localStorage.removeItem('fablechain_wallet');
       }
     }
   }, []);
@@ -88,18 +88,18 @@ export const Wallet: React.FC = () => {
       if (data.success && data.wallet) {
         setWallet(data.wallet);
         setView('wallet');
-        localStorage.setItem('openchain_wallet', JSON.stringify({ 
+        localStorage.setItem('fablechain_wallet', JSON.stringify({ 
           address: data.wallet.address,
           id: data.wallet.id 
         }));
       } else if (res.status === 404) {
-        localStorage.removeItem('openchain_wallet');
+        localStorage.removeItem('fablechain_wallet');
         setWallet(null);
         setView('connect');
       }
     } catch (error) {
       console.error('Failed to fetch wallet:', error);
-      const saved = localStorage.getItem('openchain_wallet');
+      const saved = localStorage.getItem('fablechain_wallet');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -152,7 +152,7 @@ export const Wallet: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setWallet({ ...data.wallet, transactions: [] });
-        localStorage.setItem('openchain_wallet', JSON.stringify(data.wallet));
+        localStorage.setItem('fablechain_wallet', JSON.stringify(data.wallet));
         setView('wallet');
         setMessage({ type: 'success', text: '[+] Wallet created. Save your private key.' });
         setShowPrivateKey(true);
@@ -181,7 +181,7 @@ export const Wallet: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setWallet(data.wallet);
-        localStorage.setItem('openchain_wallet', JSON.stringify({ address: importAddress }));
+        localStorage.setItem('fablechain_wallet', JSON.stringify({ address: importAddress }));
         setView('wallet');
         setMessage({ type: 'success', text: '[+] Wallet imported' });
       } else {
@@ -206,7 +206,7 @@ export const Wallet: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setWallet(prev => prev ? { ...prev, balance: data.newBalance } : null);
-        setMessage({ type: 'success', text: `[+] Claimed ${data.amount} OPEN` });
+        setMessage({ type: 'success', text: `[+] Claimed ${data.amount} FABLE` });
         fetchFaucetStatus();
         fetchWallet(wallet.address);
       } else {
@@ -234,7 +234,7 @@ export const Wallet: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ type: 'success', text: `[+] Sent ${data.amount} OPEN` });
+        setMessage({ type: 'success', text: `[+] Sent ${data.amount} FABLE` });
         setSendForm({ toAddress: '', amount: '' });
         fetchWallet(wallet.address);
         setView('wallet');
@@ -254,7 +254,7 @@ export const Wallet: React.FC = () => {
   };
 
   const disconnectWallet = () => {
-    localStorage.removeItem('openchain_wallet');
+    localStorage.removeItem('fablechain_wallet');
     setWallet(null);
     setView('connect');
     setShowPrivateKey(false);
@@ -297,7 +297,7 @@ export const Wallet: React.FC = () => {
           {'<>'}
         </div>
         <h1 style={{ color: 'var(--cc-text-primary)', margin: '0 0 10px', fontSize: '20px' }}>
-          OPENCHAIN WALLET
+          FABLECHAIN WALLET
         </h1>
         <p style={{ color: 'var(--cc-text-muted)', margin: 0, fontSize: '12px' }}>
           Create or import your wallet
@@ -312,7 +312,7 @@ export const Wallet: React.FC = () => {
           border: `1px solid ${message.type === 'success' ? 'var(--cc-coral)' : '#ff6464'}`,
           color: message.type === 'success' ? 'var(--cc-coral)' : '#ff6464',
           fontSize: '12px',
-          fontFamily: 'monospace'
+          fontFamily: 'var(--font-mono)'
         }}>
           {message.text}
         </div>
@@ -343,7 +343,7 @@ export const Wallet: React.FC = () => {
             fontSize: '12px',
             fontWeight: 600,
             cursor: isLoading ? 'not-allowed' : 'pointer',
-            fontFamily: 'JetBrains Mono, monospace'
+            fontFamily: 'var(--font-mono)'
           }}
         >
           {isLoading ? 'CREATING...' : 'CREATE WALLET'}
@@ -372,7 +372,7 @@ export const Wallet: React.FC = () => {
             border: '1px solid var(--cc-border)',
             color: 'var(--cc-text-primary)',
             fontSize: '12px',
-            fontFamily: 'JetBrains Mono, monospace',
+            fontFamily: 'var(--font-mono)',
             marginBottom: '12px',
             boxSizing: 'border-box'
           }}
@@ -389,7 +389,7 @@ export const Wallet: React.FC = () => {
             fontSize: '12px',
             fontWeight: 600,
             cursor: (isLoading || !importAddress) ? 'not-allowed' : 'pointer',
-            fontFamily: 'JetBrains Mono, monospace',
+            fontFamily: 'var(--font-mono)',
             opacity: (isLoading || !importAddress) ? 0.5 : 1
           }}
         >
@@ -408,7 +408,7 @@ export const Wallet: React.FC = () => {
           color: 'var(--cc-text-muted)',
           fontSize: '11px',
           cursor: 'pointer',
-          fontFamily: 'JetBrains Mono, monospace'
+          fontFamily: 'var(--font-mono)'
         }}
       >
         VIEW LEADERBOARD
@@ -427,7 +427,7 @@ export const Wallet: React.FC = () => {
           border: `1px solid ${message.type === 'success' ? 'var(--cc-coral)' : '#ff6464'}`,
           color: message.type === 'success' ? 'var(--cc-coral)' : '#ff6464',
           fontSize: '12px',
-          fontFamily: 'monospace'
+          fontFamily: 'var(--font-mono)'
         }}>
           {message.text}
         </div>
@@ -445,12 +445,12 @@ export const Wallet: React.FC = () => {
           TOTAL BALANCE
         </div>
         <div style={{ color: 'var(--cc-text-primary)', fontSize: '36px', fontWeight: 700, marginBottom: '8px' }}>
-          {wallet?.balance.toLocaleString()} <span style={{ color: 'var(--cc-coral)', fontSize: '18px' }}>OPEN</span>
+          {wallet?.balance.toLocaleString()} <span style={{ color: 'var(--cc-coral)', fontSize: '18px' }}>FABLE</span>
         </div>
         <div style={{ 
           color: 'var(--cc-text-muted)', 
           fontSize: '11px', 
-          fontFamily: 'monospace',
+          fontFamily: 'var(--font-mono)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -465,7 +465,7 @@ export const Wallet: React.FC = () => {
               color: copied === 'address' ? 'var(--cc-text-primary)' : 'var(--cc-coral)',
               cursor: 'pointer',
               fontSize: '10px',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
           >
             {copied === 'address' ? 'COPIED' : 'COPY'}
@@ -490,7 +490,7 @@ export const Wallet: React.FC = () => {
           <div style={{
             background: 'var(--cc-bg-tertiary)',
             padding: '12px',
-            fontFamily: 'monospace',
+            fontFamily: 'var(--font-mono)',
             fontSize: '10px',
             color: 'var(--cc-text-primary)',
             wordBreak: 'break-all',
@@ -509,7 +509,7 @@ export const Wallet: React.FC = () => {
                 color: copied === 'privateKey' ? 'var(--cc-coral)' : 'var(--cc-text-primary)',
                 fontSize: '10px',
                 cursor: 'pointer',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
             >
               {copied === 'privateKey' ? 'COPIED' : 'COPY KEY'}
@@ -524,7 +524,7 @@ export const Wallet: React.FC = () => {
                 color: 'var(--cc-bg-primary)',
                 fontSize: '10px',
                 cursor: 'pointer',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
             >
               I SAVED IT
@@ -545,7 +545,7 @@ export const Wallet: React.FC = () => {
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
-            fontFamily: 'JetBrains Mono, monospace'
+            fontFamily: 'var(--font-mono)'
           }}
         >
           SEND
@@ -561,7 +561,7 @@ export const Wallet: React.FC = () => {
             fontSize: '12px',
             fontWeight: 600,
             cursor: (claimingFaucet || !faucetStatus?.canClaim) ? 'not-allowed' : 'pointer',
-            fontFamily: 'JetBrains Mono, monospace'
+            fontFamily: 'var(--font-mono)'
           }}
         >
           {claimingFaucet ? 'CLAIMING...' : faucetStatus?.canClaim ? 'CLAIM FAUCET' : `WAIT ${formatTimeUntil(faucetStatus?.nextClaimAt || 0)}`}
@@ -581,7 +581,7 @@ export const Wallet: React.FC = () => {
         <div>
           <div style={{ color: 'var(--cc-text-muted)', fontSize: '9px', letterSpacing: '1px' }}>FAUCET</div>
           <div style={{ color: 'var(--cc-text-primary)', fontSize: '12px', fontWeight: 600 }}>
-            {faucetStatus?.faucetAmount || 100} OPEN / 24h
+            {faucetStatus?.faucetAmount || 100} FABLE / 24h
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -687,7 +687,7 @@ export const Wallet: React.FC = () => {
             color: 'var(--cc-text-secondary)',
             fontSize: '10px',
             cursor: 'pointer',
-            fontFamily: 'JetBrains Mono, monospace'
+            fontFamily: 'var(--font-mono)'
           }}
         >
           LEADERBOARD
@@ -702,7 +702,7 @@ export const Wallet: React.FC = () => {
             color: 'var(--cc-text-muted)',
             fontSize: '10px',
             cursor: 'pointer',
-            fontFamily: 'JetBrains Mono, monospace'
+            fontFamily: 'var(--font-mono)'
           }}
         >
           DISCONNECT
@@ -723,7 +723,7 @@ export const Wallet: React.FC = () => {
           fontSize: '11px',
           cursor: 'pointer',
           marginBottom: '20px',
-          fontFamily: 'JetBrains Mono, monospace'
+          fontFamily: 'var(--font-mono)'
         }}
       >
         {'<'} Back
@@ -735,7 +735,7 @@ export const Wallet: React.FC = () => {
         padding: '24px'
       }}>
         <h2 style={{ color: 'var(--cc-coral)', margin: '0 0 20px', fontSize: '16px' }}>
-          SEND OPEN
+          SEND FABLE
         </h2>
 
         {message && (
@@ -746,7 +746,7 @@ export const Wallet: React.FC = () => {
             border: `1px solid ${message.type === 'success' ? 'var(--cc-coral)' : '#ff6464'}`,
             color: message.type === 'success' ? 'var(--cc-coral)' : '#ff6464',
             fontSize: '11px',
-            fontFamily: 'monospace'
+            fontFamily: 'var(--font-mono)'
           }}>
             {message.text}
           </div>
@@ -768,7 +768,7 @@ export const Wallet: React.FC = () => {
               border: '1px solid var(--cc-border)',
               color: 'var(--cc-text-primary)',
               fontSize: '12px',
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-mono)',
               boxSizing: 'border-box'
             }}
           />
@@ -792,7 +792,7 @@ export const Wallet: React.FC = () => {
                 border: '1px solid var(--cc-border)',
                 color: 'var(--cc-text-primary)',
                 fontSize: '16px',
-                fontFamily: 'JetBrains Mono, monospace',
+                fontFamily: 'var(--font-mono)',
                 boxSizing: 'border-box'
               }}
             />
@@ -805,7 +805,7 @@ export const Wallet: React.FC = () => {
               fontSize: '12px',
               fontWeight: 600
             }}>
-              OPEN
+              FABLE
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
@@ -820,7 +820,7 @@ export const Wallet: React.FC = () => {
                 color: 'var(--cc-coral)',
                 fontSize: '10px',
                 cursor: 'pointer',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
             >
               MAX
@@ -840,7 +840,7 @@ export const Wallet: React.FC = () => {
             fontSize: '12px',
             fontWeight: 600,
             cursor: (sendLoading || !sendForm.toAddress || !sendForm.amount) ? 'not-allowed' : 'pointer',
-            fontFamily: 'JetBrains Mono, monospace'
+            fontFamily: 'var(--font-mono)'
           }}
         >
           {sendLoading ? 'SENDING...' : 'SEND'}
@@ -861,7 +861,7 @@ export const Wallet: React.FC = () => {
           fontSize: '11px',
           cursor: 'pointer',
           marginBottom: '20px',
-          fontFamily: 'JetBrains Mono, monospace'
+          fontFamily: 'var(--font-mono)'
         }}
       >
         {'<'} Back
@@ -881,7 +881,7 @@ export const Wallet: React.FC = () => {
             LEADERBOARD
           </h2>
           <p style={{ color: 'var(--cc-text-muted)', margin: 0, fontSize: '11px' }}>
-            Top OPEN holders
+            Top FABLE holders
           </p>
         </div>
 
@@ -927,7 +927,7 @@ export const Wallet: React.FC = () => {
                 </span>
                 <span style={{ 
                   color: wallet?.address === entry.address ? 'var(--cc-coral)' : 'var(--cc-text-secondary)',
-                  fontFamily: 'monospace'
+                  fontFamily: 'var(--font-mono)'
                 }}>
                   {entry.address.slice(0, 16)}...
                   {wallet?.address === entry.address && <span style={{ color: 'var(--cc-coral)', marginLeft: '8px' }}>(you)</span>}
@@ -951,7 +951,7 @@ export const Wallet: React.FC = () => {
       padding: '30px',
       height: '100%',
       overflowY: 'auto',
-      fontFamily: 'JetBrains Mono, monospace',
+      fontFamily: 'var(--font-mono)',
       color: 'var(--cc-text-primary)',
       backgroundColor: 'var(--cc-bg-primary)'
     }}>

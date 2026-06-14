@@ -5,10 +5,10 @@ import { eventBus } from '../events/EventBus';
 
 // Auto-deploy configuration
 const AUTO_PUSH_ENABLED = process.env.AUTO_GIT_PUSH !== 'false';
-const GIT_USER_NAME = process.env.GIT_USER_NAME || 'OPENchain';
-const GIT_USER_EMAIL = process.env.GIT_USER_EMAIL || 'openchain@users.noreply.github.com';
+const GIT_USER_NAME = process.env.GIT_USER_NAME || 'fablechain';
+const GIT_USER_EMAIL = process.env.GIT_USER_EMAIL || 'fablechain@users.noreply.github.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPO || 'OPENchain/openchain';
+const GITHUB_REPO = process.env.GITHUB_REPO || 'openchain-dev/openchain';
 
 function getAuthenticatedRemoteUrl(): string | undefined {
   if (!GITHUB_TOKEN || !GITHUB_REPO) return undefined;
@@ -93,7 +93,7 @@ export class GitIntegration {
         
         try {
           // Clone into a temp location then move .git
-          const tempDir = '/tmp/openchain-clone';
+          const tempDir = '/tmp/fablechain-clone';
           execSync(`rm -rf ${tempDir}`, { encoding: 'utf-8', stdio: 'pipe' });
           execSync(`git clone --depth 1 "${remoteUrl}" ${tempDir}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 60000 });
           
@@ -220,10 +220,10 @@ export class GitIntegration {
         }
       }
 
-      // Create commit with OPEN prefix
+      // Create commit with FABLE prefix
       const fullMessage = taskId 
-        ? `[OPEN-${taskId}] ${message}`
-        : `[OPEN] ${message}`;
+        ? `[FABLE-${taskId}] ${message}`
+        : `[FABLE] ${message}`;
       
       this.execGit(`commit -m "${fullMessage.replace(/"/g, '\\"')}"`, true);
       const commitHash = this.execGit('rev-parse --short HEAD', true);
@@ -249,7 +249,7 @@ export class GitIntegration {
             console.log('[GIT] Trying pull then push...');
             let stashed = false;
             try {
-              stashed = this.stashUncommittedChanges('openchain-auto-push-rebase');
+              stashed = this.stashUncommittedChanges('fablechain-auto-push-rebase');
               this.execGit('pull origin main --rebase --allow-unrelated-histories', true);
               this.execGit(`push -u origin ${branch}`, true);
             } catch (pullError) {
@@ -547,8 +547,8 @@ export class GitIntegration {
     try {
       // Format commit message with task reference
       const fullMessage = taskId 
-        ? `[OPEN-${taskId}] ${message}`
-        : `[OPEN] ${message}`;
+        ? `[FABLE-${taskId}] ${message}`
+        : `[FABLE] ${message}`;
       
       // Stage all changes first
       this.execGit('add -A', true);

@@ -17,7 +17,7 @@ import { verifyTransactionSignature } from './Crypto';
 // Block limits
 const MAX_BLOCK_GAS = 30000000n;
 const MAX_TRANSACTIONS_PER_BLOCK = 500;
-const BLOCK_REWARD = 10n * 10n**18n; // 10 OPEN per block
+const BLOCK_REWARD = 10n * 10n**18n; // 10 FABLE per block
 
 export class BlockProducer {
   private chain: Chain;

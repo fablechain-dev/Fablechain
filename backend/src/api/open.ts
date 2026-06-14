@@ -6,13 +6,13 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_FAST_MODEL = process.env.ANTHROPIC_FAST_MODEL || 'claude-haiku-4-5-20251001';
 
 if (!ANTHROPIC_API_KEY) {
-  console.warn('Warning: ANTHROPIC_API_KEY not set. OpenChain LLM features will be disabled.');
+  console.warn('Warning: ANTHROPIC_API_KEY not set. FableChain LLM features will be disabled.');
 }
 
 export async function anthropicChatCompletion(systemPrompt: string, message: string): Promise<string> {
   // Check if we have a valid API key
   if (!ANTHROPIC_API_KEY) {
-    return '[OPEN]: API key not configured. Please set ANTHROPIC_API_KEY.';
+    return '[FABLE]: API key not configured. Please set ANTHROPIC_API_KEY.';
   }
 
   const body = {
@@ -48,7 +48,7 @@ export async function anthropicChatCompletion(systemPrompt: string, message: str
     return aiResponse;
   } catch (error) {
     console.error('Anthropic API error:', error);
-    return '[OPEN]: Communication error. Please try again.';
+    return '[FABLE]: Communication error. Please try again.';
   }
 }
 

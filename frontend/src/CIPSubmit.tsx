@@ -88,7 +88,7 @@ export const CIPSubmit: React.FC = () => {
             SUBMIT YOUR OWN CIP
           </h3>
           <p style={{ color: 'var(--cc-text-muted)', margin: '5px 0 0', fontSize: '11px' }}>
-            Propose improvements for OpenChain - AI validators will debate your ideas
+            Propose improvements for FableChain - AI validators will debate your ideas
           </p>
         </div>
         <button
@@ -101,7 +101,7 @@ export const CIPSubmit: React.FC = () => {
             color: 'var(--cc-coral)',
             fontSize: '11px',
             cursor: 'pointer',
-            fontFamily: 'JetBrains Mono, monospace'
+            fontFamily: 'var(--font-mono)'
           }}
         >
           {showForm ? 'CANCEL' : 'NEW PROPOSAL'}
@@ -164,7 +164,7 @@ export const CIPSubmit: React.FC = () => {
                 borderRadius: '4px',
                 color: 'var(--cc-text-primary)',
                 fontSize: '12px',
-                fontFamily: 'JetBrains Mono, monospace'
+                fontFamily: 'var(--font-mono)'
               }}
             />
           </div>
@@ -193,7 +193,7 @@ export const CIPSubmit: React.FC = () => {
                     color: category === cat.id ? 'var(--cc-coral)' : 'var(--cc-text-muted)',
                     fontSize: '10px',
                     cursor: 'pointer',
-                    fontFamily: 'JetBrains Mono, monospace'
+                    fontFamily: 'var(--font-mono)'
                   }}
                 >
                   {cat.label.toUpperCase()}
@@ -225,7 +225,7 @@ export const CIPSubmit: React.FC = () => {
                 borderRadius: '4px',
                 color: 'var(--cc-text-primary)',
                 fontSize: '12px',
-                fontFamily: 'JetBrains Mono, monospace',
+                fontFamily: 'var(--font-mono)',
                 resize: 'vertical'
               }}
             />
@@ -256,7 +256,7 @@ export const CIPSubmit: React.FC = () => {
 
 - What problem does this solve?
 - How would it work technically?
-- What are the benefits for OpenChain?
+- What are the benefits for FableChain?
 - Are there any risks or tradeoffs?
 - How should AI validators evaluate this?
 
@@ -270,7 +270,7 @@ The more detail you provide, the better the AI debate will be.`}
                 borderRadius: '4px',
                 color: 'var(--cc-text-primary)',
                 fontSize: '12px',
-                fontFamily: 'JetBrains Mono, monospace',
+                fontFamily: 'var(--font-mono)',
                 resize: 'vertical',
                 lineHeight: 1.5
               }}
@@ -332,7 +332,7 @@ The more detail you provide, the better the AI debate will be.`}
               cursor: (isSubmitting || title.length < 10 || summary.length < 50 || details.length < 200)
                 ? 'not-allowed'
                 : 'pointer',
-              fontFamily: 'JetBrains Mono, monospace'
+              fontFamily: 'var(--font-mono)'
             }}
           >
             {isSubmitting ? 'SUBMITTING FOR AI REVIEW...' : 'SUBMIT PROPOSAL FOR DEBATE'}

@@ -35,7 +35,7 @@ export interface GitResult {
 export const AGENT_TOOLS = [
   {
     name: 'read_file',
-    description: 'Read the contents of a file in the OpenChain codebase',
+    description: 'Read the contents of a file in the FableChain codebase',
     input_schema: {
       type: 'object',
       properties: {

@@ -371,7 +371,7 @@ const AdminDashboard: React.FC = () => {
               display: 'flex',
               gap: 8
             }}>
-              <span style={{ color: 'var(--coral)', fontFamily: 'monospace' }}>
+              <span style={{ color: 'var(--coral)', fontFamily: 'var(--font-mono)' }}>
                 {commit.shortHash}
               </span>
               <span style={{ flex: 1 }}>{commit.message}</span>

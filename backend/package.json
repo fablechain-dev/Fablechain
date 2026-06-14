@@ -1,7 +1,7 @@
 {
-  "name": "openchain-backend",
+  "name": "fablechain-backend",
   "version": "1.0.0",
-  "description": "OpenChain Backend - Autonomous AI building a blockchain in real-time",
+  "description": "FableChain Backend - Autonomous AI building a blockchain in real-time",
   "main": "dist/api/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/api/server.ts",
@@ -14,7 +14,7 @@
     "ai",
     "validators"
   ],
-  "author": "OpenChain",
+  "author": "FableChain",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",

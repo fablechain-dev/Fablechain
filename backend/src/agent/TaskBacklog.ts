@@ -19,7 +19,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'faucet-001',
     title: 'Build testnet faucet backend',
-    description: 'Create a faucet API endpoint that dispenses testnet OPEN tokens. Rate limit to 1 request per address per day. Track dispensed addresses in database. Mint 10 OPEN per request.',
+    description: 'Create a faucet API endpoint that dispenses testnet FABLE tokens. Rate limit to 1 request per address per day. Track dispensed addresses in database. Mint 10 FABLE per request.',
     type: 'feature',
     priority: 10,
     estimatedMinutes: 45,
@@ -203,7 +203,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   // ============ SMART CONTRACTS ============
   {
     id: 'sc-001',
-    title: 'Design OPEN token standard (ORC-20)',
+    title: 'Design FABLE token standard (ORC-20)',
     description: 'Create fungible token standard similar to ERC-20. Define interface for transfer, approve, transferFrom.',
     type: 'build',
     priority: 9,
@@ -639,7 +639,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'docs-003',
     title: 'Write smart contract developer guide',
-    description: 'Guide for writing and deploying contracts on OpenChain.',
+    description: 'Guide for writing and deploying contracts on FableChain.',
     type: 'docs',
     priority: 6,
     estimatedMinutes: 50,
@@ -648,7 +648,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'docs-004',
     title: 'Document token standards (ORC-20/721)',
-    description: 'Specification documents for OpenChain token standards.',
+    description: 'Specification documents for FableChain token standards.',
     type: 'docs',
     priority: 5,
     estimatedMinutes: 40,
@@ -657,7 +657,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'docs-005',
     title: 'Create node operator guide',
-    description: 'Instructions for running a OpenChain node. Hardware requirements, configuration.',
+    description: 'Instructions for running a FableChain node. Hardware requirements, configuration.',
     type: 'docs',
     priority: 5,
     estimatedMinutes: 35,
@@ -1311,7 +1311,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'token-005',
     title: 'Implement wrapped native token (WOPEN)',
-    description: 'Build wrapped OPEN token contract. Support deposit (wrap) and withdraw (unwrap). Maintain 1:1 peg with native token.',
+    description: 'Build wrapped FABLE token contract. Support deposit (wrap) and withdraw (unwrap). Maintain 1:1 peg with native token.',
     type: 'build',
     priority: 7,
     estimatedMinutes: 35,
@@ -1592,7 +1592,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   // ============ DEVTOOLS & SDK ============
   {
     id: 'dev-001',
-    title: 'Build JavaScript SDK for interacting with OpenChain',
+    title: 'Build JavaScript SDK for interacting with FableChain',
     description: 'Create an npm package with methods for: connect, getBalance, sendTransaction, deployContract, callContract, subscribe.',
     type: 'build',
     priority: 8,
@@ -1602,7 +1602,7 @@ export const TASK_BACKLOG: BacklogTask[] = [
   {
     id: 'dev-002',
     title: 'Implement local devnet launcher',
-    description: 'Single command to spin up a local OpenChain network with funded accounts, fast block times, and auto-mining.',
+    description: 'Single command to spin up a local FableChain network with funded accounts, fast block times, and auto-mining.',
     type: 'build',
     priority: 7,
     estimatedMinutes: 50,
