@@ -2,8 +2,8 @@
 // Tries the real GitHub API first (works when the repo is public or a token is configured).
 // Falls back to simulated commits so the UI never goes blank.
 
-const REPO_URL = 'https://github.com/white-roz3/Fablechain';
-const GITHUB_API = 'https://api.github.com/repos/white-roz3/Fablechain/commits';
+const REPO_URL = 'https://github.com/openchain-dev/Fablechain';
+const GITHUB_API = 'https://api.github.com/repos/openchain-dev/Fablechain/commits';
 
 export interface GhCommit {
   sha: string;

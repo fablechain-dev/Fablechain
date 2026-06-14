@@ -378,7 +378,7 @@ const AgentTerminal: React.FC = () => {
       }
       
       // GitHub link
-      if (line.includes('github.com/white-roz3/Fablechain')) {
+      if (line.includes('github.com/openchain-dev/Fablechain')) {
         const href = line
           .replace('  View: ', '')
           .trim();
