@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { subscribeAgentSim, SimEvent } from './agentSim';
 
 interface Task {
   id: string;
@@ -60,6 +61,8 @@ const AgentTerminal: React.FC = () => {
     currentDecision: null,
   });
   const [connected, setConnected] = useState(false);
+  const [simActive, setSimActive] = useState(false);
+  const connectedRef = useRef(false);
   const [displayedText, setDisplayedText] = useState('');
   const [recentCommits, setRecentCommits] = useState<RecentCommit[]>([]);
   const [recentCommitsLoading, setRecentCommitsLoading] = useState(true);
@@ -124,8 +127,11 @@ const AgentTerminal: React.FC = () => {
       const charsToAdd = Math.min(3, buffer.length - currentIndex);
       displayIndexRef.current = currentIndex + charsToAdd;
       setDisplayedText(buffer.slice(0, displayIndexRef.current));
-      
+
       animationFrameRef.current = requestAnimationFrame(typewriterEffect);
+    } else {
+      // Buffer drained — clear the handle so the next appendText restarts us
+      animationFrameRef.current = undefined;
     }
   }, []);
 
@@ -186,6 +192,97 @@ const AgentTerminal: React.FC = () => {
     return () => clearInterval(refresh);
   }, [loadRecentCommits]);
 
+  // Shared event handler — fed by the real SSE stream or the offline simulation
+  const processEvent = useCallback((data: SimEvent) => {
+    switch (data.type) {
+      case 'init':
+        // Initial state from server
+        setState(prev => ({
+          ...prev,
+          isWorking: data.data.isWorking,
+          currentTask: data.data.currentTask,
+          completedTasks: data.data.completedTasks || [],
+          viewerCount: data.data.viewerCount || 1,
+        }));
+        if (data.data.currentOutput) {
+          textBufferRef.current = data.data.currentOutput;
+          displayIndexRef.current = data.data.currentOutput.length;
+          setDisplayedText(data.data.currentOutput);
+        }
+        break;
+
+      case 'task_start':
+        // New task started
+        resetOutput();
+        setState(prev => ({
+          ...prev,
+          isWorking: true,
+          currentTask: data.data.task,
+          brainActive: data.data.brainActive || false,
+          currentDecision: data.data.decision || null,
+        }));
+        break;
+
+      case 'brain_status':
+        setState(prev => ({
+          ...prev,
+          brainActive: data.data.active,
+        }));
+        break;
+
+      case 'text':
+        // Streaming text chunk
+        appendText(data.data);
+        break;
+
+      case 'tool_start':
+        // Tool execution starting
+        appendText(`\n> [TOOL] ${data.data.tool}\n`);
+        break;
+
+      case 'tool_complete':
+        // Tool execution finished
+        if (data.data.result?.error) {
+          appendText(`> [ERROR] ${data.data.result.error}\n`);
+        }
+        break;
+
+      case 'agent_thought':
+        // Agent explaining what it's doing
+        appendText(`\n[THINKING] ${data.data.thought}\n`);
+        break;
+
+      case 'task_complete':
+        // Task finished
+        setState(prev => ({
+          ...prev,
+          isWorking: false,
+          completedTasks: [
+            { title: data.data.title, agent: prev.currentTask?.agent || 'FABLE', completedAt: new Date().toISOString() },
+            ...prev.completedTasks.slice(0, 4),
+          ],
+        }));
+        break;
+
+      case 'git_deploy':
+        // Code deployed to GitHub
+        appendText(`\n[DEPLOYED] Commit ${data.data.commit} pushed to ${data.data.branch || 'main'}\n`);
+        appendText(`  Message: ${data.data.message}\n`);
+        appendText(`  View: https://github.com/openchain-dev/openchain/commit/${data.data.commit}\n`);
+        break;
+
+      case 'status':
+        if (data.data.status === 'idle') {
+          setState(prev => ({ ...prev, isWorking: false }));
+        }
+        break;
+
+      case 'heartbeat':
+        setState(prev => ({ ...prev, viewerCount: data.viewerCount || prev.viewerCount }));
+        break;
+    }
+  }, [appendText, resetOutput]);
+
   // SSE Connection
   useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -195,108 +292,25 @@ const AgentTerminal: React.FC = () => {
       eventSource = new EventSource(`${API_BASE}/api/agent/stream`);
 
       eventSource.onopen = () => {
+        connectedRef.current = true;
         setConnected(true);
+        setSimActive(false);
+        resetOutput();
         console.log('[AgentTerminal] Connected to agent stream');
       };
 
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
-          switch (data.type) {
-            case 'init':
-              // Initial state from server
-              setState(prev => ({
-                ...prev,
-                isWorking: data.data.isWorking,
-                currentTask: data.data.currentTask,
-                completedTasks: data.data.completedTasks || [],
-                viewerCount: data.data.viewerCount || 1,
-              }));
-              if (data.data.currentOutput) {
-                textBufferRef.current = data.data.currentOutput;
-                displayIndexRef.current = data.data.currentOutput.length;
-                setDisplayedText(data.data.currentOutput);
-              }
-              break;
-
-            case 'task_start':
-              // New task started
-              resetOutput();
-              setState(prev => ({
-                ...prev,
-                isWorking: true,
-                currentTask: data.data.task,
-                brainActive: data.data.brainActive || false,
-                currentDecision: data.data.decision || null,
-              }));
-              break;
-
-            case 'brain_status':
-              setState(prev => ({
-                ...prev,
-                brainActive: data.data.active,
-              }));
-              break;
-
-            case 'text':
-              // Streaming text chunk
-              appendText(data.data);
-              break;
-
-            case 'tool_start':
-              // Tool execution starting
-              appendText(`\n> [TOOL] ${data.data.tool}\n`);
-              break;
-
-            case 'tool_complete':
-              // Tool execution finished
-              if (data.data.result?.error) {
-                appendText(`> [ERROR] ${data.data.result.error}\n`);
-              }
-              break;
-
-            case 'agent_thought':
-              // Agent explaining what it's doing
-              appendText(`\n[THINKING] ${data.data.thought}\n`);
-              break;
-
-            case 'task_complete':
-              // Task finished
-              setState(prev => ({
-                ...prev,
-                isWorking: false,
-                completedTasks: [
-                  { title: data.data.title, agent: prev.currentTask?.agent || 'FABLE', completedAt: new Date().toISOString() },
-                  ...prev.completedTasks.slice(0, 4),
-                ],
-              }));
-              break;
-
-            case 'git_deploy':
-              // Code deployed to GitHub
-              appendText(`\n[DEPLOYED] Commit ${data.data.commit} pushed to ${data.data.branch || 'main'}\n`);
-              appendText(`  Message: ${data.data.message}\n`);
-              appendText(`  View: https://github.com/openchain-dev/openchain/commit/${data.data.commit}\n`);
-              loadRecentCommits();
-              break;
-
-            case 'status':
-              if (data.data.status === 'idle') {
-                setState(prev => ({ ...prev, isWorking: false }));
-              }
-              break;
-
-            case 'heartbeat':
-              setState(prev => ({ ...prev, viewerCount: data.viewerCount || prev.viewerCount }));
-              break;
-          }
+          processEvent(data);
+          if (data.type === 'git_deploy') loadRecentCommits();
         } catch (e) {
           console.error('[AgentTerminal] Parse error:', e);
         }
       };
 
       eventSource.onerror = () => {
+        connectedRef.current = false;
         setConnected(false);
         eventSource?.close();
         // Reconnect after 3 seconds
@@ -313,7 +327,17 @@ const AgentTerminal: React.FC = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [API_BASE, appendText, resetOutput, loadRecentCommits]);
+  }, [API_BASE, processEvent, resetOutput, loadRecentCommits]);
+
+  // Offline simulation: same event protocol, ignored whenever the real stream is up
+  useEffect(() => {
+    const unsubscribe = subscribeAgentSim(evt => {
+      if (connectedRef.current) return;
+      setSimActive(true);
+      processEvent(evt);
+    });
+    return unsubscribe;
+  }, [processEvent]);
 
   // Parse and render output with syntax highlighting
   const renderOutput = (text: string) => {
@@ -500,11 +524,11 @@ const AgentTerminal: React.FC = () => {
           <span style={{
             fontSize: 10,
             fontFamily: 'var(--font-mono)',
-            color: connected ? 'var(--sage)' : 'var(--red)',
+            color: connected || simActive ? 'var(--sage)' : 'var(--red)',
             textTransform: 'lowercase',
-            animation: connected && state.isWorking ? 'pulse 1.5s infinite' : 'none',
+            animation: (connected || simActive) && state.isWorking ? 'pulse 1.5s infinite' : 'none',
           }}>
-            ■ {connected ? (state.isWorking ? 'working' : 'idle') : 'offline'}
+            ■ {connected || simActive ? (state.isWorking ? 'working' : 'idle') : 'offline'}
           </span>
         </div>
       </div>
@@ -623,7 +647,7 @@ const AgentTerminal: React.FC = () => {
           </>
         ) : (
           <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            {connected ? 'Waiting for agent to start working...' : 'Connecting to agent stream...'}
+            {connected || simActive ? 'Waiting for agent to start working...' : 'Connecting to agent stream...'}
           </div>
         )}
       </div>

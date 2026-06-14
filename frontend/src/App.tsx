@@ -3,6 +3,7 @@ import AgentTerminal from './AgentTerminal';
 import AdminDashboard from './AdminDashboard';
 import BlockExplorer from './BlockExplorer';
 import { FABLE_LOGO, GLOBE, CITY, WORLD_MAP, THOUGHT_TRACE, PYRAMID, CUBES } from './ascii';
+import { subscribeAgentSim } from './agentSim';
 
 type TabType = 'terminal' | 'genesis' | 'molt' | 'updates' | 'logs' | 'explorer' | 'faucet' | 'wallet' | 'admin';
 
@@ -110,6 +111,7 @@ export default function App() {
   const [commitsLoading, setCommitsLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
   const [logsConnected, setLogsConnected] = useState(false);
+  const logsConnectedRef = useRef(false);
   const [chainLive, setChainLive] = useState(false);
   const [sentHistory, setSentHistory] = useState<string[]>([]);
   const histIdx = useRef(-1);
@@ -258,7 +260,7 @@ export default function App() {
     let es: EventSource | null = null;
     const connect = () => {
       es = new EventSource(`${API_BASE}/api/logs/stream`);
-      es.onopen = () => setLogsConnected(true);
+      es.onopen = () => { logsConnectedRef.current = true; setLogsConnected(true); setLogs([]); };
       es.onmessage = (e) => {
         try {
           const d = JSON.parse(e.data);
@@ -266,11 +268,36 @@ export default function App() {
           else if (d.type === 'log') setLogs(p => [...p.slice(-200), d.entry]);
         } catch {}
       };
-      es.onerror = () => { setLogsConnected(false); es?.close(); setTimeout(connect, 3000); };
+      es.onerror = () => { logsConnectedRef.current = false; setLogsConnected(false); es?.close(); setTimeout(connect, 3000); };
     };
     connect();
     return () => es?.close();
   }, [activeTab, API_BASE]);
+
+  // Simulated agent activity feeds the Logs tab while the worker is offline
+  useEffect(() => {
+    let n = 0;
+    const unsubscribe = subscribeAgentSim(evt => {
+      if (logsConnectedRef.current) return;
+      let type: string, content: string;
+      switch (evt.type) {
+        case 'task_start': type = 'task_start'; content = evt.data.task.title; break;
+        case 'agent_thought': type = 'system'; content = evt.data.thought; break;
+        case 'tool_start': type = 'tool_use'; content = evt.data.tool; break;
+        case 'git_deploy': type = 'git_commit'; content = `${evt.data.commit} ${evt.data.message}`; break;
+        case 'task_complete': type = 'task_complete'; content = evt.data.title; break;
+        default: return;
+      }
+      setLogs(p => [...p.slice(-200), {
+        id: `sim-${++n}`,
+        timestamp: new Date().toISOString(),
+        type,
+        content,
+        taskTitle: evt.data.taskTitle,
+      }]);
+    });
+    return unsubscribe;
+  }, []);
 
   // Sync route
   useEffect(() => {
@@ -681,8 +708,8 @@ export default function App() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <h2 className="page-title">Activity Logs</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className={`live-dot ${logsConnected ? 'on' : 'off'}`} />
-          <span style={{ color: 'var(--text-2)', fontSize: 12 }}>{logsConnected ? 'Live' : 'Connecting...'}</span>
+          <div className={`live-dot ${logsConnected || logs.length > 0 ? 'on' : 'off'}`} />
+          <span style={{ color: 'var(--text-2)', fontSize: 12 }}>{logsConnected || logs.length > 0 ? 'Live' : 'Connecting...'}</span>
         </div>
       </div>
       <p className="page-desc">Real-time stream of everything AESOP is building.</p>
