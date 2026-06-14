@@ -1,234 +1,234 @@
 ```typescript
-import EventEmitter from 'events';
-import crypto from 'crypto';
-import { setTimeout as sleep } from 'timers/promises';
+import { EventEmitter } from 'events';
+import * as crypto from 'crypto';
 
-interface PeerNode {
-  id: string;
-  address: string;
+interface PeerInfo {
+  nodeId: string;
+  host: string;
   port: number;
   lastSeen: number;
-  distance?: number;
+  rpcPort?: number;
 }
 
 interface KBucket {
-  nodes: PeerNode[];
+  peers: PeerInfo[];
   lastUpdated: number;
 }
 
 interface LookupResult {
-  peers: PeerNode[];
-  distance: number;
+  peers: PeerInfo[];
+  distance: bigint;
 }
 
-const BUCKET_SIZE = 20;
-const MAX_BUCKETS = 160;
-const LOOKUP_CONCURRENCY = 3;
-const BUCKET_REFRESH_INTERVAL = 3600000;
-const NODE_EXPIRATION_TIME = 86400000;
-const PING_TIMEOUT = 5000;
+class PeerDiscovery extends EventEmitter {
+  private nodeId: string;
+  private kBuckets: Map<number, KBucket>;
+  private bootstrapNodes: PeerInfo[];
+  private routingTable: Map<string, PeerInfo>;
+  private k: number = 20;
+  private alpha: number = 3;
+  private bucketSize: number = 20;
+  private maxNodeIdBits: number = 256;
+  private peersLookupCache: Map<string, LookupResult>;
+  private cacheTTL: number = 3600000;
+  private peerTimeout: number = 600000;
 
-export class PeerDiscovery extends EventEmitter {
-  private localNodeId: string;
-  private buckets: Map<number, KBucket>;
-  private peers: Map<string, PeerNode>;
-  private bootstrapNodes: PeerNode[];
-  private lookupInProgress: Set<string>;
-  private refreshTimer: NodeJS.Timeout | null;
-
-  constructor(localNodeId?: string) {
+  constructor(nodeId?: string, bootstrapNodes?: PeerInfo[]) {
     super();
-    this.localNodeId = localNodeId || this.generateNodeId();
-    this.buckets = new Map();
-    this.peers = new Map();
-    this.bootstrapNodes = [];
-    this.lookupInProgress = new Set();
-    this.refreshTimer = null;
-
+    
+    this.nodeId = nodeId || this.generateNodeId();
+    this.kBuckets = new Map();
+    this.routingTable = new Map();
+    this.peersLookupCache = new Map();
+    this.bootstrapNodes = bootstrapNodes || [];
+    
     this.initializeBuckets();
   }
 
   private generateNodeId(): string {
-    return crypto.randomBytes(20).toString('hex');
+    return crypto.randomBytes(32).toString('hex');
   }
 
   private initializeBuckets(): void {
-    for (let i = 0; i < MAX_BUCKETS; i++) {
-      this.buckets.set(i, {
-        nodes: [],
+    for (let i = 0; i < this.maxNodeIdBits; i++) {
+      this.kBuckets.set(i, {
+        peers: [],
         lastUpdated: Date.now(),
       });
     }
   }
 
-  private calculateDistance(nodeId: string): number {
-    const localBuffer = Buffer.from(this.localNodeId, 'hex');
-    const targetBuffer = Buffer.from(nodeId, 'hex');
-
-    let distance = 0;
-    for (let i = 0; i < Math.min(localBuffer.length, targetBuffer.length); i++) {
-      const xor = localBuffer[i] ^ targetBuffer[i];
-      if (xor === 0) {
-        distance += 8;
-      } else {
-        distance += 8 - Math.floor(Math.log2(xor));
-        break;
-      }
+  private calculateDistance(id1: string, id2: string): bigint {
+    const buffer1 = Buffer.from(id1, 'hex');
+    const buffer2 = Buffer.from(id2, 'hex');
+    
+    let distance = 0n;
+    for (let i = 0; i < buffer1.length; i++) {
+      const xor = buffer1[i] ^ buffer2[i];
+      distance = (distance << 8n) | BigInt(xor);
     }
-
+    
     return distance;
   }
 
-  private getBucketIndex(nodeId: string): number {
-    const distance = this.calculateDistance(nodeId);
-    const bucketIndex = Math.min(distance, MAX_BUCKETS - 1);
-    return Math.max(0, bucketIndex);
+  private getBucketIndex(peerId: string): number {
+    const distance = this.calculateDistance(this.nodeId, peerId);
+    
+    if (distance === 0n) {
+      return 0;
+    }
+    
+    const bitLength = distance.toString(2).length;
+    return Math.min(bitLength - 1, this.maxNodeIdBits - 1);
   }
 
-  public addPeer(peer: PeerNode): boolean {
-    const bucketIndex = this.getBucketIndex(peer.id);
-    const bucket = this.buckets.get(bucketIndex);
+  public addPeer(peer: PeerInfo): void {
+    const bucketIndex = this.getBucketIndex(peer.nodeId);
+    const bucket = this.kBuckets.get(bucketIndex);
 
     if (!bucket) {
-      return false;
+      return;
     }
 
-    const existingIndex = bucket.nodes.findIndex(n => n.id === peer.id);
-
-    if (existingIndex !== -1) {
-      bucket.nodes[existingIndex].lastSeen = Date.now();
-      this.peers.set(peer.id, bucket.nodes[existingIndex]);
-      return true;
-    }
-
-    if (bucket.nodes.length < BUCKET_SIZE) {
-      const newPeer = {
-        ...peer,
-        lastSeen: Date.now(),
-      };
-      bucket.nodes.push(newPeer);
-      bucket.lastUpdated = Date.now();
-      this.peers.set(peer.id, newPeer);
-      this.emit('peerAdded', newPeer);
-      return true;
-    }
-
-    const oldestPeer = bucket.nodes.reduce((oldest, current) =>
-      current.lastSeen < oldest.lastSeen ? current : oldest
+    const existingPeerIndex = bucket.peers.findIndex(
+      (p) => p.nodeId === peer.nodeId
     );
 
-    return this.replacePeer(oldestPeer.id, peer, bucketIndex);
-  }
-
-  private replacePeer(oldPeerId: string, newPeer: PeerNode, bucketIndex: number): boolean {
-    const bucket = this.buckets.get(bucketIndex);
-    if (!bucket) return false;
-
-    const index = bucket.nodes.findIndex(n => n.id === oldPeerId);
-    if (index === -1) return false;
-
-    bucket.nodes[index] = {
-      ...newPeer,
-      lastSeen: Date.now(),
-    };
-    bucket.lastUpdated = Date.now();
-    this.peers.set(newPeer.id, bucket.nodes[index]);
-    this.emit('peerReplaced', newPeer);
-
-    return true;
-  }
-
-  public removePeer(peerId: string): boolean {
-    const bucketIndex = this.getBucketIndex(peerId);
-    const bucket = this.buckets.get(bucketIndex);
-
-    if (!bucket) return false;
-
-    const index = bucket.nodes.findIndex(n => n.id === peerId);
-    if (index === -1) return false;
-
-    bucket.nodes.splice(index, 1);
-    this.peers.delete(peerId);
-    this.emit('peerRemoved', peerId);
-
-    return true;
-  }
-
-  public getPeer(peerId: string): PeerNode | undefined {
-    return this.peers.get(peerId);
-  }
-
-  public getClosestPeers(targetId: string, count: number = BUCKET_SIZE): PeerNode[] {
-    const allPeers = Array.from(this.peers.values());
-
-    const peersWithDistance = allPeers.map(peer => ({
-      ...peer,
-      distance: this.calculateDistance(targetId),
-    }));
-
-    return peersWithDistance
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, count)
-      .map(p => {
-        const { distance, ...peer } = p;
-        return peer;
+    if (existingPeerIndex !== -1) {
+      bucket.peers[existingPeerIndex] = {
+        ...bucket.peers[existingPeerIndex],
+        lastSeen: Date.now(),
+      };
+    } else if (bucket.peers.length < this.bucketSize) {
+      bucket.peers.push({
+        ...peer,
+        lastSeen: Date.now(),
       });
-  }
+    } else {
+      const lastPeer = bucket.peers[0];
+      const isAlive = this.isPeerAlive(lastPeer);
 
-  public async lookupNode(targetId: string): Promise<LookupResult> {
-    if (this.lookupInProgress.has(targetId)) {
-      throw new Error(`Lookup for ${targetId} already in progress`);
+      if (!isAlive) {
+        bucket.peers.shift();
+        bucket.peers.push({
+          ...peer,
+          lastSeen: Date.now(),
+        });
+      }
     }
 
-    this.lookupInProgress.add(targetId);
+    this.routingTable.set(peer.nodeId, peer);
+    bucket.lastUpdated = Date.now();
+    this.emit('peer:added', peer);
+  }
 
-    try {
-      const closestPeers = this.getClosestPeers(targetId, LOOKUP_CONCURRENCY);
+  private isPeerAlive(peer: PeerInfo): boolean {
+    const timeSinceLastSeen = Date.now() - peer.lastSeen;
+    return timeSinceLastSeen < this.peerTimeout;
+  }
 
-      if (closestPeers.length === 0) {
-        return {
-          peers: [],
-          distance: this.calculateDistance(targetId),
-        };
-      }
+  public removePeer(peerId: string): void {
+    const bucketIndex = this.getBucketIndex(peerId);
+    const bucket = this.kBuckets.get(bucketIndex);
 
-      const visited = new Set<string>();
-      const candidates = [...closestPeers];
-      let nearestPeers = [...closestPeers];
+    if (!bucket) {
+      return;
+    }
 
-      while (candidates.length > 0) {
-        const peer = candidates.shift();
-        if (!peer || visited.has(peer.id)) continue;
+    const peerIndex = bucket.peers.findIndex((p) => p.nodeId === peerId);
+    if (peerIndex !== -1) {
+      bucket.peers.splice(peerIndex, 1);
+      this.routingTable.delete(peerId);
+      this.emit('peer:removed', peerId);
+    }
+  }
 
-        visited.add(peer.id);
+  public async lookup(targetId: string): Promise<PeerInfo[]> {
+    const cacheKey = `lookup:${targetId}`;
+    const cached = this.peersLookupCache.get(cacheKey);
 
-        try {
-          const closerPeers = await this.queryPeer(peer, targetId);
-          const newCandidates = closerPeers.filter(p => !visited.has(p.id));
+    if (cached && Date.now() - cached.distance < this.cacheTTL) {
+      return cached.peers;
+    }
 
-          candidates.push(...newCandidates);
-          candidates.sort((a, b) => a.distance! - b.distance!);
+    const closestPeers = this.getClosestPeers(targetId, this.k);
+    const visited = new Set<string>();
+    const candidates: PeerInfo[] = [...closestPeers];
 
-          const currentDistance = this.calculateDistance(targetId);
-          const newNearest = newCandidates.filter(p => p.distance! <= currentDistance);
+    while (candidates.length > 0) {
+      const querying = candidates.splice(0, this.alpha);
 
-          if (newNearest.length > 0) {
-            nearestPeers = [...new Set([...nearestPeers, ...newNearest])];
-            nearestPeers = nearestPeers
-              .sort((a, b) => a.distance! - b.distance!)
-              .slice(0, BUCKET_SIZE);
-          }
-        } catch (error) {
-          this.emit('queryError', { peer, error });
+      for (const peer of querying) {
+        if (visited.has(peer.nodeId)) {
           continue;
         }
 
-        if (visited.size >= BUCKET_SIZE) {
-          break;
+        visited.add(peer.nodeId);
+
+        try {
+          const newPeers = await this.queryPeer(peer, targetId);
+
+          for (const newPeer of newPeers) {
+            if (!visited.has(newPeer.nodeId)) {
+              candidates.push(newPeer);
+            }
+          }
+
+          const distance = this.calculateDistance(newPeer.nodeId, targetId);
+          this.peersLookupCache.set(cacheKey, {
+            peers: this.getClosestPeers(targetId, this.k),
+            distance,
+          });
+        } catch (error) {
+          this.emit('query:error', { peer, error });
         }
       }
+    }
 
-      return {
-        peers: nearestPeers.map(p => {
-          const { distance, ...peer } = p;
-          return peer;
+    const result = this.getClosestPeers(targetId, this.k);
+    this.peersLookupCache.set(cacheKey, {
+      peers: result,
+      distance: this.calculateDistance(result[0]?.nodeId || '', targetId),
+    });
+
+    return result;
+  }
+
+  private getClosestPeers(targetId: string, count: number): PeerInfo[] {
+    const peers = Array.from(this.routingTable.values());
+
+    return peers
+      .sort((a, b) => {
+        const distA = this.calculateDistance(a.nodeId, targetId);
+        const distB = this.calculateDistance(b.nodeId, targetId);
+        return distA < distB ? -1 : 1;
+      })
+      .slice(0, count);
+  }
+
+  private async queryPeer(peer: PeerInfo, targetId: string): Promise<PeerInfo[]> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Query timeout for peer ${peer.nodeId}`));
+      }, 5000);
+
+      this.emit('peer:query', { peer, targetId }, (response: PeerInfo[] | null) => {
+        clearTimeout(timeout);
+
+        if (response) {
+          resolve(response);
+        } else {
+          reject(new Error(`No response from peer ${peer.nodeId}`));
+        }
+      });
+    });
+  }
+
+  public async bootstrap(): Promise<void> {
+    if (this.bootstrapNodes.length === 0) {
+      this.emit('bootstrap:warning', 'No bootstrap nodes configured');
+      return;
+    }
+
+    for (const bootstrapNode of this.bootstrapNodes) {
+      try {
