@@ -190,7 +190,7 @@ function runSteps(session: Session, idx: number): void {
 
 function finishSession(session: Session): void {
   const commit = hex(7);
-  transcript += `\n[DEPLOYED] Commit ${commit} pushed to main\n  Message: ${session.commitMsg}\n  View: https://github.com/openchain-dev/openchain/commit/${commit}\n`;
+  transcript += `\n[DEPLOYED] Commit ${commit} pushed to main\n  Message: ${session.commitMsg}\n  View: https://github.com/white-roz3/Fablechain/commit/${commit}\n`;
   emit({ type: 'git_deploy', data: { commit, branch: 'main', message: session.commitMsg, taskTitle: session.title } });
   timer = setTimeout(() => {
     emit({ type: 'task_complete', data: { title: session.title, taskTitle: session.title } });

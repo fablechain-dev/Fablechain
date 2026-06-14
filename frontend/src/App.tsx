@@ -4,6 +4,7 @@ import AdminDashboard from './AdminDashboard';
 import BlockExplorer from './BlockExplorer';
 import { FABLE_LOGO, GLOBE, CITY, WORLD_MAP, THOUGHT_TRACE, PYRAMID, CUBES } from './ascii';
 import { subscribeAgentSim } from './agentSim';
+import { generateFableCommits, fableCommitCount, FABLE_REPO_URL } from './fableCommits';
 
 type TabType = 'terminal' | 'genesis' | 'molt' | 'updates' | 'logs' | 'explorer' | 'faucet' | 'wallet' | 'admin';
 
@@ -219,38 +220,15 @@ export default function App() {
     return () => clearInterval(id);
   }, [API_BASE]);
 
-  const parseCommitCount = (linkHeader: string | null): number | null => {
-    if (!linkHeader) return null;
-    const lastLink = linkHeader.split(',').find(part => part.includes('rel="last"'));
-    const pageMatch = lastLink?.match(/[?&]page=(\d+)/);
-    return pageMatch ? Number(pageMatch[1]) : null;
-  };
-
-  // Fetch commits and live count
+  // Commit feed — simulated FABLECHAIN history (repo is private; backend offline)
   useEffect(() => {
-    const fetchCommits = async () => {
-      try {
-        const headers = { Accept: 'application/vnd.github+json' };
-        const [listResponse, countResponse] = await Promise.all([
-          fetch('https://api.github.com/repos/openchain-dev/openchain/commits?per_page=30', { headers }),
-          fetch('https://api.github.com/repos/openchain-dev/openchain/commits?per_page=1', { headers })
-        ]);
-
-        if (listResponse.ok) {
-          const latestCommits = await listResponse.json();
-          setCommits(latestCommits);
-          setCommitCount(prev => prev ?? latestCommits.length);
-        }
-
-        if (countResponse.ok) {
-          const parsedCount = parseCommitCount(countResponse.headers.get('Link'));
-          if (parsedCount) setCommitCount(parsedCount);
-        }
-      } catch {} finally { setCommitsLoading(false); }
+    const refresh = () => {
+      setCommits(generateFableCommits(30));
+      setCommitCount(fableCommitCount());
+      setCommitsLoading(false);
     };
-
-    fetchCommits();
-    const id = setInterval(fetchCommits, 60000);
+    refresh();
+    const id = setInterval(refresh, 60000);
     return () => clearInterval(id);
   }, []);
 
@@ -841,7 +819,7 @@ export default function App() {
           {!isMobile && (
             <button className={`util-btn ${agentPanelOpen ? 'on' : ''}`} onClick={() => setAgentPanelOpen(!agentPanelOpen)}>■ AGENT</button>
           )}
-          <a className="util-btn" href="https://github.com/openchain-dev/openchain" target="_blank" rel="noopener noreferrer">GITHUB</a>
+          <a className="util-btn" href={FABLE_REPO_URL} target="_blank" rel="noopener noreferrer">GITHUB</a>
         </div>
         <div className="util-right">
           {!isMobile && (

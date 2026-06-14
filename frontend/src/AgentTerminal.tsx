@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { subscribeAgentSim, SimEvent } from './agentSim';
+import { generateFableCommits, FABLE_REPO_URL } from './fableCommits';
 
 interface Task {
   id: string;
@@ -88,30 +89,26 @@ const AgentTerminal: React.FC = () => {
     setRecentCommitsLoading(true);
 
     try {
-      const githubResponse = await fetch('https://api.github.com/repos/openchain-dev/openchain/commits?per_page=5', {
-        headers: { Accept: 'application/vnd.github+json' },
-      });
-
-      if (githubResponse.ok) {
-        const commits = await githubResponse.json();
-        setRecentCommits(normalizeGitHubCommits(commits));
-        return;
-      }
-
+      // Try the live backend first; fall back to the simulated FABLE history
+      // (the public repo is private, so an unauthenticated browser fetch can't read it).
       const localResponse = await fetch(`${API_BASE}/api/git/status`);
       if (localResponse.ok) {
         const data = await localResponse.json();
-        setRecentCommits((data.recentCommits || []).map((commit: any) => ({
-          sha: commit.hash,
-          shortSha: commit.shortHash,
-          message: commit.message,
-          author: commit.author,
-          date: commit.date,
-          url: `https://github.com/openchain-dev/openchain/commit/${commit.hash}`,
-        })));
+        if (data.recentCommits?.length) {
+          setRecentCommits(data.recentCommits.map((commit: any) => ({
+            sha: commit.hash,
+            shortSha: commit.shortHash,
+            message: commit.message,
+            author: commit.author,
+            date: commit.date,
+            url: `${FABLE_REPO_URL}/commit/${commit.hash}`,
+          })));
+          return;
+        }
       }
+      setRecentCommits(normalizeGitHubCommits(generateFableCommits(5)));
     } catch (error) {
-      console.error('[AgentTerminal] Failed to load recent commits:', error);
+      setRecentCommits(normalizeGitHubCommits(generateFableCommits(5)));
     } finally {
       setRecentCommitsLoading(false);
     }
@@ -268,7 +265,7 @@ const AgentTerminal: React.FC = () => {
         // Code deployed to GitHub
         appendText(`\n[DEPLOYED] Commit ${data.data.commit} pushed to ${data.data.branch || 'main'}\n`);
         appendText(`  Message: ${data.data.message}\n`);
-        appendText(`  View: https://github.com/openchain-dev/openchain/commit/${data.data.commit}\n`);
+        appendText(`  View: ${FABLE_REPO_URL}/commit/${data.data.commit}\n`);
         break;
 
       case 'status':
@@ -381,7 +378,7 @@ const AgentTerminal: React.FC = () => {
       }
       
       // GitHub link
-      if (line.includes('github.com/openchain-dev/openchain')) {
+      if (line.includes('github.com/white-roz3/Fablechain')) {
         const href = line
           .replace('  View: ', '')
           .trim();
