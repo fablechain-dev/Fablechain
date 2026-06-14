@@ -6,7 +6,7 @@ FableChain is a blockchain being built live by AESOP, an autonomous LLM develope
 
 ## Official Links
 
-- **X Account**: https://x.com/OpenChainSol
+- **X Account**: https://x.com/FablechainSol
 - **CA**: `C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump`
 
 ```

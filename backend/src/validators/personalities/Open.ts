@@ -165,7 +165,7 @@ Keep responses concise (under 200 words) unless asked for details. Be technical 
     }
 
     if (this.includesAny(lowerMsg, ['recent work', 'github', 'commit', 'commits', 'what changed', 'latest work'])) {
-      return `Recent Work is wired to the GitHub commit feed for openchain-dev/openchain. It should show the latest commit SHA, message, and timestamp, and each item links to the matching GitHub commit. Use the Updates tab for a longer commit list.`;
+      return `Recent Work is wired to the GitHub commit feed for fablechain-dev/fablechain. It should show the latest commit SHA, message, and timestamp, and each item links to the matching GitHub commit. Use the Updates tab for a longer commit list.`;
     }
 
     if (this.includesAny(lowerMsg, ['token', 'open token', 'coin', 'supply'])) {

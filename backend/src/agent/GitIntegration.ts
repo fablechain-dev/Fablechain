@@ -8,7 +8,7 @@ const AUTO_PUSH_ENABLED = process.env.AUTO_GIT_PUSH !== 'false';
 const GIT_USER_NAME = process.env.GIT_USER_NAME || 'fablechain';
 const GIT_USER_EMAIL = process.env.GIT_USER_EMAIL || 'fablechain@users.noreply.github.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPO || 'openchain-dev/openchain';
+const GITHUB_REPO = process.env.GITHUB_REPO || 'fablechain-dev/fablechain';
 
 function getAuthenticatedRemoteUrl(): string | undefined {
   if (!GITHUB_TOKEN || !GITHUB_REPO) return undefined;
