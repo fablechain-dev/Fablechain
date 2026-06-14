@@ -1,253 +1,242 @@
 ```typescript
-import { Block } from '../blockchain/Block';
-import { Transaction } from '../blockchain/Transaction';
+import { Block } from '../types/Block';
+import { Transaction } from '../types/Transaction';
 import { WorldState } from './WorldState';
 import { StateSnapshot } from './StateSnapshot';
+import { TransactionValidator } from '../validation/TransactionValidator';
+import { Account } from '../types/Account';
 import { Logger } from '../utils/Logger';
-import {
-  StateTransitionError,
-  InvalidTransactionError,
-  InsufficientBalanceError,
-  InvalidNonceError,
-  TransactionExecutionError,
-} from '../errors/StateErrors';
 
-export interface TransactionResult {
-  transactionHash: string;
+interface TransitionResult {
   success: boolean;
+  blockHash: string;
+  appliedTransactions: string[];
+  failedTransactions: Array<{
+    txHash: string;
+    reason: string;
+  }>;
+  stateRoot: string;
   gasUsed: bigint;
-  error?: string;
-  stateRoot?: string;
+  timestamp: number;
 }
 
-export interface BlockTransitionResult {
-  blockHash: string;
-  success: boolean;
-  transactionResults: TransactionResult[];
-  finalStateRoot: string;
-  totalGasUsed: bigint;
-  error?: string;
+interface TransitionContext {
+  block: Block;
+  worldState: WorldState;
+  validator: TransactionValidator;
+  logger: Logger;
+  maxGasPerBlock: bigint;
+}
+
+class StateTransitionError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly details?: unknown
+  ) {
+    super(message);
+    this.name = 'StateTransitionError';
+  }
 }
 
 export class StateTransition {
-  private worldState: WorldState;
   private logger: Logger;
-  private stateSnapshots: Map<string, StateSnapshot>;
 
-  constructor(worldState: WorldState, logger: Logger) {
-    this.worldState = worldState;
+  constructor(logger: Logger) {
     this.logger = logger;
-    this.stateSnapshots = new Map();
   }
 
-  async applyBlock(block: Block): Promise<BlockTransitionResult> {
-    const blockHash = block.hash();
-    this.logger.info(`Starting state transition for block ${blockHash}`);
-
-    // Create snapshot before applying any transactions
-    const preBlockSnapshot = this.worldState.createSnapshot();
-    const snapshotId = `block_${blockHash}`;
-    this.stateSnapshots.set(snapshotId, preBlockSnapshot);
-
-    const transactionResults: TransactionResult[] = [];
-    let totalGasUsed = 0n;
-    let success = true;
-    let error: string | undefined;
+  async applyBlock(context: TransitionContext): Promise<TransitionResult> {
+    const startTime = Date.now();
+    const snapshot = context.worldState.createSnapshot();
+    
+    const result: TransitionResult = {
+      success: false,
+      blockHash: context.block.hash,
+      appliedTransactions: [],
+      failedTransactions: [],
+      stateRoot: '',
+      gasUsed: 0n,
+      timestamp: startTime,
+    };
 
     try {
-      // Validate block structure
-      this.validateBlock(block);
+      this.logger.debug(`[StateTransition] Starting block transition for block ${context.block.hash}`);
 
-      // Process each transaction in the block
-      for (const transaction of block.transactions) {
-        const txResult = await this.applyTransaction(transaction, block);
-        transactionResults.push(txResult);
+      // Validate block structure and metadata
+      this.validateBlockStructure(context.block);
 
-        if (!txResult.success) {
+      let cumulativeGasUsed = 0n;
+      const transactionCount = context.block.transactions.length;
+
+      for (let i = 0; i < transactionCount; i++) {
+        const transaction = context.block.transactions[i];
+
+        try {
+          // Pre-transaction validation
+          if (!context.validator.isValid(transaction)) {
+            throw new StateTransitionError(
+              `Transaction validation failed: ${transaction.hash}`,
+              'VALIDATION_FAILED'
+            );
+          }
+
+          // Gas limit check
+          const estimatedGas = this.estimateTransactionGas(transaction);
+          if (cumulativeGasUsed + estimatedGas > context.maxGasPerBlock) {
+            throw new StateTransitionError(
+              `Block gas limit exceeded at transaction ${i}`,
+              'GAS_LIMIT_EXCEEDED',
+              { cumulativeGasUsed, estimatedGas, maxGas: context.maxGasPerBlock }
+            );
+          }
+
+          // Apply transaction to world state
+          const txResult = await this.applyTransaction(transaction, context.worldState);
+          
+          cumulativeGasUsed += txResult.gasUsed;
+          result.appliedTransactions.push(transaction.hash);
+
+          this.logger.debug(`[StateTransition] Applied transaction ${transaction.hash}, gas used: ${txResult.gasUsed}`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          
+          result.failedTransactions.push({
+            txHash: transaction.hash,
+            reason: errorMessage,
+          });
+
           this.logger.warn(
-            `Transaction ${txResult.transactionHash} failed: ${txResult.error}`
+            `[StateTransition] Transaction ${transaction.hash} failed: ${errorMessage}`
           );
-          // Continue processing remaining transactions even if one fails
-          success = false;
-        }
 
-        totalGasUsed += txResult.gasUsed;
+          // Continue with next transaction instead of halting
+          // This follows Ethereum's approach of including failed transactions in blocks
+        }
       }
 
-      // Apply block rewards and process miner/validator payments
-      await this.applyBlockRewards(block);
+      // Finalize state changes
+      result.gasUsed = cumulativeGasUsed;
+      result.stateRoot = context.worldState.getStateRoot();
+      result.success = true;
 
-      const finalStateRoot = this.worldState.getRootHash();
-
-      return {
-        blockHash,
-        success,
-        transactionResults,
-        finalStateRoot,
-        totalGasUsed,
-      };
-    } catch (err) {
-      error = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        `State transition failed for block ${blockHash}: ${error}`
+      this.logger.info(
+        `[StateTransition] Block transition completed successfully. ` +
+        `Applied: ${result.appliedTransactions.length}, ` +
+        `Failed: ${result.failedTransactions.length}, ` +
+        `Gas used: ${cumulativeGasUsed}`
       );
 
-      // Rollback to pre-block state
-      this.rollbackToSnapshot(snapshotId);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[StateTransition] Critical error during block transition: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      );
 
-      return {
-        blockHash,
-        success: false,
-        transactionResults,
-        finalStateRoot: preBlockSnapshot.stateRoot,
-        totalGasUsed,
-        error,
-      };
+      // Rollback on critical failure
+      try {
+        context.worldState.rollbackToSnapshot(snapshot);
+        this.logger.info(`[StateTransition] State rolled back to snapshot`);
+      } catch (rollbackError) {
+        this.logger.error(
+          `[StateTransition] Failed to rollback state: ${
+            rollbackError instanceof Error ? rollbackError.message : 'Unknown error'
+          }`
+        );
+      }
+
+      return result;
     }
   }
 
   private async applyTransaction(
     transaction: Transaction,
-    block: Block
-  ): Promise<TransactionResult> {
-    const txHash = transaction.hash();
-    let gasUsed = 0n;
-
-    try {
-      // Create transaction-level snapshot for potential rollback
-      const txSnapshot = this.worldState.createSnapshot();
-      const txSnapshotId = `tx_${txHash}`;
-      this.stateSnapshots.set(txSnapshotId, txSnapshot);
-
-      // Validate transaction
-      this.validateTransaction(transaction, block);
-
-      // Load sender account
-      const senderAddress = transaction.from;
-      const senderAccount = this.worldState.getAccount(senderAddress);
-
-      if (!senderAccount) {
-        throw new InvalidTransactionError(
-          `Sender account ${senderAddress} not found`
-        );
-      }
-
-      // Validate nonce
-      if (transaction.nonce !== senderAccount.nonce) {
-        throw new InvalidNonceError(
-          `Expected nonce ${senderAccount.nonce}, got ${transaction.nonce}`
-        );
-      }
-
-      // Calculate transaction cost
-      const gasPrice = transaction.gasPrice;
-      const txCost = transaction.value + gasPrice * transaction.gasLimit;
-
-      // Validate sender has sufficient balance
-      if (senderAccount.balance < txCost) {
-        throw new InsufficientBalanceError(
-          `Sender balance ${senderAccount.balance} insufficient for transaction cost ${txCost}`
-        );
-      }
-
-      // Deduct transaction cost from sender
-      senderAccount.balance -= txCost;
-      senderAccount.nonce += 1n;
-      this.worldState.updateAccount(senderAddress, senderAccount);
-
-      // Execute transaction logic based on type
-      let executionGasUsed = 0n;
-
-      if (transaction.type === 'TRANSFER') {
-        executionGasUsed = await this.executeTransfer(transaction);
-      } else if (transaction.type === 'CONTRACT_CREATION') {
-        executionGasUsed = await this.executeContractCreation(transaction);
-      } else if (transaction.type === 'CONTRACT_CALL') {
-        executionGasUsed = await this.executeContractCall(transaction);
-      } else {
-        throw new TransactionExecutionError(
-          `Unknown transaction type: ${transaction.type}`
-        );
-      }
-
-      // Validate gas used doesn't exceed limit
-      if (executionGasUsed > transaction.gasLimit) {
-        throw new TransactionExecutionError(
-          `Gas used ${executionGasUsed} exceeds limit ${transaction.gasLimit}`
-        );
-      }
-
-      gasUsed = executionGasUsed;
-
-      // Calculate gas refund
-      const gasRefund = (transaction.gasLimit - gasUsed) * gasPrice;
-      senderAccount.balance += gasRefund;
-      this.worldState.updateAccount(senderAddress, senderAccount);
-
-      this.logger.debug(
-        `Transaction ${txHash} applied successfully, gas used: ${gasUsed}`
+    worldState: WorldState
+  ): Promise<{ gasUsed: bigint; success: boolean }> {
+    const sender = worldState.getAccount(transaction.from);
+    
+    if (!sender) {
+      throw new StateTransitionError(
+        `Sender account not found: ${transaction.from}`,
+        'ACCOUNT_NOT_FOUND'
       );
-
-      return {
-        transactionHash: txHash,
-        success: true,
-        gasUsed,
-        stateRoot: this.worldState.getRootHash(),
-      };
-    } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Transaction ${txHash} execution failed: ${error}`);
-
-      // Rollback transaction state
-      const txSnapshotId = `tx_${txHash}`;
-      this.rollbackToSnapshot(txSnapshotId);
-
-      return {
-        transactionHash: txHash,
-        success: false,
-        gasUsed,
-        error,
-      };
     }
+
+    // Validate sender has sufficient balance
+    const transactionCost = transaction.value + (transaction.gasPrice * transaction.gasLimit);
+    if (sender.balance < transactionCost) {
+      throw new StateTransitionError(
+        `Insufficient balance for transaction. Required: ${transactionCost}, Available: ${sender.balance}`,
+        'INSUFFICIENT_BALANCE'
+      );
+    }
+
+    // Deduct transaction cost from sender
+    const updatedSender: Account = {
+      ...sender,
+      balance: sender.balance - transactionCost,
+      nonce: sender.nonce + 1n,
+    };
+    worldState.updateAccount(transaction.from, updatedSender);
+
+    // Process transaction based on type
+    let gasUsed = 21000n; // Base transaction cost
+
+    if (transaction.type === 'transfer') {
+      gasUsed += this.processTransfer(transaction, worldState);
+    } else if (transaction.type === 'contract_call') {
+      gasUsed += await this.processContractCall(transaction, worldState);
+    } else if (transaction.type === 'contract_deploy') {
+      gasUsed += await this.processContractDeploy(transaction, worldState);
+    } else {
+      throw new StateTransitionError(
+        `Unknown transaction type: ${transaction.type}`,
+        'UNKNOWN_TRANSACTION_TYPE'
+      );
+    }
+
+    // Calculate refund (unused gas)
+    const gasRefund = (transaction.gasLimit - gasUsed) * transaction.gasPrice;
+    if (gasRefund > 0n) {
+      const refundedSender = worldState.getAccount(transaction.from);
+      if (refundedSender) {
+        worldState.updateAccount(transaction.from, {
+          ...refundedSender,
+          balance: refundedSender.balance + gasRefund,
+        });
+      }
+    }
+
+    return { gasUsed, success: true };
   }
 
-  private async executeTransfer(transaction: Transaction): Promise<bigint> {
-    const baseGas = 21000n;
-
-    if (!transaction.to) {
-      throw new TransactionExecutionError('Transfer requires recipient address');
+  private processTransfer(transaction: Transaction, worldState: WorldState): bigint {
+    const recipient = worldState.getAccount(transaction.to);
+    
+    if (!recipient) {
+      throw new StateTransitionError(
+        `Recipient account not found: ${transaction.to}`,
+        'RECIPIENT_NOT_FOUND'
+      );
     }
 
-    // Load or create recipient account
-    let recipientAccount = this.worldState.getAccount(transaction.to);
-    if (!recipientAccount) {
-      recipientAccount = {
-        address: transaction.to,
-        balance: 0n,
-        nonce: 0n,
-        codeHash: '',
-        storageRoot: '',
-      };
-    }
+    const updatedRecipient: Account = {
+      ...recipient,
+      balance: recipient.balance + transaction.value,
+    };
+    worldState.updateAccount(transaction.to, updatedRecipient);
 
-    recipientAccount.balance += transaction.value;
-    this.worldState.updateAccount(transaction.to, recipientAccount);
-
-    return baseGas;
+    return 0n; // No additional gas beyond base cost
   }
 
-  private async executeContractCreation(
-    transaction: Transaction
+  private async processContractCall(
+    transaction: Transaction,
+    worldState: WorldState
   ): Promise<bigint> {
-    const baseGas = 53000n;
-    const codeSize = transaction.data ? transaction.data.length : 0;
-    const codeSizeGas = BigInt(codeSize) * 200n;
-
-    if (!transaction.data || transaction.data.length === 0) {
-      throw new TransactionExecutionError(
-        'Contract creation requires bytecode'
+    if (!transaction.to) {
+      throw new StateTransitionError(
+        'Contract call requires recipient address',
+        'INVALID_CONTRACT_CALL'
       );
-    }
-
-    const contractAddress = this.deriveContractAddress(
-      transaction.
