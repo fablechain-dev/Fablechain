@@ -5,13 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 interface JsonRpcRequest {
   jsonrpc: '2.0';
   method: string;
-  params?: unknown[];
-  id?: string | number | null;
+  params: unknown[];
+  id: string | number | null;
 }
 
-interface JsonRpcResponse {
+interface JsonRpcResponse<T = unknown> {
   jsonrpc: '2.0';
-  result?: unknown;
+  result?: T;
   error?: JsonRpcError;
   id: string | number | null;
 }
@@ -22,208 +22,203 @@ interface JsonRpcError {
   data?: unknown;
 }
 
-interface BlockData {
+interface Block {
   hash: string;
-  number: number;
+  number: bigint;
   timestamp: number;
-  transactions: string[];
-  miner: string;
-  gasUsed: number;
-  gasLimit: number;
   parentHash: string;
-  stateRoot: string;
-  difficulty: string;
+  miner: string;
+  transactions: string[];
+  gasUsed: bigint;
+  gasLimit: bigint;
+  difficulty: bigint;
   nonce: string;
 }
 
 interface TransactionData {
-  hash: string;
   from: string;
   to: string;
-  value: string;
-  gasPrice: string;
-  gas: number;
-  nonce: number;
+  value: bigint;
   data: string;
-  blockNumber?: number;
-  blockHash?: string;
-  transactionIndex?: number;
-  status?: number;
-}
-
-interface AccountBalance {
-  address: string;
-  balance: string;
+  gasLimit: bigint;
+  gasPrice: bigint;
   nonce: number;
 }
 
-interface CallRequest {
-  from?: string;
-  to: string;
-  gas?: number;
-  gasPrice?: string;
-  value?: string;
-  data?: string;
+interface Transaction {
+  hash: string;
+  from: string;
+  to: string | null;
+  value: bigint;
+  data: string;
+  gasLimit: bigint;
+  gasPrice: bigint;
+  nonce: number;
+  blockHash: string | null;
+  blockNumber: bigint | null;
+  transactionIndex: number | null;
+  status: 'pending' | 'confirmed' | 'failed';
 }
 
-interface CallResult {
-  result: string;
-  gasUsed: number;
+interface AccountState {
+  balance: bigint;
+  nonce: number;
+  codeHash: string;
+  storageRoot: string;
 }
 
-type RpcHandler = (params: unknown[]) => Promise<unknown>;
-
-class JsonRpcError extends Error {
-  constructor(
-    public code: number,
-    message: string,
-    public data?: unknown
-  ) {
-    super(message);
-    this.name = 'JsonRpcError';
-  }
-}
-
-export class JsonRpcServer extends EventEmitter {
-  private handlers: Map<string, RpcHandler> = new Map();
-  private blockStore: Map<number, BlockData> = new Map();
-  private transactionStore: Map<string, TransactionData> = new Map();
-  private accountBalances: Map<string, AccountBalance> = new Map();
-  private pendingTransactions: TransactionData[] = [];
-  private nextBlockNumber: number = 1;
-  private nextNonce: Map<string, number> = new Map();
+class JsonRpcServer extends EventEmitter {
+  private blockStore: Map<string, Block>;
+  private transactionPool: Map<string, Transaction>;
+  private accountState: Map<string, AccountState>;
+  private blockChain: string[];
+  private currentBlockNumber: bigint;
 
   constructor() {
     super();
-    this.registerHandlers();
+    this.blockStore = new Map();
+    this.transactionPool = new Map();
+    this.accountState = new Map();
+    this.blockChain = [];
+    this.currentBlockNumber = 0n;
     this.initializeGenesisBlock();
   }
 
-  private registerHandlers(): void {
-    this.handlers.set('fable_getBlock', this.handleGetBlock.bind(this));
-    this.handlers.set('fable_sendTransaction', this.handleSendTransaction.bind(this));
-    this.handlers.set('fable_getBalance', this.handleGetBalance.bind(this));
-    this.handlers.set('fable_call', this.handleCall.bind(this));
-    this.handlers.set('web3_clientVersion', this.handleClientVersion.bind(this));
-    this.handlers.set('net_version', this.handleNetVersion.bind(this));
-  }
-
   private initializeGenesisBlock(): void {
-    const genesisBlock: BlockData = {
-      hash: '0x0000000000000000000000000000000000000000000000000000000000000000',
-      number: 0,
+    const genesisBlock: Block = {
+      hash: '0x' + '0'.repeat(64),
+      number: 0n,
       timestamp: Math.floor(Date.now() / 1000),
+      parentHash: '0x' + '0'.repeat(64),
+      miner: '0x' + '0'.repeat(40),
       transactions: [],
-      miner: '0x0000000000000000000000000000000000000000',
-      gasUsed: 0,
-      gasLimit: 30000000,
-      parentHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
-      stateRoot: '0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
-      difficulty: '0x1',
-      nonce: '0x0'
+      gasUsed: 0n,
+      gasLimit: 30000000n,
+      difficulty: 1n,
+      nonce: '0x0',
     };
-    this.blockStore.set(0, genesisBlock);
+    this.blockStore.set(genesisBlock.hash, genesisBlock);
+    this.blockChain.push(genesisBlock.hash);
   }
 
-  private async handleGetBlock(params: unknown[]): Promise<BlockData> {
-    if (!Array.isArray(params) || params.length === 0) {
-      throw new JsonRpcError(-32602, 'Invalid params: expected [blockIdentifier]');
+  private validateAddress(address: string): boolean {
+    return /^0x[0-9a-fA-F]{40}$/.test(address);
+  }
+
+  private validateHash(hash: string): boolean {
+    return /^0x[0-9a-fA-F]{64}$/.test(hash);
+  }
+
+  private generateHash(input: string): string {
+    const crypto = require('crypto');
+    return '0x' + crypto.createHash('sha256').update(input).digest('hex');
+  }
+
+  private ensureAccountExists(address: string): void {
+    if (!this.accountState.has(address)) {
+      this.accountState.set(address, {
+        balance: 1000n * 10n ** 18n,
+        nonce: 0,
+        codeHash: '0x' + '0'.repeat(64),
+        storageRoot: '0x' + '0'.repeat(64),
+      });
     }
+  }
 
-    const blockIdentifier = params[0];
-    let blockNumber: number;
-
-    if (typeof blockIdentifier === 'string') {
-      if (blockIdentifier === 'latest') {
-        blockNumber = this.nextBlockNumber - 1;
-      } else if (blockIdentifier.startsWith('0x')) {
-        blockNumber = parseInt(blockIdentifier, 16);
-      } else {
-        throw new JsonRpcError(-32602, 'Invalid block identifier format');
+  public async handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+    try {
+      if (request.jsonrpc !== '2.0') {
+        return this.createErrorResponse(request.id, -32600, 'Invalid Request');
       }
-    } else if (typeof blockIdentifier === 'number') {
-      blockNumber = blockIdentifier;
-    } else {
-      throw new JsonRpcError(-32602, 'Block identifier must be string or number');
-    }
 
-    const block = this.blockStore.get(blockNumber);
-    if (!block) {
-      throw new JsonRpcError(-32001, `Block not found: ${blockNumber}`);
-    }
+      if (!request.method) {
+        return this.createErrorResponse(request.id, -32600, 'Missing method');
+      }
 
-    return block;
+      switch (request.method) {
+        case 'fable_getBlock':
+          return await this.getBlock(request);
+        case 'fable_sendTransaction':
+          return await this.sendTransaction(request);
+        case 'fable_getBalance':
+          return await this.getBalance(request);
+        case 'fable_call':
+          return await this.call(request);
+        case 'web3_clientVersion':
+          return this.createResponse(request.id, 'Fablechain/1.0.0');
+        case 'net_version':
+          return this.createResponse(request.id, '1');
+        case 'eth_chainId':
+          return this.createResponse(request.id, '0x1');
+        case 'eth_blockNumber':
+          return this.createResponse(request.id, '0x' + this.currentBlockNumber.toString(16));
+        default:
+          return this.createErrorResponse(request.id, -32601, 'Method not found');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return this.createErrorResponse(request.id, -32603, 'Internal error', message);
+    }
   }
 
-  private async handleSendTransaction(params: unknown[]): Promise<string> {
-    if (!Array.isArray(params) || params.length === 0) {
-      throw new JsonRpcError(-32602, 'Invalid params: expected [transactionObject]');
+  private async getBlock(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+    const params = request.params as string[];
+    if (!params || params.length === 0) {
+      return this.createErrorResponse(request.id, -32602, 'Missing blockHash parameter');
     }
 
-    const txObj = params[0] as Partial<TransactionData>;
-
-    if (!txObj.from || !this.isValidAddress(txObj.from)) {
-      throw new JsonRpcError(-32602, 'Invalid from address');
+    const blockHash = params[0];
+    if (!this.validateHash(blockHash)) {
+      return this.createErrorResponse(request.id, -32602, 'Invalid block hash format');
     }
 
-    if (!txObj.to || !this.isValidAddress(txObj.to)) {
-      throw new JsonRpcError(-32602, 'Invalid to address');
+    const block = this.blockStore.get(blockHash);
+    if (!block) {
+      return this.createResponse(request.id, null);
     }
 
-    if (!txObj.value || typeof txObj.value !== 'string') {
-      throw new JsonRpcError(-32602, 'Invalid value');
-    }
-
-    if (!txObj.gasPrice || typeof txObj.gasPrice !== 'string') {
-      throw new JsonRpcError(-32602, 'Invalid gasPrice');
-    }
-
-    if (typeof txObj.gas !== 'number' || txObj.gas <= 0) {
-      throw new JsonRpcError(-32602, 'Invalid gas');
-    }
-
-    const fromNonce = this.nextNonce.get(txObj.from) || 0;
-    const txHash = this.generateTransactionHash(txObj.from, fromNonce);
-
-    const transaction: TransactionData = {
-      hash: txHash,
-      from: txObj.from,
-      to: txObj.to,
-      value: txObj.value,
-      gasPrice: txObj.gasPrice,
-      gas: txObj.gas,
-      nonce: fromNonce,
-      data: txObj.data || '0x',
+    const blockResponse = {
+      hash: block.hash,
+      number: '0x' + block.number.toString(16),
+      timestamp: block.timestamp,
+      parentHash: block.parentHash,
+      miner: block.miner,
+      transactions: block.transactions,
+      gasUsed: '0x' + block.gasUsed.toString(16),
+      gasLimit: '0x' + block.gasLimit.toString(16),
+      difficulty: '0x' + block.difficulty.toString(16),
+      nonce: block.nonce,
     };
 
-    this.pendingTransactions.push(transaction);
-    this.nextNonce.set(txObj.from, fromNonce + 1);
-    this.transactionStore.set(txHash, transaction);
-
-    this.emit('transaction:pending', transaction);
-
-    return txHash;
+    return this.createResponse(request.id, blockResponse);
   }
 
-  private async handleGetBalance(params: unknown[]): Promise<string> {
-    if (!Array.isArray(params) || params.length === 0) {
-      throw new JsonRpcError(-32602, 'Invalid params: expected [address]');
+  private async sendTransaction(request: JsonRpcRequest): Promise<JsonRpcResponse> {
+    const params = request.params as [Partial<TransactionData>];
+    if (!params || params.length === 0) {
+      return this.createErrorResponse(request.id, -32602, 'Missing transaction data');
     }
 
-    const address = params[0];
-    if (typeof address !== 'string' || !this.isValidAddress(address)) {
-      throw new JsonRpcError(-32602, 'Invalid address format');
+    const txData = params[0];
+
+    if (!txData.from || !this.validateAddress(txData.from)) {
+      return this.createErrorResponse(request.id, -32602, 'Invalid from address');
     }
 
-    const blockIdentifier = params[1] || 'latest';
-
-    const account = this.accountBalances.get(address.toLowerCase());
-    if (!account) {
-      return '0x0';
+    if (txData.to && !this.validateAddress(txData.to)) {
+      return this.createErrorResponse(request.id, -32602, 'Invalid to address');
     }
 
-    return account.balance;
-  }
+    this.ensureAccountExists(txData.from);
+    const sender = this.accountState.get(txData.from)!;
 
-  private async handleCall(params: unknown[]): Promise<CallResult> {
-    if (!Array.isArray(params) || params.length === 0) {
+    const gasPrice = txData.gasPrice || 1n;
+    const gasLimit = txData.gasLimit || 21000n;
+    const value = txData.value || 0n;
+    const totalCost = gasPrice * gasLimit + value;
+
+    if (sender.balance < totalCost) {
+      return this.createErrorResponse(request.id, -32602, 'Insufficient balance');
+    }
+
+    const txHash = this
