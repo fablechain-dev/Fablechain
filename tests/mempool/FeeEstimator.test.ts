@@ -4,179 +4,208 @@ import { FeeEstimator } from '../../src/mempool/FeeEstimator';
 describe('FeeEstimator', () => {
   let feeEstimator: FeeEstimator;
 
-  const DEFAULT_BASE_FEE = BigInt(1000000000); // 1 Gwei
-  const MIN_BASE_FEE = BigInt(1000000); // 0.001 Gwei
-  const MAX_BASE_FEE = BigInt(1000000000000); // 1000 Gwei
-  const ELASTICITY_MULTIPLIER = 2;
-  const BASE_FEE_MAX_CHANGE_DENOMINATOR = 8;
-
   beforeEach(() => {
     feeEstimator = new FeeEstimator({
-      initialBaseFee: DEFAULT_BASE_FEE,
-      minBaseFee: MIN_BASE_FEE,
-      maxBaseFee: MAX_BASE_FEE,
-      elasticityMultiplier: ELASTICITY_MULTIPLIER,
-      baseFeeMaxChangeDenominator: BASE_FEE_MAX_CHANGE_DENOMINATOR,
-      targetGasPerBlock: BigInt(15000000),
+      minBaseFee: BigInt(1),
+      maxBaseFee: BigInt(1000000),
+      baseFeeIncrement: BigInt(10),
+      baseFeeDecrement: BigInt(5),
+      targetGasUsedPerBlock: 15000000n,
+      elasticityMultiplier: 2n,
+    });
+  });
+
+  describe('calculateBaseFee', () => {
+    it('should return minimum base fee when no blocks have been processed', () => {
+      const baseFee = feeEstimator.calculateBaseFee(0);
+      expect(baseFee).toBe(BigInt(1));
+    });
+
+    it('should return maximum base fee when capped', () => {
+      const baseFee = feeEstimator.calculateBaseFee(BigInt(1000001));
+      expect(baseFee).toBe(BigInt(1000000));
+    });
+
+    it('should ramp up base fee when gas usage exceeds target', () => {
+      const previousBaseFee = BigInt(100);
+      const gasUsed = BigInt(20000000);
+      const targetGas = BigInt(15000000);
+
+      const baseFee = feeEstimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
+        gasUsed,
+        targetGas
+      );
+
+      expect(baseFee).toBeGreaterThan(previousBaseFee);
+    });
+
+    it('should ramp down base fee when gas usage is below target', () => {
+      const previousBaseFee = BigInt(100);
+      const gasUsed = BigInt(10000000);
+      const targetGas = BigInt(15000000);
+
+      const baseFee = feeStrimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
+        gasUsed,
+        targetGas
+      );
+
+      expect(baseFee).toBeLessThan(previousBaseFee);
+    });
+
+    it('should maintain base fee when gas usage equals target', () => {
+      const previousBaseFee = BigInt(100);
+      const gasUsed = BigInt(15000000);
+      const targetGas = BigInt(15000000);
+
+      const baseFee = feeEstimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
+        gasUsed,
+        targetGas
+      );
+
+      expect(baseFee).toBe(previousBaseFee);
     });
   });
 
   describe('Base Fee Ramp-Up', () => {
-    it('should increase base fee when gas used exceeds target', () => {
-      const gasUsed = BigInt(20000000); // Exceeds target of 15000000
+    it('should increase base fee proportionally when gas usage significantly exceeds target', () => {
+      const previousBaseFee = BigInt(50);
+      const gasUsed = BigInt(30000000);
       const targetGas = BigInt(15000000);
 
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        DEFAULT_BASE_FEE,
+      const baseFee = feeEstimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
         gasUsed,
         targetGas
       );
 
-      expect(newBaseFee).toBeGreaterThan(DEFAULT_BASE_FEE);
+      const excessGasRatio = (gasUsed - targetGas) / targetGas;
+      const expectedIncrease = (previousBaseFee * excessGasRatio) / BigInt(2);
+      const expectedBaseFee = previousBaseFee + expectedIncrease;
+
+      expect(baseFee).toBe(expectedBaseFee);
     });
 
-    it('should increase base fee by correct percentage during ramp-up', () => {
-      const gasUsed = BigInt(18750000); // 25% above target (15M)
+    it('should not exceed maximum base fee during ramp-up', () => {
+      const previousBaseFee = BigInt(999900);
+      const gasUsed = BigInt(45000000);
       const targetGas = BigInt(15000000);
 
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        DEFAULT_BASE_FEE,
+      const baseFee = feeEstimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
         gasUsed,
         targetGas
       );
 
-      // Expected increase: (18750000 - 15000000) / 15000000 / 8 = 3.125%
-      const expectedIncrease = DEFAULT_BASE_FEE / BigInt(32); // ~3.125%
-      const expectedBaseFee = DEFAULT_BASE_FEE + expectedIncrease;
-
-      expect(newBaseFee).toBeLessThanOrEqual(expectedBaseFee + BigInt(1));
-      expect(newBaseFee).toBeGreaterThanOrEqual(expectedBaseFee - BigInt(1));
+      expect(baseFee).toBeLessThanOrEqual(BigInt(1000000));
     });
 
-    it('should respect max base fee ceiling during ramp-up', () => {
-      feeEstimator = new FeeEstimator({
-        initialBaseFee: BigInt(900000000000), // 900 Gwei (near max)
-        minBaseFee: MIN_BASE_FEE,
-        maxBaseFee: MAX_BASE_FEE,
-        elasticityMultiplier: ELASTICITY_MULTIPLIER,
-        baseFeeMaxChangeDenominator: BASE_FEE_MAX_CHANGE_DENOMINATOR,
-        targetGasPerBlock: BigInt(15000000),
-      });
-
-      const gasUsed = BigInt(30000000); // Significantly above target
+    it('should handle rapid sequential ramp-ups', () => {
+      let currentBaseFee = BigInt(100);
+      const gasUsed = BigInt(25000000);
       const targetGas = BigInt(15000000);
 
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        BigInt(900000000000),
-        gasUsed,
-        targetGas
-      );
+      for (let i = 0; i < 5; i++) {
+        currentBaseFee = feeEstimator.calculateBaseFeeWithUsage(
+          currentBaseFee,
+          gasUsed,
+          targetGas
+        );
+      }
 
-      expect(newBaseFee).toBeLessThanOrEqual(MAX_BASE_FEE);
+      expect(currentBaseFee).toBeLessThanOrEqual(BigInt(1000000));
+      expect(currentBaseFee).toBeGreaterThan(BigInt(100));
     });
 
-    it('should cap at max base fee even with extreme gas usage', () => {
-      const gasUsed = BigInt(300000000); // Extreme gas usage
+    it('should apply increment correctly for minimal excess gas', () => {
+      const previousBaseFee = BigInt(1000);
+      const gasUsed = BigInt(15000001);
       const targetGas = BigInt(15000000);
 
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        DEFAULT_BASE_FEE,
+      const baseFee = feeEstimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
         gasUsed,
         targetGas
       );
 
-      expect(newBaseFee).toBeLessThanOrEqual(MAX_BASE_FEE);
+      expect(baseFee).toBeGreaterThan(previousBaseFee);
+      expect(baseFee - previousBaseFee).toBeLessThan(BigInt(100));
     });
   });
 
   describe('Base Fee Ramp-Down', () => {
-    it('should decrease base fee when gas used is below target', () => {
-      const gasUsed = BigInt(10000000); // Below target of 15000000
+    it('should decrease base fee when gas usage falls below target', () => {
+      const previousBaseFee = BigInt(500);
+      const gasUsed = BigInt(5000000);
       const targetGas = BigInt(15000000);
 
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        DEFAULT_BASE_FEE,
+      const baseFee = feeEstimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
         gasUsed,
         targetGas
       );
 
-      expect(newBaseFee).toBeLessThan(DEFAULT_BASE_FEE);
+      expect(baseFee).toBeLessThan(previousBaseFee);
     });
 
-    it('should decrease base fee by correct percentage during ramp-down', () => {
-      const gasUsed = BigInt(11250000); // 25% below target (15M)
+    it('should not go below minimum base fee during ramp-down', () => {
+      const previousBaseFee = BigInt(5);
+      const gasUsed = BigInt(1000000);
       const targetGas = BigInt(15000000);
 
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        DEFAULT_BASE_FEE,
+      const baseFee = feeEstimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
         gasUsed,
         targetGas
       );
 
-      // Expected decrease: (15000000 - 11250000) / 15000000 / 8 = 3.125%
-      const expectedDecrease = DEFAULT_BASE_FEE / BigInt(32); // ~3.125%
-      const expectedBaseFee = DEFAULT_BASE_FEE - expectedDecrease;
-
-      expect(newBaseFee).toBeLessThanOrEqual(expectedBaseFee + BigInt(1));
-      expect(newBaseFee).toBeGreaterThanOrEqual(expectedBaseFee - BigInt(1));
+      expect(baseFee).toBeGreaterThanOrEqual(BigInt(1));
     });
 
-    it('should respect min base fee floor during ramp-down', () => {
-      feeEstimator = new FeeEstimator({
-        initialBaseFee: BigInt(2000000), // 2x min fee
-        minBaseFee: MIN_BASE_FEE,
-        maxBaseFee: MAX_BASE_FEE,
-        elasticityMultiplier: ELASTICITY_MULTIPLIER,
-        baseFeeMaxChangeDenominator: BASE_FEE_MAX_CHANGE_DENOMINATOR,
-        targetGasPerBlock: BigInt(15000000),
-      });
-
-      const gasUsed = BigInt(0); // No gas used
+    it('should handle rapid sequential ramp-downs', () => {
+      let currentBaseFee = BigInt(10000);
+      const gasUsed = BigInt(1000000);
       const targetGas = BigInt(15000000);
 
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        BigInt(2000000),
-        gasUsed,
-        targetGas
-      );
+      for (let i = 0; i < 5; i++) {
+        currentBaseFee = feeEstimator.calculateBaseFeeWithUsage(
+          currentBaseFee,
+          gasUsed,
+          targetGas
+        );
+      }
 
-      expect(newBaseFee).toBeGreaterThanOrEqual(MIN_BASE_FEE);
+      expect(currentBaseFee).toBeGreaterThanOrEqual(BigInt(1));
+      expect(currentBaseFee).toBeLessThan(BigInt(10000));
     });
 
-    it('should not go below min base fee even with zero gas usage', () => {
-      const gasUsed = BigInt(0);
+    it('should apply decrement correctly for minimal deficit gas', () => {
+      const previousBaseFee = BigInt(1000);
+      const gasUsed = BigInt(14999999);
       const targetGas = BigInt(15000000);
 
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        MIN_BASE_FEE,
+      const baseFee = feeEstimator.calculateBaseFeeWithUsage(
+        previousBaseFee,
         gasUsed,
         targetGas
       );
 
-      expect(newBaseFee).toBeGreaterThanOrEqual(MIN_BASE_FEE);
+      expect(baseFee).toBeLessThan(previousBaseFee);
+      expect(previousBaseFee - baseFee).toBeLessThan(BigInt(100));
     });
   });
 
-  describe('Edge Cases at Min/Max Boundaries', () => {
-    it('should remain at min base fee when at minimum boundary with low gas', () => {
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        MIN_BASE_FEE,
-        BigInt(0),
-        BigInt(15000000)
-      );
-
-      expect(newBaseFee).toEqual(MIN_BASE_FEE);
+  describe('Edge Cases at Minimum', () => {
+    it('should handle base fee at minimum boundary', () => {
+      const baseFee = feeEstimator.calculateBaseFee(BigInt(0));
+      expect(baseFee).toBe(BigInt(1));
     });
 
-    it('should increase from min base fee when gas exceeds target', () => {
-      const newBaseFee = feeEstimator.calculateBaseFee(
-        MIN_BASE_FEE,
-        BigInt(20000000),
-        BigInt(15000000)
-      );
+    it('should not allow negative base fees', () => {
+      const previousBaseFee = BigInt(2);
+      const gasUsed = BigInt(100000);
+      const targetGas = BigInt(15000000);
 
-      expect(newBaseFee).toBeGreaterThan(MIN_BASE_FEE);
-      expect(newBaseFee).toBeLessThanOrEqual(MAX_BASE_FEE);
-    });
-
-    it('should remain at max base
+      const baseFee = feeEstimator.calculateBaseFeeWithUs
