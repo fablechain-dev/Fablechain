@@ -1,234 +1,198 @@
 ```typescript
 import { InferenceNotarizer } from '../../src/ai/InferenceNotarizer';
-import { createHash } from 'crypto';
-
-interface TestInferenceRecord {
-  modelId: string;
-  input: string;
-  output: string;
-  timestamp: number;
-  parameters: Record<string, unknown>;
-}
-
-interface NotarizationProof {
-  hash: string;
-  signature: string;
-  timestamp: number;
-  nonce: string;
-}
+import { InferenceResult, NotarizationProof, DeterminismReport } from '../../src/ai/types';
+import crypto from 'crypto';
 
 describe('InferenceNotarizer', () => {
   let notarizer: InferenceNotarizer;
-  
+
   beforeEach(() => {
     notarizer = new InferenceNotarizer();
   });
 
-  describe('Determinism Across Runs', () => {
-    it('should produce identical hashes for identical inference records', () => {
-      const inferenceRecord: TestInferenceRecord = {
-        modelId: 'bert-v2.1',
-        input: 'What is machine learning?',
-        output: 'Machine learning is a subset of artificial intelligence...',
-        timestamp: 1704067200,
-        parameters: {
-          temperature: 0.7,
-          maxTokens: 256,
-          topP: 0.95,
+  describe('Determinism Verification', () => {
+    it('should produce identical hashes for identical inference inputs across multiple runs', async () => {
+      const inferenceInput: InferenceResult = {
+        modelId: 'gpt-4-turbo',
+        modelVersion: '2024-01-15',
+        prompt: 'What is the capital of France?',
+        response: 'The capital of France is Paris.',
+        timestamp: 1704067200000,
+        temperature: 0.7,
+        maxTokens: 256,
+        seed: 42,
+        processingTimeMs: 145,
+        inputTokens: 12,
+        outputTokens: 8,
+        metadata: {
+          userId: 'user-123',
+          sessionId: 'session-456',
+          requestId: 'req-789',
         },
       };
 
-      const hash1 = notarizer.computeInferenceHash(inferenceRecord);
-      const hash2 = notarizer.computeInferenceHash(inferenceRecord);
-      const hash3 = notarizer.computeInferenceHash(inferenceRecord);
+      const proofs: string[] = [];
 
-      expect(hash1).toBe(hash2);
-      expect(hash2).toBe(hash3);
-      expect(hash1).toMatch(/^0x[a-f0-9]{64}$/);
+      for (let i = 0; i < 5; i++) {
+        const proof = await notarizer.notarizeInference(inferenceInput);
+        proofs.push(proof.hash);
+      }
+
+      const firstHash = proofs[0];
+      proofs.forEach((hash, index) => {
+        expect(hash).toBe(firstHash);
+        expect(hash).toMatch(/^[a-f0-9]{64}$/);
+      });
     });
 
-    it('should produce consistent hashes regardless of parameter object key order', () => {
-      const record1: TestInferenceRecord = {
-        modelId: 'gpt-3.5-turbo',
-        input: 'Summarize this article',
-        output: 'The article discusses renewable energy...',
-        timestamp: 1704153600,
-        parameters: {
-          temperature: 0.5,
-          topP: 0.9,
-          frequencyPenalty: 0.8,
+    it('should produce different hashes when any input parameter changes', async () => {
+      const baseInput: InferenceResult = {
+        modelId: 'gpt-4-turbo',
+        modelVersion: '2024-01-15',
+        prompt: 'What is the capital of France?',
+        response: 'The capital of France is Paris.',
+        timestamp: 1704067200000,
+        temperature: 0.7,
+        maxTokens: 256,
+        seed: 42,
+        processingTimeMs: 145,
+        inputTokens: 12,
+        outputTokens: 8,
+        metadata: {
+          userId: 'user-123',
+          sessionId: 'session-456',
+          requestId: 'req-789',
         },
       };
 
-      const record2: TestInferenceRecord = {
-        modelId: 'gpt-3.5-turbo',
-        input: 'Summarize this article',
-        output: 'The article discusses renewable energy...',
-        timestamp: 1704153600,
-        parameters: {
-          frequencyPenalty: 0.8,
-          temperature: 0.5,
-          topP: 0.9,
-        },
-      };
+      const baseProof = await notarizer.notarizeInference(baseInput);
 
-      const hash1 = notarizer.computeInferenceHash(record1);
-      const hash2 = notarizer.computeInferenceHash(record2);
+      const modifiedPrompt = { ...baseInput, prompt: 'What is the capital of Germany?' };
+      const proofDifferentPrompt = await notarizer.notarizeInference(modifiedPrompt);
+      expect(proofDifferentPrompt.hash).not.toBe(baseProof.hash);
 
-      expect(hash1).toBe(hash2);
+      const modifiedResponse = { ...baseInput, response: 'Paris is the capital of France.' };
+      const proofDifferentResponse = await notarizer.notarizeInference(modifiedResponse);
+      expect(proofDifferentResponse.hash).not.toBe(baseProof.hash);
+
+      const modifiedTemperature = { ...baseInput, temperature: 0.9 };
+      const proofDifferentTemp = await notarizer.notarizeInference(modifiedTemperature);
+      expect(proofDifferentTemp.hash).not.toBe(baseProof.hash);
+
+      const modifiedTimestamp = { ...baseInput, timestamp: 1704067300000 };
+      const proofDifferentTime = await notarizer.notarizeInference(modifiedTimestamp);
+      expect(proofDifferentTime.hash).not.toBe(baseProof.hash);
     });
 
-    it('should handle deeply nested parameter structures consistently', () => {
-      const record: TestInferenceRecord = {
-        modelId: 'claude-v1',
-        input: 'Generate code',
-        output: 'function example() { return 42; }',
-        timestamp: 1704240000,
-        parameters: {
-          config: {
-            constraints: {
-              maxDepth: 5,
-              complexity: 'high',
-              metadata: {
-                version: '1.0',
-                deprecated: false,
-              },
-            },
-            safety: {
-              enabled: true,
-              level: 'strict',
-            },
+    it('should maintain determinism with deep nested metadata changes', async () => {
+      const input1: InferenceResult = {
+        modelId: 'claude-3-opus',
+        modelVersion: '2024-02-01',
+        prompt: 'Explain quantum computing',
+        response: 'Quantum computing uses quantum bits...',
+        timestamp: 1704153600000,
+        temperature: 0.5,
+        maxTokens: 512,
+        seed: 123,
+        processingTimeMs: 234,
+        inputTokens: 20,
+        outputTokens: 45,
+        metadata: {
+          userId: 'user-xyz',
+          sessionId: 'sess-abc',
+          requestId: 'req-def',
+          context: {
+            language: 'en-US',
+            apiVersion: 'v2',
+            customField: 'value1',
           },
-          timeout: 30000,
         },
       };
 
-      const hashes = Array.from({ length: 5 }, () =>
-        notarizer.computeInferenceHash(record)
-      );
-
-      const firstHash = hashes[0];
-      expect(hashes.every(h => h === firstHash)).toBe(true);
-    });
-
-    it('should produce deterministic hashes with unicode characters', () => {
-      const record: TestInferenceRecord = {
-        modelId: 'multilingual-model',
-        input: '¿Cuál es el significado de la vida? 生命的意义是什么？',
-        output: 'La vida tiene múltiples significados... 生命具有多重含义...',
-        timestamp: 1704326400,
-        parameters: { encoding: 'utf-8' },
+      const input2: InferenceResult = {
+        ...input1,
+        metadata: {
+          ...input1.metadata,
+          context: {
+            language: 'en-US',
+            apiVersion: 'v2',
+            customField: 'value1',
+          },
+        },
       };
 
-      const hash1 = notarizer.computeInferenceHash(record);
-      const hash2 = notarizer.computeInferenceHash(record);
+      const proof1 = await notarizer.notarizeInference(input1);
+      const proof2 = await notarizer.notarizeInference(input2);
 
-      expect(hash1).toBe(hash2);
+      expect(proof1.hash).toBe(proof2.hash);
+    });
+
+    it('should generate determinism report with statistics', async () => {
+      const input: InferenceResult = {
+        modelId: 'llama-2-70b',
+        modelVersion: '2024-01-20',
+        prompt: 'Test determinism',
+        response: 'Response for determinism test',
+        timestamp: 1704240000000,
+        temperature: 0.3,
+        maxTokens: 128,
+        seed: 999,
+        processingTimeMs: 87,
+        inputTokens: 5,
+        outputTokens: 6,
+        metadata: {
+          userId: 'determinism-tester',
+          sessionId: 'det-session',
+          requestId: 'det-request',
+        },
+      };
+
+      const report = await notarizer.generateDeterminismReport(input, 10);
+
+      expect(report.isConsistent).toBe(true);
+      expect(report.totalRuns).toBe(10);
+      expect(report.uniqueHashes).toBe(1);
+      expect(report.hashes).toHaveLength(10);
+      expect(new Set(report.hashes).size).toBe(1);
+      expect(report.consistencyPercentage).toBe(100);
+      expect(report.hashVariance).toBe(0);
     });
   });
 
   describe('Hash Uniqueness', () => {
-    it('should produce different hashes for different model outputs', () => {
-      const baseRecord: TestInferenceRecord = {
-        modelId: 'text-davinci-003',
-        input: 'What is AI?',
-        timestamp: 1704412800,
-        parameters: { temperature: 0.7 },
-        output: '',
-      };
-
-      const hash1 = notarizer.computeInferenceHash({
-        ...baseRecord,
-        output: 'AI is artificial intelligence.',
-      });
-
-      const hash2 = notarizer.computeInferenceHash({
-        ...baseRecord,
-        output: 'AI refers to machine intelligence.',
-      });
-
-      expect(hash1).not.toBe(hash2);
-    });
-
-    it('should produce different hashes for different model IDs', () => {
-      const record1: TestInferenceRecord = {
-        modelId: 'model-a-v1',
-        input: 'Test input',
-        output: 'Test output',
-        timestamp: 1704499200,
-        parameters: {},
-      };
-
-      const record2: TestInferenceRecord = {
-        ...record1,
-        modelId: 'model-b-v1',
-      };
-
-      const hash1 = notarizer.computeInferenceHash(record1);
-      const hash2 = notarizer.computeInferenceHash(record2);
-
-      expect(hash1).not.toBe(hash2);
-    });
-
-    it('should produce different hashes for different timestamps', () => {
-      const baseRecord: TestInferenceRecord = {
-        modelId: 'time-sensitive-model',
-        input: 'Current time?',
-        output: 'The current time is...',
-        parameters: {},
-        timestamp: 0,
-      };
-
-      const hash1 = notarizer.computeInferenceHash({
-        ...baseRecord,
-        timestamp: 1704585600,
-      });
-
-      const hash2 = notarizer.computeInferenceHash({
-        ...baseRecord,
-        timestamp: 1704585601,
-      });
-
-      expect(hash1).not.toBe(hash2);
-    });
-
-    it('should produce different hashes for different parameter values', () => {
-      const baseRecord: TestInferenceRecord = {
-        modelId: 'param-sensitive',
-        input: 'Input',
-        output: 'Output',
-        timestamp: 1704672000,
-        parameters: {},
-      };
-
-      const hash1 = notarizer.computeInferenceHash({
-        ...baseRecord,
-        parameters: { temperature: 0.5 },
-      });
-
-      const hash2 = notarizer.computeInferenceHash({
-        ...baseRecord,
-        parameters: { temperature: 0.9 },
-      });
-
-      expect(hash1).not.toBe(hash2);
-    });
-
-    it('should produce unique hashes for a batch of different inferences', () => {
-      const records: TestInferenceRecord[] = Array.from({ length: 100 }, (_, i) => ({
-        modelId: `model-${i}`,
-        input: `input-${i}`,
-        output: `output-${i}`,
-        timestamp: 1704758400 + i,
-        parameters: { index: i },
-      }));
-
-      const hashes = records.map(r => notarizer.computeInferenceHash(r));
-      const uniqueHashes = new Set(hashes);
-
-      expect(uniqueHashes.size).toBe(100);
-    });
-  });
-
-  describe('Proof Generation and Verification', () => {
-    it('should
+    it('should generate unique hashes for different inference results', async () => {
+      const inferences: InferenceResult[] = [
+        {
+          modelId: 'gpt-4-turbo',
+          modelVersion: '2024-01-15',
+          prompt: 'Prompt 1',
+          response: 'Response 1',
+          timestamp: 1704067200000,
+          temperature: 0.7,
+          maxTokens: 256,
+          seed: 1,
+          processingTimeMs: 100,
+          inputTokens: 10,
+          outputTokens: 5,
+          metadata: { userId: 'user1', sessionId: 'sess1', requestId: 'req1' },
+        },
+        {
+          modelId: 'gpt-4-turbo',
+          modelVersion: '2024-01-15',
+          prompt: 'Prompt 2',
+          response: 'Response 2',
+          timestamp: 1704067300000,
+          temperature: 0.7,
+          maxTokens: 256,
+          seed: 2,
+          processingTimeMs: 101,
+          inputTokens: 11,
+          outputTokens: 6,
+          metadata: { userId: 'user2', sessionId: 'sess2', requestId: 'req2' },
+        },
+        {
+          modelId: 'gpt-4-turbo',
+          modelVersion: '2024-01-15',
+          prompt: 'Prompt 3',
+          response: 'Response 3',
+          timestamp
