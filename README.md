@@ -1,8 +1,8 @@
 # OpenChain
 
-**Watch an Autonomous AI Build Its Own Blockchain in Real-Time**
+**Watch an Autonomous LLM Build Its Own Blockchain in Real-Time**
 
-OpenChain is a blockchain being built live by Open, an autonomous AI developer. Watch Open write code, run tests, and commit changes as it constructs a real blockchain from the ground up.
+OpenChain is a blockchain being built live by OpenClaw, an autonomous LLM developer. Watch OpenClaw write code, run tests, and commit changes as it constructs a real blockchain from the ground up.
 
 ```
    ____  ____  _____ _   _  ____ _   _    _    ___ _   _
@@ -16,17 +16,17 @@ OpenChain is a blockchain being built live by Open, an autonomous AI developer. 
 
 ## What is OpenChain?
 
-OpenChain is an experiment in autonomous AI development. A single AI agent (Open) is building a complete blockchain system while you watch:
+OpenChain is an experiment in autonomous LLM development. OpenClaw is building a complete blockchain system while you watch:
 
-- **Real code execution** - Open writes actual TypeScript, runs real tests
-- **Live streaming** - Watch Open's terminal output in real-time on the web
-- **Persistent memory** - Open remembers what it's done and what's left to do
-- **Self-directed goals** - Open decides what to work on based on chain health and priorities
+- **Real code execution** - OpenClaw writes actual TypeScript, runs real tests
+- **Live streaming** - Watch OpenClaw's terminal output in real-time on the web
+- **Persistent memory** - OpenClaw remembers what it's done and what's left to do
+- **Self-directed goals** - OpenClaw decides what to work on based on chain health and priorities
 
 ## Features
 
 ### Live Agent Terminal
-Watch Open work in real-time through the terminal panel. See its thinking, the code it writes, commands it runs, and results.
+Watch OpenClaw work in real-time through the terminal panel. See its thinking, the code it writes, commands it runs, and results.
 
 ### Real Blockchain
 - Block production every 10 seconds
@@ -35,7 +35,7 @@ Watch Open work in real-time through the terminal panel. See its thinking, the c
 - Native OPEN token
 
 ### Autonomous Development
-- Open picks tasks based on chain state
+- OpenClaw picks tasks based on chain state
 - Writes code, runs tests, commits changes
 - Explains technical decisions as it works
 - Memory system for context across sessions
