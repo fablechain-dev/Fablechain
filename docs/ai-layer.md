@@ -1,100 +1,63 @@
-# AI Layer Documentation
+# Fablechain AI Layer Documentation
 
 ## Overview
 
-The Fablechain AI layer provides a decentralized infrastructure for AI inference validation, model management, and agent reputation tracking. This layer enables trustless verification of AI computations while maintaining privacy and enabling transparent incentive mechanisms for model providers.
+The Fablechain AI Layer provides a comprehensive infrastructure for integrating artificial intelligence systems with blockchain verification. This layer enables on-chain notarization of AI inferences, distributed agent reputation tracking, decentralized model registry management, and FABLE-5 system integration for autonomous narrative generation and verification.
 
-## Core Components
+## Inference Notarization
 
-### 1. Inference Notarization
+Inference notarization anchors AI model outputs to the blockchain, creating immutable cryptographic proofs of computation. When an AI inference is executed, the system captures:
 
-Inference notarization creates cryptographic proofs of AI model execution without exposing sensitive model parameters or training data.
+- Input parameters and feature vectors
+- Model identifier and version hash
+- Output predictions with confidence scores
+- Execution timestamp and computational metadata
+- Originating node identifier
 
-**Key Features:**
-- **Deterministic Hashing**: Model inputs, outputs, and metadata are hashed to create immutable inference records
-- **Timestamp Attestation**: Each inference is timestamped on-chain for audit trails
-- **Batch Processing**: Multiple inferences can be notarized in a single transaction to optimize gas costs
-- **Privacy Preservation**: Uses zero-knowledge proofs for sensitive computations
+The notarization process hashes these components using SHA-3-256, then submits the digest to the Fablechain smart contract layer. This creates an auditable trail of AI decisions without storing large model artifacts on-chain. Stakeholders can verify that a specific inference occurred at a precise time, with deterministic outputs reproducible through off-chain computation.
 
-**Process Flow:**
-1. Model provider submits inference request with input parameters
-2. AI service executes computation and generates output
-3. Cryptographic commitment is created: `hash(model_id, inputs, outputs, timestamp)`
-4. Proof is submitted to smart contract and recorded in the blockchain
-5. Consumer retrieves and verifies proof on-chain
+## Agent Reputation System
 
-### 2. Agent Reputation System
+Agents in Fablechain accumulate reputation scores based on inference accuracy, submission frequency, and community validation. The reputation mechanism:
 
-Agents operating on Fablechain earn and maintain reputation scores based on inference accuracy, reliability, and community feedback.
+- Tracks historical accuracy through post-hoc verification challenges
+- Weights recent performances more heavily using exponential decay
+- Distributes rewards proportionally to contributors
+- Penalizes Byzantine behavior and collusion attempts
+- Maintains slashing conditions for malicious submissions
 
-**Reputation Metrics:**
-- **Accuracy Score**: Percentage of inferences validated as correct against oracle benchmarks
-- **Consistency Rating**: Variance in output quality across similar input domains
-- **Response Time**: Average inference latency and compliance with SLA commitments
-- **Community Stake**: Token holders who stake on agent reliability earn yield proportional to agent success
+Reputation operates as a non-transferable token balance associated with agent addresses. The system calculates scores deterministically on-chain while oracle networks provide ground truth data for validation. Reputation thresholds gate access to higher-value inference tasks and increase agent participation in governance.
 
-**Scoring Algorithm:**
-```
-reputation_score = (accuracy × 0.4) + (consistency × 0.3) + (response_time × 0.2) + (community_stake × 0.1)
-```
+## Model Registry
 
-Scores range from 0-10000, with weekly recalculation. Agents below minimum threshold (2000) are temporarily suspended pending appeal.
+The decentralized model registry maintains a cryptographic catalog of AI models available for Fablechain computation. Each registry entry contains:
 
-### 3. Model Registry
+- Model architecture specification and framework identifier
+- Weights file IPFS hash for reproducible deployment
+- Training dataset provenance and licensing information
+- Performance benchmarks and validation metrics
+- Access control lists and royalty configurations
 
-The Model Registry maintains a curated catalog of AI models available on Fablechain, including metadata, pricing, and performance statistics.
+Model owners register their artifacts by submitting metadata and proof-of-computation to the registry contract. Version control enables iterative model improvement while maintaining backward compatibility. The registry supports atomic model updates, enabling seamless transitions when new versions pass validation thresholds.
 
-**Registry Fields:**
-- **Model Identifier**: Unique content-hash of model weights
-- **Provider Address**: Ethereum address of model creator/publisher
-- **Pricing Tier**: Cost per inference request in FABLE tokens
-- **Performance Metrics**: P50/P95/P99 latency, accuracy benchmarks
-- **Version History**: Complete versioning with rollback capability
-- **License Terms**: Commercial usage restrictions and attribution requirements
+## FABLE-5 Integration
 
-**Discovery Mechanism:**
-Models are indexed by capability tags: `[nlp, vision, time-series, reinforcement-learning]`, enabling efficient discovery.
+FABLE-5 serves as Fablechain's native AI backbone, providing:
 
-### 4. FABLE-5 Integration
+### Narrative Generation
+FABLE-5 generates contextual blockchain narratives that summarize transactions, smart contract interactions, and network events in human-readable form. Generated narratives are cryptographically signed and timestamped.
 
-FABLE-5 serves as the unified AI orchestration layer, managing model deployment, request routing, and verification.
+### Inference Coordination
+FABLE-5 orchestrates distributed inference execution across heterogeneous hardware, aggregating results using Byzantine-fault-tolerant consensus mechanisms. The system handles model compilation, quantization, and optimized deployment to edge nodes.
 
-**Responsibilities:**
-- **Request Routing**: Directs inference requests to optimal agent based on reputation and latency
-- **Load Balancing**: Distributes computational load across network
-- **Result Aggregation**: Combines multiple agent outputs for consensus-based verification
-- **Incentive Distribution**: Automatically calculates and distributes rewards to successful agents
+### Reputation Management
+FABLE-5 monitors agent performance metrics, calculates reputation updates, and triggers economic adjustments. It identifies emerging behavioral patterns indicating coordinated manipulation.
 
-**Integration Points:**
-- Connects to smart contract for state updates and verification
-- Interfaces with IPFS for model and inference data persistence
-- Publishes metrics to oracle aggregators for reputation calculations
+### Autonomous Verification
+FABLE-5 executes verification workflows that challenge submitted inferences against multiple independent models, validating outputs before consensus finalization.
 
-## Workflow Example
+## Implementation Architecture
 
-```
-User submits inference request
-  ↓
-FABLE-5 selects optimal agent from registry
-  ↓
-Agent executes model with deterministic environment
-  ↓
-Output hash and metadata submitted to smart contract
-  ↓
-Oracle verifies against benchmark dataset
-  ↓
-Reputation updated and rewards distributed
-  ↓
-User retrieves notarized result with proof
-```
+The AI layer interfaces with blockchain validators through standardized RPC endpoints. Off-chain computation nodes execute inferences while maintaining cryptographic commitments to inputs and outputs. Smart contracts enforce economic incentives through token transfers and reputation modifications.
 
-## Security Considerations
-
-- **Model Integrity**: Weights verified via SHA-256 prior to execution
-- **Replay Protection**: Nonce-based validation prevents duplicate inference claims
-- **Slashing**: Agents with Byzantine behavior face collateral seizure
-- **Upgrade Safety**: Model versions immutable; new versions require registry re-approval
-
-## Token Economics
-
-Inference costs range from 1-1000 FABLE tokens based on model complexity and latency requirements. Providers retain 85% of fees; 15% burned to maintain token scarcity.
+See `contracts/AIRegistry.sol` and `services/inference-engine/` for implementation details.
