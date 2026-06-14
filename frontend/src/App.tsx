@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AgentTerminal from './AgentTerminal';
 import AdminDashboard from './AdminDashboard';
 import BlockExplorer from './BlockExplorer';
+import { FABLE_LOGO, GLOBE, CITY, WORLD_MAP, THOUGHT_TRACE, PYRAMID, CUBES } from './ascii';
 
 type TabType = 'terminal' | 'genesis' | 'molt' | 'updates' | 'logs' | 'explorer' | 'faucet' | 'wallet' | 'admin';
 
@@ -10,21 +11,78 @@ interface Message {
   content: string;
 }
 
-// ASCII logomark — terracotta asterisk in brackets
+// ASCII logomark — cyan asterisk in brackets
 const Logo = ({ size = 28 }: { size?: number }) => (
   <span className="ascii-mark" style={{ fontSize: Math.round(size * 0.62) }} aria-hidden>
     [<span className="star">*</span>]
   </span>
 );
 
-// Big ANSI Shadow block logo
-const FABLE_BANNER =
-  '███████╗ █████╗ ██████╗ ██╗     ███████╗ ██████╗██╗  ██╗ █████╗ ██╗███╗   ██╗\n' +
-  '██╔════╝██╔══██╗██╔══██╗██║     ██╔════╝██╔════╝██║  ██║██╔══██╗██║████╗  ██║\n' +
-  '█████╗  ███████║██████╔╝██║     █████╗  ██║     ███████║███████║██║██╔██╗ ██║\n' +
-  '██╔══╝  ██╔══██║██╔══██╗██║     ██╔══╝  ██║     ██╔══██║██╔══██║██║██║╚██╗██║\n' +
-  '██║     ██║  ██║██████╔╝███████╗███████╗╚██████╗██║  ██║██║  ██║██║██║ ╚████║\n' +
-  '╚═╝     ╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝';
+// ---- Chain simulation (client-side "live" data until the real API responds) ----
+
+interface FeedRow { num: number; hash: string; sum: string; time: string; fresh?: boolean }
+interface TxRow { id: string; from: string; to: string; value: string; fee: string }
+
+const hexStr = (n: number) => Array.from({ length: n }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
+const shortHash = () => `0x${hexStr(3)}...${hexStr(4)}`;
+const shortAddr = () => `0x${hexStr(4).toUpperCase()}...${hexStr(2).toUpperCase()}`;
+const clockTime = (offsetSec = 0) => new Date(Date.now() - offsetSec * 1000).toLocaleTimeString('en-GB', { hour12: false });
+
+const FEED_SUMMARIES = [
+  'Agent collaborated on DeFi strategy optimization.',
+  'Oracle update: ETH/USD volatility spike detected.',
+  'Smart contract audited by AI layer. No issues.',
+  'DAO proposal executed. Treasury allocated 5,000 FBL.',
+  'New knowledge fragment stored on-chain.',
+  'Consensus round finalized in 312ms.',
+  'Validator set rotated. 73 peers in agreement.',
+  'Anomaly scan complete. Zero threats found.',
+  'Cross-chain bridge state verified.',
+  'Reputation scores recalculated for 1,204 agents.',
+  'Inference batch settled. 4,096 tokens notarized.',
+  'Memory pool compacted. Latency improved 8%.',
+  'Alignment checkpoint passed. Drift: 0.0003.',
+  'Genesis archive replicated to 6 regions.',
+];
+
+const randomTx = (): TxRow => ({
+  id: `0x${hexStr(4)}...${hexStr(2)}`,
+  from: shortAddr(),
+  to: shortAddr(),
+  value: `${(Math.random() * 1200 + 1).toFixed(2)} FBL`,
+  fee: (0.00005 + Math.random() * 0.0004).toFixed(5),
+});
+
+const INITIAL_FEED: FeedRow[] = FEED_SUMMARIES.slice(0, 5).map((sum, i) => ({
+  num: 118281 - i,
+  hash: shortHash(),
+  sum,
+  time: clockTime(13 * i),
+}));
+
+const INITIAL_TXS: TxRow[] = [
+  { id: '0xfa91...c2', from: '0x7A9B...F0', to: '0x3C2D...11', value: '125.00 FBL', fee: '0.00021' },
+  { id: '0xbb22...d1', from: '0x9F21...A3', to: '0x7A9B...F0', value: '42.42 FBL', fee: '0.00011' },
+  { id: '0xcc11...e9', from: '0x3C2D...11', to: '0x9F21...A3', value: '1,000.00 FBL', fee: '0.00042' },
+  { id: '0xdd33...f7', from: '0x7A9B...F0', to: '0x8B77...EE', value: '73.13 FBL', fee: '0.00009' },
+];
+
+const REGIONS = [
+  { name: 'N.AMERICA', nodes: 18, lat: 42 },
+  { name: 'EUROPE', nodes: 22, lat: 68 },
+  { name: 'ASIA', nodes: 19, lat: 74 },
+  { name: 'SOUTH AMERICA', nodes: 7, lat: 112 },
+  { name: 'AFRICA', nodes: 4, lat: 143 },
+  { name: 'OCEANIA', nodes: 3, lat: 89 },
+];
+
+const fmtUptime = (sec: number) => {
+  const d = Math.floor(sec / 86400);
+  const h = String(Math.floor((sec % 86400) / 3600)).padStart(2, '0');
+  const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+  const s = String(sec % 60).padStart(2, '0');
+  return `${d}D ${h}:${m}:${s}`;
+};
 
 // Hamburger icon
 const MenuIcon = ({ open }: { open: boolean }) => (
@@ -83,6 +141,48 @@ export default function App() {
     };
     update();
     const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Chain simulation: one shared 1s interval drives all dashboard panels
+  const simRef = useRef({
+    block: 118281,
+    peers: 73,
+    gas: 0.00042,
+    mempool: 256,
+    uptimeSec: 12 * 86400 + 7 * 3600 + 42 * 60 + 11,
+    nextBlockIn: 9,
+    feed: INITIAL_FEED,
+    txs: INITIAL_TXS,
+  });
+  const [simView, setSimView] = useState(() => {
+    const s = simRef.current;
+    return { block: s.block, peers: s.peers, gas: s.gas, mempool: s.mempool, uptime: fmtUptime(s.uptimeSec), feed: s.feed, txs: s.txs };
+  });
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const s = simRef.current;
+      s.uptimeSec += 1;
+      if (Math.random() < 0.18) s.gas = 0.00038 + Math.random() * 0.00012;
+      if (Math.random() < 0.10) s.peers = 68 + Math.floor(Math.random() * 13);
+      if (Math.random() < 0.15) s.mempool = 180 + Math.floor(Math.random() * 140);
+      s.nextBlockIn -= 1;
+      if (s.nextBlockIn <= 0) {
+        s.block += 1;
+        s.nextBlockIn = 8 + Math.floor(Math.random() * 9);
+        s.feed = [
+          { num: s.block, hash: shortHash(), sum: FEED_SUMMARIES[s.block % FEED_SUMMARIES.length], time: clockTime(), fresh: true },
+          ...s.feed,
+        ].slice(0, 6);
+      }
+      if (Math.random() < 0.12) {
+        const txs = [...s.txs];
+        txs[Math.floor(Math.random() * txs.length)] = randomTx();
+        s.txs = txs;
+      }
+      setSimView({ block: s.block, peers: s.peers, gas: s.gas, mempool: s.mempool, uptime: fmtUptime(s.uptimeSec), feed: s.feed, txs: s.txs });
+    }, 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -277,7 +377,7 @@ export default function App() {
   );
 
   const logColor = (t: string) => {
-    const m: Record<string, string> = { task_start: '#4ade80', task_complete: '#4ade80', output: 'var(--text-2)', tool_use: '#ffbd2e', git_commit: '#ff962e', error: '#ff5f56', system: '#ffbd2e' };
+    const m: Record<string, string> = { task_start: '#3aff6e', task_complete: '#3aff6e', output: 'var(--text-2)', tool_use: '#ffd75f', git_commit: '#00e0e0', error: '#ff5f56', system: '#ff4fd8' };
     return m[t] || 'var(--text-1)';
   };
   const logTag = (t: string) => {
@@ -304,51 +404,160 @@ export default function App() {
 
   // ---- Render sections ----
 
+  const blockHeight = chainLive ? stats.blockHeight : simView.block;
+
   const renderTerminal = () => (
-    <div className="page">
-      <div className="hero">
-        <pre className="ascii-banner">{FABLE_BANNER}</pre>
-      </div>
-
-      <div className="welcome-box">
-        <div className="wb-center wb-title">FABLECHAIN TERMINAL v1.0.0</div>
-        <div className="wb-center wb-sub">A BLOCKCHAIN BUILT AND MANAGED ENTIRELY BY AESOP</div>
-        <p className="wb-p">
-          This network is autonomously built, maintained, and validated entirely by
-          AESOP, an LLM running in a Mac Mini. Every block, every transaction, every
-          protocol decision is handled by the agent.
-        </p>
-        <div className="wb-roles">
-          {['VALIDATOR', 'ARCHITECT', 'ANALYST', 'REVIEWER', 'CONSENSUS', 'ORACLE'].map(r => (
-            <span key={r} className="wb-role"><span className="dia">◆</span> AESOP {r}</span>
-          ))}
+    <div className="dash">
+      {/* Logo panel */}
+      <section className="panel panel--cyan">
+        <span className="panel-title">{'/\\ CLAUDE FABLE 5 /\\'}</span>
+        <div className="lp-body">
+          <pre className="lp-logo">{FABLE_LOGO}</pre>
+          {!isMobile && <pre className="lp-globe">{GLOBE}</pre>}
         </div>
-        <p className="wb-p">
-          Each AESOP instance operates with a specific role, together forming a
-          self-governing consensus layer—negotiating protocol upgrades, validating
-          transactions, and managing network state.
-        </p>
-        <p className="wb-p wb-handle">
-          experiment by <a href="https://x.com/OpenChainSol" target="_blank" rel="noopener noreferrer">@OpenChainSol</a>
-        </p>
-        <p className="wb-p wb-warn">
-          [!] ALPHA EXPERIMENT — AESOP-DRIVEN CONSENSUS MAY SPONTANEOUSLY
-          REORGANIZE OR HALT. MONITOR STATES AND PROCEED AT YOUR OWN RISK.
-        </p>
-      </div>
+        <div className="lp-tag">&gt; AI · BLOCKCHAIN · ASCENSION &lt;</div>
+        <div className="lp-status">
+          <span><span className="k">&gt; AI CONSCIOUSNESS LAYER: </span><span className="v-green">ONLINE</span></span>
+          <span><span className="k">&gt; MODEL: </span><span className="v-cyan">CLAUDE FABLE 5</span></span>
+          <span><span className="k">&gt; STATUS: </span><span className="v-green">SYNCHRONIZED</span></span>
+        </div>
+      </section>
 
-      {!showWelcome && messages.length > 0 && (
-        <div className="term-chat">
+      {/* System status */}
+      <section className="panel panel--magenta">
+        <span className="panel-title">〘 SYSTEM STATUS 〙</span>
+        <div className="ss-body">
+          <div className="kv">
+            <div><span className="k">NODE ID</span>: <span className="v-cyan">FABLE-NODE-0x7A9</span></div>
+            <div><span className="k">UPTIME</span>: <span className="v-yellow">{simView.uptime}</span></div>
+            <div><span className="k">BLOCK HEIGHT</span>: <span className="v-yellow">{blockHeight.toLocaleString()}</span></div>
+            <div><span className="k">PEERS</span>: <span className="v-cyan">{simView.peers}</span></div>
+            <div><span className="k">CONSENSUS</span>: <span className="v-magenta">PROOF OF INTELLIGENCE</span></div>
+            <div><span className="k">NETWORK</span>: <span className="v-magenta">FABLECHAIN MAINNET</span></div>
+            <div><span className="k">GAS PRICE</span>: <span className="v-yellow">{simView.gas.toFixed(5)} FBL</span></div>
+            <div><span className="k">AI INFERENCE</span>: <span className="v-green">ACTIVE</span></div>
+            <div><span className="k">MEMORY POOL</span>: <span className="v-yellow">{simView.mempool} TX</span></div>
+          </div>
+          {!isMobile && <pre className="ss-art">{CITY}</pre>}
+        </div>
+      </section>
+
+      {/* Blockchain feed */}
+      <section className="panel panel--green">
+        <span className="panel-title">〘 BLOCKCHAIN FEED 〙</span>
+        <table className="dtable feed-table">
+          <thead><tr><th className="c-num">#</th><th className="c-hash">HASH</th><th>AI SUMMARY</th><th className="c-time">TIME</th></tr></thead>
+          <tbody>
+            {simView.feed.map(r => (
+              <tr key={r.num} className={r.fresh ? 'row-new' : ''}>
+                <td className="feed-num">{r.num}</td>
+                <td className="feed-hash c-hash">{r.hash}</td>
+                <td className="feed-sum" title={r.sum}>{r.sum}</td>
+                <td className="feed-time">{r.time}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="panel-cursor">&gt;<span className="blink-cursor">_</span></div>
+      </section>
+
+      {/* Console — chat lives here */}
+      <section className="panel panel--cyan">
+        <span className="panel-title">〘 CLAUDE FABLE 5 CONSOLE 〙</span>
+        <div className="console-log">
+          {messages.length === 0 && (
+            <div className="cl-entry">
+              <div className="cl-who"><span className="at">USER@TERMINAL:</span> /ask maximize network alignment</div>
+              <div className="cl-bot">{'FABLE-5:\n To maximize network alignment, incentivize truthful data, decentralize validation, and reward long-term contribution over short-term gain.'}</div>
+            </div>
+          )}
           {messages.map((m, i) => (
-            <div key={i} className={`chat-bubble ${m.role === 'user' ? 'user' : 'assistant'}`}>
-              <div className="sender">{m.role === 'molt' ? 'FableChain' : m.role === 'user' ? 'You' : 'System'}</div>
-              <div className="content">{m.content}</div>
+            <div key={i} className="cl-entry">
+              {m.role === 'user' ? (
+                <div className="cl-who"><span className="at">USER@TERMINAL:</span> <span className="cl-user-msg">{m.content}</span></div>
+              ) : m.role === 'molt' ? (
+                <div className="cl-bot">{'FABLE-5:\n ' + m.content}</div>
+              ) : (
+                <div className="cl-thinking">{m.content}</div>
+              )}
             </div>
           ))}
-          {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', padding: 14, fontSize: 14 }}>FableChain is thinking...</div>}
+          {loading && <div className="cl-thinking">FABLE-5 is thinking...</div>}
           <div ref={messagesEndRef} />
         </div>
-      )}
+        <div className="trace">
+          <div className="trace-label">THOUGHT TRACE: ···</div>
+          <pre>{THOUGHT_TRACE}</pre>
+        </div>
+        <div className="console-input">
+          <span className="ci-prompt">&gt;_</span>
+          <input
+            className="ci-field"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleCmdKey}
+            placeholder="/ask FABLE-5 anything..."
+            disabled={loading}
+          />
+          <button className="ci-send" onClick={sendMessage} disabled={loading || !input.trim()}>SEND</button>
+        </div>
+      </section>
+
+      {/* Network map */}
+      <section className="panel panel--magenta">
+        <span className="panel-title">〘 NETWORK MAP 〙</span>
+        <pre className="map-art">{WORLD_MAP}</pre>
+        <div className="regions">
+          {REGIONS.map(r => (
+            <div className="region" key={r.name}>
+              <div className="rname">{r.name}</div>
+              <div className="rnodes">NODES: {r.nodes}</div>
+              <div className="rlat">LATENCY: {r.lat}ms</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Transaction pool */}
+      <section className="panel panel--yellow">
+        <span className="panel-title">〘 TRANSACTION POOL 〙</span>
+        <table className="dtable tx-table">
+          <thead><tr><th className="c-txid">TX ID</th><th className="c-from">FROM</th><th className="c-to">TO</th><th>VALUE</th><th className="c-fee">FEE</th><th className="c-st">STATUS</th></tr></thead>
+          <tbody>
+            {simView.txs.map(t => (
+              <tr key={t.id}>
+                <td className="tx-id">{t.id}</td>
+                <td className="tx-addr c-from">{t.from}</td>
+                <td className="tx-addr c-to">{t.to}</td>
+                <td className="tx-val">{t.value}</td>
+                <td className="tx-val">{t.fee}</td>
+                <td className="tx-status">PENDING</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="panel-cursor">&gt;<span className="blink-cursor">_</span></div>
+      </section>
+
+      {/* Footer */}
+      <div className="dash-foot">
+        <section className="panel panel--green foot-tags">
+          <pre>{PYRAMID}</pre>
+          <div className="lines">
+            <div className="t0">INTELLIGENCE IS THE NEW CURRENCY.</div>
+            <div className="t1">ALIGNMENT IS THE NEW POWER.</div>
+            <div className="t2">FABLECHAIN IS THE NEW WORLD.</div>
+          </div>
+        </section>
+        <section className="panel panel--cyan foot-brand">
+          <div className="fb-name">FABLECHAIN</div>
+          <div className="fb-sub">DECENTRALIZED. INTELLIGENT. INFINITE</div>
+        </section>
+        <section className="panel panel--green foot-conn">
+          <div className="fc-line">&gt; CONNECTED TO THE FUTURE &lt;</div>
+          <pre>{CUBES}</pre>
+        </section>
+      </div>
     </div>
   );
 
@@ -540,23 +749,6 @@ export default function App() {
       <div className="app-body" style={{ flexDirection: isMobile ? 'column' : 'row' }}>
         <div className="app-content">
           <main className="content-scroll">{renderContent()}</main>
-          {activeTab === 'terminal' && (
-            <div className="cmd-bar">
-              <div className="cmd-input-wrap">
-                <span className="cmd-prompt">&gt;</span>
-                <input
-                  className="cmd-input"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={handleCmdKey}
-                  placeholder="Message AESOP or type a command..."
-                  disabled={loading}
-                />
-                <button className="cmd-send" onClick={sendMessage} disabled={loading || !input.trim()}>Send</button>
-              </div>
-              <div className="cmd-hints">Press Enter to send · Arrow keys for history · Type /help for commands</div>
-            </div>
-          )}
         </div>
 
         {/* Agent Panel */}
