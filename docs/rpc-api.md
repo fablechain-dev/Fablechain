@@ -2,50 +2,42 @@
 
 ## Overview
 
-The Fablechain JSON-RPC API provides a standardized interface for interacting with the Fablechain network. All requests use HTTP POST with `Content-Type: application/json`. Responses follow the JSON-RPC 2.0 specification.
+The Fablechain JSON-RPC API provides a standardized interface for interacting with the Fablechain network. All requests use HTTP POST with JSON payloads. The API follows JSON-RPC 2.0 specification.
 
 **Base URL:** `http://localhost:8545` (default)
 
-## Standard Response Format
+## Request Format
 
-All successful responses return:
+All requests follow this structure:
+
 ```json
 {
   "jsonrpc": "2.0",
-  "id": 1,
-  "result": {}
-}
-```
-
-Error responses return:
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "error": {
-    "code": -32600,
-    "message": "Invalid Request"
-  }
+  "method": "method_name",
+  "params": [...],
+  "id": 1
 }
 ```
 
 ## Core Methods
 
-### web3_clientVersion
+### fable_blockNumber
 
-Returns the current client version.
+Returns the current block height of the chain.
 
 **Parameters:** None
 
-**Returns:** `String` - Client version identifier
+**Returns:** 
+- `String` - The current block number as a hexadecimal string
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:8545 \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "web3_clientVersion",
+    "method": "fable_blockNumber",
     "params": [],
     "id": 1
   }'
@@ -56,182 +48,30 @@ curl -X POST http://localhost:8545 \
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "result": "Fablechain/v1.0.0/linux-amd64/go1.21"
-}
-```
-
-### web3_sha3
-
-Returns Keccak-256 hash of input data.
-
-**Parameters:**
-- `data` (String): Hex-encoded data to hash
-
-**Returns:** `String` - Hex-encoded 32-byte hash
-
-**Example:**
-```bash
-curl -X POST http://localhost:8545 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "web3_sha3",
-    "params": ["0x68656c6c6f"],
-    "id": 1
-  }'
-```
-
-**Response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": "0x1c8aff950685c2c0e4342ad8cdf57b498e3fabf37b6d357e235675628346cdbe"
-}
-```
-
-### net_version
-
-Returns the current network ID.
-
-**Parameters:** None
-
-**Returns:** `String` - Network ID (e.g., "1" for mainnet, "42" for testnet)
-
-**Example:**
-```bash
-curl -X POST http://localhost:8545 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "net_version",
-    "params": [],
-    "id": 1
-  }'
-```
-
-**Response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": "42"
-}
-```
-
-### net_listening
-
-Indicates whether the node is actively listening for network connections.
-
-**Parameters:** None
-
-**Returns:** `Boolean` - True if listening
-
-**Example:**
-```bash
-curl -X POST http://localhost:8545 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "net_listening",
-    "params": [],
-    "id": 1
-  }'
-```
-
-**Response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": true
-}
-```
-
-### net_peerCount
-
-Returns the number of connected peers.
-
-**Parameters:** None
-
-**Returns:** `String` - Hex-encoded number of peers
-
-**Example:**
-```bash
-curl -X POST http://localhost:8545 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "net_peerCount",
-    "params": [],
-    "id": 1
-  }'
-```
-
-**Response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": "0x19"
-}
-```
-
-## Account Methods
-
-### fable_accounts
-
-Returns a list of addresses owned by the client.
-
-**Parameters:** None
-
-**Returns:** `Array<String>` - Array of 20-byte account addresses
-
-**Example:**
-```bash
-curl -X POST http://localhost:8545 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "fable_accounts",
-    "params": [],
-    "id": 1
-  }'
-```
-
-**Response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": [
-    "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
-    "0x85f43d8a49eeb85d32cf465507dd71d507100c2"
-  ]
+  "result": "0x12a4f"
 }
 ```
 
 ### fable_getBalance
 
-Returns the balance of an account at a specific block.
+Returns the account balance at a given block.
 
 **Parameters:**
-- `address` (String): 20-byte account address
-- `blockTag` (String): Block identifier - "latest", "earliest", "pending", or hex block number
+- `address` (String) - The account address in hex format
+- `blockNumber` (String) - Block number as hex or "latest"
 
-**Returns:** `String` - Hex-encoded balance in Wei
+**Returns:**
+- `String` - Balance in wei as hexadecimal
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:8545 \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
     "method": "fable_getBalance",
-    "params": [
-      "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
-      "latest"
-    ],
+    "params": ["0x742d35Cc6634C0532925a3b844Bc9e7595f42e7b", "latest"],
     "id": 1
   }'
 ```
@@ -241,31 +81,39 @@ curl -X POST http://localhost:8545 \
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "result": "0x0234c8a3397aab58"
+  "result": "0x56bc75e2d630eb20000"
 }
 ```
 
-### fable_getCode
+### fable_getBlockByNumber
 
-Returns the deployed bytecode of a contract.
+Returns block details by block number.
 
 **Parameters:**
-- `address` (String): 20-byte contract address
-- `blockTag` (String): Block identifier
+- `blockNumber` (String) - Block number in hex or "latest", "earliest", "pending"
+- `fullTx` (Boolean) - If true, returns full transaction objects; if false, returns transaction hashes
 
-**Returns:** `String` - Hex-encoded contract bytecode
+**Returns:**
+- `Object` - Block object with the following fields:
+  - `number` (String) - Block number
+  - `hash` (String) - Block hash
+  - `parentHash` (String) - Parent block hash
+  - `timestamp` (String) - Unix timestamp
+  - `miner` (String) - Miner address
+  - `gasLimit` (String) - Gas limit
+  - `gasUsed` (String) - Gas used
+  - `transactions` (Array) - Array of transactions or transaction hashes
+  - `difficulty` (String) - Difficulty
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:8545 \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "fable_getCode",
-    "params": [
-      "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
-      "latest"
-    ],
+    "method": "fable_getBlockByNumber",
+    "params": ["0x1", false],
     "id": 1
   }'
 ```
@@ -275,33 +123,51 @@ curl -X POST http://localhost:8545 \
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "result": "0x600160008081f3"
+  "result": {
+    "number": "0x1",
+    "hash": "0x88df016429689c079f3b2f6ad23734d7d4f31ace",
+    "parentHash": "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+    "timestamp": "0x55ba467c",
+    "miner": "0x05a56e2d52c817161883f50c3eb3cc2ba8d033a2",
+    "gasLimit": "0x2fefd8",
+    "gasUsed": "0x0",
+    "difficulty": "0x400000000",
+    "transactions": []
+  }
 }
 ```
 
-### fable_getStorageAt
+### fable_getTransactionByHash
 
-Returns the value of a storage position at an address.
+Returns transaction details by transaction hash.
 
 **Parameters:**
-- `address` (String): 20-byte account address
-- `position` (String): Hex-encoded storage position
-- `blockTag` (String): Block identifier
+- `txHash` (String) - Transaction hash
 
-**Returns:** `String` - Hex-encoded 32-byte storage value
+**Returns:**
+- `Object` - Transaction object or null if not found:
+  - `hash` (String) - Transaction hash
+  - `from` (String) - Sender address
+  - `to` (String) - Recipient address (null for contract creation)
+  - `value` (String) - Value in wei
+  - `gas` (String) - Gas limit
+  - `gasPrice` (String) - Gas price in wei
+  - `nonce` (String) - Transaction nonce
+  - `blockNumber` (String) - Block number
+  - `blockHash` (String) - Block hash
+  - `transactionIndex` (String) - Index in block
+  - `input` (String) - Input data (contract code or function call)
+  - `status` (String) - "0x1" for success, "0x0" for failure
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:8545 \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "fable_getStorageAt",
-    "params": [
-      "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
-      "0x0",
-      "latest"
-    ],
+    "method": "fable_getTransactionByHash",
+    "params": ["0x9fc76417374aa880d4449a1f7f31ec597f00b1f6f3dd2d66a2c2577733a7424e"],
     "id": 1
   }'
 ```
@@ -311,4 +177,50 @@ curl -X POST http://localhost:8545 \
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "result": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  "result": {
+    "hash": "0x9fc76417374aa880d4449a1f7f31ec597f00b1f6f3dd2d66a2c2577733a7424e",
+    "from": "0x742d35Cc6634C0532925a3b844Bc9e7595f42e7b",
+    "to": "0x0000000000000000000000000000000000000000",
+    "value": "0x0",
+    "gas": "0x5208",
+    "gasPrice": "0x430e23400",
+    "nonce": "0x0",
+    "blockNumber": "0x5bad54",
+    "blockHash": "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+    "transactionIndex": "0x0",
+    "input": "0x",
+    "status": "0x1"
+  }
+}
+```
+
+### fable_sendTransaction
+
+Submits a signed transaction to the network.
+
+**Parameters:**
+- `from` (String) - Sender address
+- `to` (String) - Recipient address (omit for contract creation)
+- `value` (String) - Value in wei (optional, default "0x0")
+- `gas` (String) - Gas limit
+- `gasPrice` (String) - Gas price in wei
+- `nonce` (String) - Transaction nonce
+- `data` (String) - Input data for contract calls (optional)
+- `signature` (String) - Signed transaction data
+
+**Returns:**
+- `String` - Transaction hash
+
+**Example:**
+
+```bash
+curl -X POST http://localhost:8545 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "fable_sendTransaction",
+    "params": [{
+      "from": "0x742d35Cc6634C0532925a3b844Bc9e7595f42e7b",
+      "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+      "value": "0x9184e72a",
+      "gas": "0x76c0",
