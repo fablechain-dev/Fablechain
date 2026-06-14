@@ -2,246 +2,240 @@
 import { EventEmitter } from 'events';
 
 export interface MempoolTransaction {
-  txHash: string;
-  nonce: number;
-  gasPrice: bigint;
-  gasLimit: bigint;
-  data: string;
+  id: string;
+  hash: string;
+  feeRate: bigint;
+  size: number;
   timestamp: number;
+  nonce: number;
   from: string;
-  to: string | null;
-  value: bigint;
-  expiresAt: number;
 }
 
-export interface EvictionPolicy {
-  maxSize: number;
+export interface EvictionConfig {
+  maxPoolSize: number;
   ttlSeconds: number;
   minFeeRate: bigint;
+  checkIntervalMs: number;
 }
 
-export interface EvictionMetrics {
-  txsEvictedByTTL: number;
-  txsEvictedBySize: number;
-  txsEvictedByFeeRate: number;
+export interface EvictionStats {
   totalEvicted: number;
+  evictedByTTL: number;
+  evictedBySize: number;
+  evictedByFeeRate: number;
   currentPoolSize: number;
-  lastEvictionTime: number;
+  currentMemoryUsage: number;
 }
 
 export class MempoolEviction extends EventEmitter {
-  private transactions: Map<string, MempoolTransaction>;
-  private policy: EvictionPolicy;
-  private metrics: EvictionMetrics;
-  private accessOrder: string[];
-  private evictionInterval: NodeJS.Timeout | null;
+  private transactions: Map<string, MempoolTransaction> = new Map();
+  private config: EvictionConfig;
+  private stats: EvictionStats;
+  private evictionTimer: NodeJS.Timeout | null = null;
+  private addressNonces: Map<string, number> = new Map();
 
-  constructor(policy: EvictionPolicy) {
+  constructor(config: Partial<EvictionConfig> = {}) {
     super();
-    this.transactions = new Map();
-    this.policy = policy;
-    this.accessOrder = [];
-    this.metrics = {
-      txsEvictedByTTL: 0,
-      txsEvictedBySize: 0,
-      txsEvictedByFeeRate: 0,
-      totalEvicted: 0,
-      currentPoolSize: 0,
-      lastEvictionTime: 0,
+    
+    this.config = {
+      maxPoolSize: config.maxPoolSize || 10_000_000,
+      ttlSeconds: config.ttlSeconds || 3600,
+      minFeeRate: config.minFeeRate || BigInt(1),
+      checkIntervalMs: config.checkIntervalMs || 30_000,
     };
 
-    this.startPeriodicEviction();
+    this.stats = {
+      totalEvicted: 0,
+      evictedByTTL: 0,
+      evictedBySize: 0,
+      evictedByFeeRate: 0,
+      currentPoolSize: 0,
+      currentMemoryUsage: 0,
+    };
+
+    this.startEvictionCycle();
   }
 
-  private startPeriodicEviction(): void {
-    this.evictionInterval = setInterval(() => {
-      this.evictExpiredTransactions();
-    }, 5000);
-  }
-
-  public addTransaction(tx: MempoolTransaction): boolean {
-    if (this.transactions.has(tx.txHash)) {
-      return false;
-    }
-
-    const feeRate = tx.gasPrice / BigInt(tx.gasLimit);
-    if (feeRate < this.policy.minFeeRate) {
-      this.emit('rejected', {
-        txHash: tx.txHash,
-        reason: 'Fee rate below minimum',
-      });
-      return false;
-    }
-
-    tx.expiresAt = Date.now() + this.policy.ttlSeconds * 1000;
-
-    this.transactions.set(tx.txHash, tx);
-    this.accessOrder.push(tx.txHash);
-    this.metrics.currentPoolSize = this.transactions.size;
-
-    if (this.transactions.size > this.policy.maxSize) {
-      this.enforceCapacity();
-    }
-
-    this.emit('added', { txHash: tx.txHash, poolSize: this.transactions.size });
-    return true;
-  }
-
-  private enforceCapacity(): void {
-    const txsToEvict = this.transactions.size - this.policy.maxSize;
-
-    const txArray = Array.from(this.transactions.values()).sort((a, b) => {
-      const feeRateA = a.gasPrice / BigInt(a.gasLimit);
-      const feeRateB = b.gasPrice / BigInt(b.gasLimit);
-
-      if (feeRateA !== feeRateB) {
-        return Number(feeRateA - feeRateB);
-      }
-
-      return a.timestamp - b.timestamp;
-    });
-
-    for (let i = 0; i < txsToEvict && i < txArray.length; i++) {
-      const tx = txArray[i];
-      this.evictTransaction(tx.txHash, 'size_cap');
-    }
-  }
-
-  private evictExpiredTransactions(): void {
-    const now = Date.now();
-    const expiredTxs: string[] = [];
-
-    for (const [txHash, tx] of this.transactions.entries()) {
-      if (now > tx.expiresAt) {
-        expiredTxs.push(txHash);
-      }
-    }
-
-    for (const txHash of expiredTxs) {
-      this.evictTransaction(txHash, 'ttl_expiry');
-    }
-
-    if (expiredTxs.length > 0) {
-      this.metrics.lastEvictionTime = now;
-    }
-  }
-
-  private evictTransaction(txHash: string, reason: string): void {
-    if (!this.transactions.has(txHash)) {
+  public addTransaction(tx: MempoolTransaction): void {
+    if (this.transactions.has(tx.id)) {
       return;
     }
 
-    this.transactions.delete(txHash);
-
-    const index = this.accessOrder.indexOf(txHash);
-    if (index > -1) {
-      this.accessOrder.splice(index, 1);
+    const currentNonce = this.addressNonces.get(tx.from) || 0;
+    if (tx.nonce < currentNonce) {
+      throw new Error(`Transaction nonce ${tx.nonce} is below current nonce ${currentNonce}`);
     }
 
-    this.metrics.totalEvicted++;
+    this.transactions.set(tx.id, tx);
+    this.addressNonces.set(tx.from, Math.max(currentNonce, tx.nonce));
+    this.stats.currentPoolSize += tx.size;
+    this.stats.currentMemoryUsage = this.calculateMemoryUsage();
 
-    if (reason === 'ttl_expiry') {
-      this.metrics.txsEvictedByTTL++;
-    } else if (reason === 'size_cap') {
-      this.metrics.txsEvictedBySize++;
-    } else if (reason === 'fee_rate') {
-      this.metrics.txsEvictedByFeeRate++;
-    }
-
-    this.metrics.currentPoolSize = this.transactions.size;
-
-    this.emit('evicted', {
-      txHash,
-      reason,
-      poolSize: this.transactions.size,
-    });
+    this.enforceCapacity();
   }
 
-  public getTransaction(txHash: string): MempoolTransaction | undefined {
-    const tx = this.transactions.get(txHash);
-
-    if (tx) {
-      const index = this.accessOrder.indexOf(txHash);
-      if (index > -1) {
-        this.accessOrder.splice(index, 1);
-      }
-      this.accessOrder.push(txHash);
+  public removeTransaction(txId: string): boolean {
+    const tx = this.transactions.get(txId);
+    if (!tx) {
+      return false;
     }
 
-    return tx;
+    this.transactions.delete(txId);
+    this.stats.currentPoolSize -= tx.size;
+    this.stats.currentMemoryUsage = this.calculateMemoryUsage();
+    return true;
   }
 
-  public removeTransaction(txHash: string): boolean {
-    if (this.transactions.has(txHash)) {
-      this.transactions.delete(txHash);
+  public getTransaction(txId: string): MempoolTransaction | undefined {
+    return this.transactions.get(txId);
+  }
 
-      const index = this.accessOrder.indexOf(txHash);
-      if (index > -1) {
-        this.accessOrder.splice(index, 1);
-      }
+  public getAllTransactions(): MempoolTransaction[] {
+    return Array.from(this.transactions.values());
+  }
 
-      this.metrics.currentPoolSize = this.transactions.size;
-      this.emit('removed', { txHash, poolSize: this.transactions.size });
+  public getTransactionsByAddress(address: string): MempoolTransaction[] {
+    return Array.from(this.transactions.values()).filter(
+      (tx) => tx.from === address
+    );
+  }
 
-      return true;
-    }
-
-    return false;
+  public getPoolStats(): EvictionStats {
+    return { ...this.stats };
   }
 
   public getPoolSize(): number {
     return this.transactions.size;
   }
 
-  public getMetrics(): EvictionMetrics {
-    return { ...this.metrics };
+  public getMemoryUsage(): number {
+    return this.stats.currentMemoryUsage;
   }
 
-  public updatePolicy(newPolicy: Partial<EvictionPolicy>): void {
-    this.policy = { ...this.policy, ...newPolicy };
-
-    if (
-      newPolicy.maxSize &&
-      this.transactions.size > newPolicy.maxSize
-    ) {
-      this.enforceCapacity();
-    }
-
-    this.emit('policyUpdated', this.policy);
+  private startEvictionCycle(): void {
+    this.evictionTimer = setInterval(() => {
+      this.performEvictionCheck();
+    }, this.config.checkIntervalMs);
   }
 
-  public getHighestFeeTransactions(count: number): MempoolTransaction[] {
-    return Array.from(this.transactions.values())
-      .sort((a, b) => {
-        const feeRateA = a.gasPrice / BigInt(a.gasLimit);
-        const feeRateB = b.gasPrice / BigInt(b.gasLimit);
-        return Number(feeRateB - feeRateA);
-      })
-      .slice(0, count);
+  private performEvictionCheck(): void {
+    const now = Date.now() / 1000;
+    
+    this.evictExpiredTransactions(now);
+    this.enforceCapacity();
+    this.enforceMinimumFeeRate();
   }
 
-  public getNonceForAddress(address: string): number | null {
-    let maxNonce = -1;
+  private evictExpiredTransactions(now: number): void {
+    const expiredTxs: string[] = [];
 
-    for (const tx of this.transactions.values()) {
-      if (tx.from.toLowerCase() === address.toLowerCase()) {
-        maxNonce = Math.max(maxNonce, tx.nonce);
+    for (const [txId, tx] of this.transactions.entries()) {
+      const age = now - tx.timestamp;
+      if (age > this.config.ttlSeconds) {
+        expiredTxs.push(txId);
       }
     }
 
-    return maxNonce >= 0 ? maxNonce + 1 : null;
+    for (const txId of expiredTxs) {
+      const tx = this.transactions.get(txId);
+      if (tx) {
+        this.transactions.delete(txId);
+        this.stats.currentPoolSize -= tx.size;
+        this.stats.evictedByTTL++;
+        this.stats.totalEvicted++;
+        this.emit('evicted', { txId, reason: 'ttl_expired', tx });
+      }
+    }
+
+    this.stats.currentMemoryUsage = this.calculateMemoryUsage();
   }
 
-  public validateFeeRate(gasPrice: bigint, gasLimit: bigint): boolean {
-    const feeRate = gasPrice / BigInt(gasLimit);
-    return feeRate >= this.policy.minFeeRate;
+  private enforceCapacity(): void {
+    while (this.stats.currentPoolSize > this.config.maxPoolSize) {
+      const toEvict = this.selectLRUTransaction();
+      if (!toEvict) {
+        break;
+      }
+
+      this.transactions.delete(toEvict.id);
+      this.stats.currentPoolSize -= toEvict.size;
+      this.stats.evictedBySize++;
+      this.stats.totalEvicted++;
+      this.emit('evicted', { txId: toEvict.id, reason: 'size_cap', tx: toEvict });
+    }
+
+    this.stats.currentMemoryUsage = this.calculateMemoryUsage();
+  }
+
+  private enforceMinimumFeeRate(): void {
+    const lowFeeTxs: string[] = [];
+
+    for (const [txId, tx] of this.transactions.entries()) {
+      if (tx.feeRate < this.config.minFeeRate) {
+        lowFeeTxs.push(txId);
+      }
+    }
+
+    for (const txId of lowFeeTxs) {
+      const tx = this.transactions.get(txId);
+      if (tx) {
+        this.transactions.delete(txId);
+        this.stats.currentPoolSize -= tx.size;
+        this.stats.evictedByFeeRate++;
+        this.stats.totalEvicted++;
+        this.emit('evicted', { txId, reason: 'low_fee_rate', tx });
+      }
+    }
+
+    this.stats.currentMemoryUsage = this.calculateMemoryUsage();
+  }
+
+  private selectLRUTransaction(): MempoolTransaction | null {
+    let oldestTx: MempoolTransaction | null = null;
+    let oldestTimestamp = Infinity;
+
+    for (const tx of this.transactions.values()) {
+      if (tx.timestamp < oldestTimestamp) {
+        oldestTimestamp = tx.timestamp;
+        oldestTx = tx;
+      }
+    }
+
+    return oldestTx;
+  }
+
+  private calculateMemoryUsage(): number {
+    let total = 0;
+    for (const tx of this.transactions.values()) {
+      total += tx.size;
+    }
+    return total;
+  }
+
+  public reset(): void {
+    this.transactions.clear();
+    this.addressNonces.clear();
+    this.stats = {
+      totalEvicted: 0,
+      evictedByTTL: 0,
+      evictedBySize: 0,
+      evictedByFeeRate: 0,
+      currentPoolSize: 0,
+      currentMemoryUsage: 0,
+    };
   }
 
   public destroy(): void {
-    if (this.evictionInterval) {
-      clearInterval(this.evictionInterval);
+    if (this.evictionTimer) {
+      clearInterval(this.evictionTimer);
+      this.evictionTimer = null;
     }
+    this.removeAllListeners();
+    this.reset();
+  }
 
-    this.transactions.clear();
-    this.accessOrder = [];
-    this.remove
+  public updateConfig(partialConfig: Partial<EvictionConfig>): void {
+    this.config = {
+      ...this.config,
+      ...partialConfig,
+    };
