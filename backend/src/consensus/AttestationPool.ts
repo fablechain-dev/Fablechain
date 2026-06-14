@@ -1,257 +1,257 @@
 ```typescript
 import { EventEmitter } from 'events';
+import { BLS } from '../crypto/BLS';
 import { Logger } from '../utils/Logger';
-import { BLSSignature, BLSPublicKey, Attestation, AttestationData } from '../types/consensus';
-import { BLSAggregate } from '../crypto/BLSAggregate';
-import { Config } from '../config/Config';
+import * as crypto from 'crypto';
 
-interface AggregatedAttestation {
-  data: AttestationData;
-  aggregateSignature: BLSSignature;
-  aggregatePublicKey: BLSPublicKey;
-  participatingValidators: Set<number>;
+export interface Attestation {
+  slot: number;
+  committeeIndex: number;
+  beaconBlockRoot: string;
+  sourceEpoch: number;
+  sourceRoot: string;
+  targetEpoch: number;
+  targetRoot: string;
+  validatorIndex: number;
+  signature: string;
   timestamp: number;
 }
 
-interface SlotAttestations {
+export interface AggregatedAttestation {
   slot: number;
-  attestations: Map<string, Attestation>;
-  aggregated: Map<string, AggregatedAttestation>;
+  committeeIndex: number;
+  beaconBlockRoot: string;
+  sourceEpoch: number;
+  sourceRoot: string;
+  targetEpoch: number;
+  targetRoot: string;
+  aggregationBits: Set<number>;
+  aggregateSignature: string;
+  committedValidators: number[];
+  createdAt: number;
   lastUpdated: number;
 }
 
+interface SlotAttestations {
+  [committeeIndex: number]: {
+    attestations: Map<number, Attestation>;
+    aggregated: AggregatedAttestation | null;
+  };
+}
+
 export class AttestationPool extends EventEmitter {
-  private slots: Map<number, SlotAttestations> = new Map();
+  private pool: Map<number, SlotAttestations> = new Map();
+  private bls: BLS;
   private logger: Logger;
-  private config: Config;
-  private maxSlotsRetained: number;
-  private attestationCleanupInterval: NodeJS.Timer | null = null;
-  private maxAttestationsPerData: number;
+  private maxPoolSize: number;
+  private maxSlotsToKeep: number;
+  private aggregationInterval: number;
+  private cleanupInterval: NodeJS.Timer | null = null;
+  private aggregationTimer: NodeJS.Timer | null = null;
 
-  constructor(config: Config, logger: Logger) {
+  constructor(
+    bls: BLS,
+    logger: Logger,
+    config?: {
+      maxPoolSize?: number;
+      maxSlotsToKeep?: number;
+      aggregationIntervalMs?: number;
+    }
+  ) {
     super();
-    this.config = config;
+    this.bls = bls;
     this.logger = logger;
-    this.maxSlotsRetained = config.attestation.maxSlotsRetained || 32;
-    this.maxAttestationsPerData = config.attestation.maxAttestationsPerData || 1024;
-    
-    this.startCleanupTimer();
+    this.maxPoolSize = config?.maxPoolSize || 10000;
+    this.maxSlotsToKeep = config?.maxSlotsToKeep || 32;
+    this.aggregationInterval = config?.aggregationIntervalMs || 8000;
   }
 
-  /**
-   * Add an attestation to the pool
-   */
+  public start(): void {
+    this.cleanupInterval = setInterval(
+      () => this.evictOldSlots(),
+      this.maxSlotsToKeep * 1000
+    );
+    this.aggregationTimer = setInterval(
+      () => this.performAggregation(),
+      this.aggregationInterval
+    );
+    this.logger.info('AttestationPool started');
+  }
+
+  public stop(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    if (this.aggregationTimer) {
+      clearInterval(this.aggregationTimer);
+      this.aggregationTimer = null;
+    }
+    this.pool.clear();
+    this.logger.info('AttestationPool stopped');
+  }
+
   public addAttestation(attestation: Attestation): boolean {
-    if (!this.validateAttestation(attestation)) {
-      this.logger.warn('Invalid attestation rejected', { 
-        slot: attestation.data.slot,
-        validator: attestation.validatorIndex
-      });
-      return false;
-    }
-
-    const slot = attestation.data.slot;
-    let slotData = this.slots.get(slot);
-
-    if (!slotData) {
-      slotData = {
-        slot,
-        attestations: new Map(),
-        aggregated: new Map(),
-        lastUpdated: Date.now()
-      };
-      this.slots.set(slot, slotData);
-    }
-
-    const key = this.generateAttestationKey(attestation);
-    
-    if (slotData.attestations.size >= this.maxAttestationsPerData) {
-      this.logger.debug('Attestation pool limit reached for slot', { slot });
-      return false;
-    }
-
-    slotData.attestations.set(key, attestation);
-    slotData.lastUpdated = Date.now();
-
-    this.aggregateForSlot(slot, attestation.data);
-    this.emit('attestationAdded', { slot, validator: attestation.validatorIndex });
-
-    return true;
-  }
-
-  /**
-   * Add multiple attestations in batch
-   */
-  public addAttestations(attestations: Attestation[]): { added: number; rejected: number } {
-    let added = 0;
-    let rejected = 0;
-
-    for (const attestation of attestations) {
-      if (this.addAttestation(attestation)) {
-        added++;
-      } else {
-        rejected++;
+    try {
+      if (!this.validateAttestation(attestation)) {
+        this.logger.warn('Invalid attestation received', {
+          slot: attestation.slot,
+          validator: attestation.validatorIndex,
+        });
+        return false;
       }
-    }
 
-    if (rejected > 0) {
-      this.logger.debug('Batch attestation processing completed', { added, rejected });
-    }
+      const slot = attestation.slot;
+      const committeeIndex = attestation.committeeIndex;
 
-    return { added, rejected };
+      if (!this.pool.has(slot)) {
+        this.pool.set(slot, {});
+      }
+
+      const slotData = this.pool.get(slot)!;
+
+      if (!slotData[committeeIndex]) {
+        slotData[committeeIndex] = {
+          attestations: new Map(),
+          aggregated: null,
+        };
+      }
+
+      const existingAttestation = slotData[committeeIndex].attestations.get(
+        attestation.validatorIndex
+      );
+
+      if (existingAttestation) {
+        this.logger.debug('Duplicate attestation from validator', {
+          slot,
+          validator: attestation.validatorIndex,
+        });
+        return false;
+      }
+
+      slotData[committeeIndex].attestations.set(
+        attestation.validatorIndex,
+        attestation
+      );
+
+      this.checkPoolSize();
+      this.emit('attestation:added', { slot, committeeIndex });
+
+      return true;
+    } catch (error) {
+      this.logger.error('Error adding attestation', { error });
+      return false;
+    }
   }
 
-  /**
-   * Get aggregated attestations for a specific slot and shard
-   */
-  public getAggregatedAttestations(slot: number, shardCommitment: string): AggregatedAttestation | null {
-    const slotData = this.slots.get(slot);
-    if (!slotData) {
-      return null;
-    }
-
-    return slotData.aggregated.get(shardCommitment) || null;
-  }
-
-  /**
-   * Get all aggregated attestations for a slot
-   */
-  public getAllAggregatedForSlot(slot: number): AggregatedAttestation[] {
-    const slotData = this.slots.get(slot);
+  public getAttestationsForSlot(slot: number): Attestation[] {
+    const slotData = this.pool.get(slot);
     if (!slotData) {
       return [];
     }
 
-    return Array.from(slotData.aggregated.values());
+    const attestations: Attestation[] = [];
+    Object.values(slotData).forEach((committee) => {
+      attestations.push(...committee.attestations.values());
+    });
+
+    return attestations;
   }
 
-  /**
-   * Get count of attestations in pool
-   */
-  public getAttestationCount(): number {
-    let total = 0;
-    for (const slotData of this.slots.values()) {
-      total += slotData.attestations.size;
-    }
-    return total;
-  }
-
-  /**
-   * Get slots currently in the pool
-   */
-  public getSlots(): number[] {
-    return Array.from(this.slots.keys()).sort((a, b) => b - a);
-  }
-
-  /**
-   * Remove attestations for a slot (after processing)
-   */
-  public removeSlot(slot: number): boolean {
-    if (this.slots.has(slot)) {
-      this.slots.delete(slot);
-      this.logger.debug('Slot attestations removed', { slot });
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Prune old slots beyond retention window
-   */
-  public pruneOldSlots(currentSlot: number): number {
-    const minSlot = currentSlot - this.maxSlotsRetained;
-    let prunedCount = 0;
-
-    for (const slot of this.slots.keys()) {
-      if (slot < minSlot) {
-        this.slots.delete(slot);
-        prunedCount++;
-      }
-    }
-
-    if (prunedCount > 0) {
-      this.logger.debug('Pruned old attestation slots', { 
-        count: prunedCount, 
-        minSlot,
-        remainingSlots: this.slots.size 
-      });
-    }
-
-    return prunedCount;
-  }
-
-  /**
-   * Clear entire pool (useful for testing or state resets)
-   */
-  public clear(): void {
-    this.slots.clear();
-    this.logger.info('Attestation pool cleared');
-  }
-
-  /**
-   * Validate an attestation before adding to pool
-   */
-  private validateAttestation(attestation: Attestation): boolean {
-    // Check basic structure
-    if (!attestation.data || attestation.signature === undefined || attestation.validatorIndex === undefined) {
-      return false;
-    }
-
-    // Check signature format (basic length check)
-    if (typeof attestation.signature !== 'string' || attestation.signature.length === 0) {
-      return false;
-    }
-
-    // Check validator index is non-negative
-    if (attestation.validatorIndex < 0) {
-      return false;
-    }
-
-    // Check attestation data validity
-    if (!this.validateAttestationData(attestation.data)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Validate attestation data structure
-   */
-  private validateAttestationData(data: AttestationData): boolean {
-    if (data.slot === undefined || data.slot < 0) {
-      return false;
-    }
-
-    if (!data.beaconBlockRoot || data.beaconBlockRoot.length === 0) {
-      return false;
-    }
-
-    if (data.source === undefined || data.target === undefined) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Generate unique key for attestation deduplication
-   */
-  private generateAttestationKey(attestation: Attestation): string {
-    return `${attestation.validatorIndex}:${attestation.signature}`;
-  }
-
-  /**
-   * Aggregate BLS signatures for matching attestation data
-   */
-  private aggregateForSlot(slot: number, attestationData: AttestationData): void {
-    const slotData = this.slots.get(slot);
+  public getAggregatedAttestationsForSlot(slot: number): AggregatedAttestation[] {
+    const slotData = this.pool.get(slot);
     if (!slotData) {
-      return;
+      return [];
     }
 
-    const dataKey = this.generateDataKey(attestationData);
-    const matching: Attestation[] = [];
-    const validatorSet = new Set<number>();
+    const aggregated: AggregatedAttestation[] = [];
+    Object.values(slotData).forEach((committee) => {
+      if (committee.aggregated) {
+        aggregated.push(committee.aggregated);
+      }
+    });
 
-    // Collect all attestations matching this data
+    return aggregated;
+  }
+
+  public getPoolSize(): number {
+    let size = 0;
+    this.pool.forEach((slotData) => {
+      Object.values(slotData).forEach((committee) => {
+        size += committee.attestations.size;
+      });
+    });
+    return size;
+  }
+
+  public getSlotCount(): number {
+    return this.pool.size;
+  }
+
+  private validateAttestation(attestation: Attestation): boolean {
+    if (typeof attestation.slot !== 'number' || attestation.slot < 0) {
+      return false;
+    }
+
+    if (typeof attestation.committeeIndex !== 'number' || attestation.committeeIndex < 0) {
+      return false;
+    }
+
+    if (!attestation.beaconBlockRoot || typeof attestation.beaconBlockRoot !== 'string') {
+      return false;
+    }
+
+    if (!attestation.signature || typeof attestation.signature !== 'string') {
+      return false;
+    }
+
+    if (typeof attestation.validatorIndex !== 'number' || attestation.validatorIndex < 0) {
+      return false;
+    }
+
+    if (typeof attestation.timestamp !== 'number' || attestation.timestamp < 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private performAggregation(): void {
+    try {
+      const now = Date.now();
+      const slots = Array.from(this.pool.keys()).sort((a, b) => b - a);
+
+      for (const slot of slots.slice(0, Math.max(5, slots.length - 5))) {
+        const slotData = this.pool.get(slot);
+        if (!slotData) continue;
+
+        Object.entries(slotData).forEach(([committeeIndexStr, committee]) => {
+          const committeeIndex = parseInt(committeeIndexStr, 10);
+
+          if (committee.attestations.size === 0) {
+            return;
+          }
+
+          const attestations = Array.from(committee.attestations.values());
+
+          const grouped = this.groupAttestationsByData(attestations);
+
+          Object.values(grouped).forEach((group) => {
+            this.aggregateGroup(slot, committeeIndex, group);
+          });
+        });
+      }
+    } catch (error) {
+      this.logger.error('Error during attestation aggregation', { error });
+    }
+  }
+
+  private groupAttestationsByData(
+    attestations: Attestation[]
+  ): Map<string, Attestation[]> {
+    const groups = new Map<string, Attestation[]>();
+
+    attestations.forEach((att) => {
+      const key = `${att.beaconBlockRoot}:${att.sourceRoot}:${att.targetRoot}`;
+
+      if
