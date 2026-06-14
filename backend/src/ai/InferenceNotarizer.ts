@@ -1,257 +1,276 @@
 ```typescript
 import crypto from 'crypto';
-import { ethers } from 'ethers';
-import { Logger } from '../utils/Logger';
-import { DatabaseService } from '../services/DatabaseService';
-import { BlockchainService } from '../services/BlockchainService';
+import { EventEmitter } from 'events';
 
 interface ModelWeights {
-  modelId: string;
-  version: string;
-  checksum: string;
-  layerHashes: Map<string, string>;
+  layerId: string;
+  weights: Buffer;
+  biases?: Buffer;
+  metadata?: Record<string, unknown>;
 }
 
 interface InferenceInput {
   modelId: string;
   inputData: Buffer;
-  inputHash: string;
-  metadata: Record<string, unknown>;
+  parameters?: Record<string, unknown>;
 }
 
 interface InferenceOutput {
-  outputData: Buffer;
-  outputHash: string;
-  confidence: number;
-  executionTimeMs: number;
+  predictions: Buffer;
+  confidence?: number;
+  metadata?: Record<string, unknown>;
 }
 
 interface NotarizationProof {
-  proofId: string;
-  timestamp: number;
+  proofHash: string;
   modelWeightsHash: string;
   inputHash: string;
   outputHash: string;
-  combinedHash: string;
+  timestamp: number;
+  nonce: string;
+  version: string;
+}
+
+interface ChainProof {
+  notarizationId: string;
+  proof: NotarizationProof;
   signature: string;
-  transactionHash?: string;
   blockNumber?: number;
-  notarizedAt: Date;
+  transactionHash?: string;
+  verified: boolean;
 }
 
-interface NotarizationRecord {
-  proofId: string;
-  modelId: string;
-  modelVersion: string;
-  inputHash: string;
-  outputHash: string;
-  modelWeightsHash: string;
-  combinedHash: string;
-  signature: string;
-  transactionHash: string | null;
-  blockNumber: number | null;
-  timestamp: number;
-  notarizedAt: Date;
-  status: 'pending' | 'confirmed' | 'failed';
+interface HashableComponent {
+  hash: string;
+  size: number;
+  algorithm: string;
 }
 
-export class InferenceNotarizer {
-  private logger: Logger;
-  private db: DatabaseService;
-  private blockchain: BlockchainService;
+class InferenceNotarizer extends EventEmitter {
+  private readonly hashAlgorithm: string = 'sha256';
+  private readonly version: string = '1.0.0';
+  private modelWeightsCache: Map<string, HashableComponent>;
+  private notarizationHistory: Map<string, ChainProof>;
   private signingKey: string;
-  private modelWeightsCache: Map<string, ModelWeights>;
-  private maxCacheSize: number = 100;
 
-  constructor(
-    logger: Logger,
-    db: DatabaseService,
-    blockchain: BlockchainService,
-    signingKey: string
-  ) {
-    this.logger = logger;
-    this.db = db;
-    this.blockchain = blockchain;
+  constructor(signingKey: string) {
+    super();
     this.signingKey = signingKey;
     this.modelWeightsCache = new Map();
-
-    this.validateSigningKey();
+    this.notarizationHistory = new Map();
   }
 
-  private validateSigningKey(): void {
-    if (!this.signingKey || this.signingKey.length < 32) {
-      throw new Error('Invalid signing key provided to InferenceNotarizer');
-    }
+  private hashBuffer(data: Buffer): string {
+    return crypto
+      .createHash(this.hashAlgorithm)
+      .update(data)
+      .digest('hex');
   }
 
-  async computeModelWeightsHash(modelId: string, modelVersion: string): Promise<string> {
-    const cacheKey = `${modelId}:${modelVersion}`;
-    
-    if (this.modelWeightsCache.has(cacheKey)) {
-      const cached = this.modelWeightsCache.get(cacheKey);
-      return cached!.checksum;
-    }
-
-    try {
-      const weights = await this.db.getModelWeights(modelId, modelVersion);
-      
-      if (!weights) {
-        throw new Error(`Model weights not found for ${modelId}:${modelVersion}`);
+  private hashObject(obj: Record<string, unknown>): string {
+    const json = JSON.stringify(obj, (_, v) => {
+      if (Buffer.isBuffer(v)) {
+        return v.toString('hex');
       }
+      return v;
+    });
+    return this.hashBuffer(Buffer.from(json));
+  }
 
-      const hash = this.hashModelWeights(weights);
-      
-      const modelWeights: ModelWeights = {
-        modelId,
-        version: modelVersion,
-        checksum: hash,
-        layerHashes: new Map(),
-      };
+  public registerModelWeights(weights: ModelWeights[]): string {
+    let combinedBuffer = Buffer.alloc(0);
 
-      this.maintainCacheSize();
-      this.modelWeightsCache.set(cacheKey, modelWeights);
-
-      return hash;
-    } catch (error) {
-      this.logger.error(`Failed to compute model weights hash for ${modelId}:${modelVersion}`, error);
-      throw error;
+    for (const weight of weights) {
+      combinedBuffer = Buffer.concat([
+        combinedBuffer,
+        Buffer.from(weight.layerId),
+        weight.weights,
+        weight.biases || Buffer.alloc(0),
+      ]);
     }
+
+    const weightsHash = this.hashBuffer(combinedBuffer);
+    const size = combinedBuffer.length;
+
+    const component: HashableComponent = {
+      hash: weightsHash,
+      size,
+      algorithm: this.hashAlgorithm,
+    };
+
+    const modelId = this.hashBuffer(
+      Buffer.from(JSON.stringify(weights.map((w) => w.layerId)))
+    );
+    this.modelWeightsCache.set(modelId, component);
+
+    this.emit('weights-registered', {
+      modelId,
+      weightsHash,
+      size,
+      timestamp: Date.now(),
+    });
+
+    return modelId;
   }
 
-  private hashModelWeights(weights: Buffer | string): string {
-    const hash = crypto.createHash('sha256');
-    
-    if (typeof weights === 'string') {
-      hash.update(weights);
-    } else {
-      hash.update(weights);
-    }
-    
-    return hash.digest('hex');
+  public notarizeInference(
+    input: InferenceInput,
+    output: InferenceOutput,
+    modelWeightsHash: string
+  ): NotarizationProof {
+    const inputHash = this.hashBuffer(input.inputData);
+    const outputHash = this.hashBuffer(output.predictions);
+
+    const parametersHash = input.parameters
+      ? this.hashObject(input.parameters)
+      : this.hashBuffer(Buffer.alloc(0));
+
+    const outputMetadataHash = output.metadata
+      ? this.hashObject(output.metadata)
+      : this.hashBuffer(Buffer.alloc(0));
+
+    const timestamp = Date.now();
+    const nonce = crypto.randomBytes(16).toString('hex');
+
+    const proofComponents = Buffer.concat([
+      Buffer.from(modelWeightsHash),
+      Buffer.from(inputHash),
+      Buffer.from(parametersHash),
+      Buffer.from(outputHash),
+      Buffer.from(outputMetadataHash),
+      Buffer.from(input.modelId),
+      Buffer.from(timestamp.toString()),
+      Buffer.from(nonce),
+      Buffer.from(this.version),
+    ]);
+
+    const proofHash = this.hashBuffer(proofComponents);
+
+    const proof: NotarizationProof = {
+      proofHash,
+      modelWeightsHash,
+      inputHash,
+      outputHash,
+      timestamp,
+      nonce,
+      version: this.version,
+    };
+
+    this.emit('inference-notarized', {
+      proofHash,
+      modelId: input.modelId,
+      timestamp,
+    });
+
+    return proof;
   }
 
-  async computeInputHash(input: InferenceInput): Promise<string> {
-    const hash = crypto.createHash('sha256');
-    
-    hash.update(input.modelId);
-    hash.update(input.inputData);
-    hash.update(JSON.stringify(input.metadata));
-    
-    return hash.digest('hex');
-  }
-
-  async computeOutputHash(output: InferenceOutput): Promise<string> {
-    const hash = crypto.createHash('sha256');
-    
-    hash.update(output.outputData);
-    hash.update(output.confidence.toString());
-    hash.update(output.executionTimeMs.toString());
-    
-    return hash.digest('hex');
-  }
-
-  private computeCombinedHash(
-    modelWeightsHash: string,
-    inputHash: string,
-    outputHash: string
-  ): string {
-    const hash = crypto.createHash('sha256');
-    
-    hash.update(modelWeightsHash);
-    hash.update(inputHash);
-    hash.update(outputHash);
-    
-    return hash.digest('hex');
-  }
-
-  private signProof(combinedHash: string): string {
-    const hmac = crypto.createHmac('sha256', this.signingKey);
-    hmac.update(combinedHash);
+  public signProof(proof: NotarizationProof): string {
+    const proofString = JSON.stringify(proof);
+    const hmac = crypto.createHmac(this.hashAlgorithm, this.signingKey);
+    hmac.update(proofString);
     return hmac.digest('hex');
   }
 
-  async notarizeInference(
-    modelId: string,
-    modelVersion: string,
-    input: InferenceInput,
-    output: InferenceOutput
-  ): Promise<NotarizationProof> {
-    const proofId = this.generateProofId();
-    const timestamp = Date.now();
+  public createChainProof(
+    proof: NotarizationProof,
+    signature: string
+  ): ChainProof {
+    const notarizationId = crypto
+      .randomBytes(32)
+      .toString('hex');
 
+    const chainProof: ChainProof = {
+      notarizationId,
+      proof,
+      signature,
+      verified: this.verifyProofSignature(proof, signature),
+    };
+
+    this.notarizationHistory.set(notarizationId, chainProof);
+
+    this.emit('chain-proof-created', {
+      notarizationId,
+      verified: chainProof.verified,
+    });
+
+    return chainProof;
+  }
+
+  public recordBlockchainConfirmation(
+    notarizationId: string,
+    blockNumber: number,
+    transactionHash: string
+  ): ChainProof | null {
+    const chainProof = this.notarizationHistory.get(notarizationId);
+
+    if (!chainProof) {
+      throw new Error(`Notarization ${notarizationId} not found`);
+    }
+
+    chainProof.blockNumber = blockNumber;
+    chainProof.transactionHash = transactionHash;
+
+    this.emit('blockchain-confirmed', {
+      notarizationId,
+      blockNumber,
+      transactionHash,
+    });
+
+    return chainProof;
+  }
+
+  private verifyProofSignature(
+    proof: NotarizationProof,
+    signature: string
+  ): boolean {
     try {
-      this.logger.info(`Starting notarization for proof ${proofId}`, { modelId, modelVersion });
-
-      const modelWeightsHash = await this.computeModelWeightsHash(modelId, modelVersion);
-      const inputHash = await this.computeInputHash(input);
-      const outputHash = await this.computeOutputHash(output);
-      const combinedHash = this.computeCombinedHash(modelWeightsHash, inputHash, outputHash);
-      const signature = this.signProof(combinedHash);
-
-      const proof: NotarizationProof = {
-        proofId,
-        timestamp,
-        modelWeightsHash,
-        inputHash,
-        outputHash,
-        combinedHash,
-        signature,
-        notarizedAt: new Date(),
-      };
-
-      const record: NotarizationRecord = {
-        proofId,
-        modelId,
-        modelVersion,
-        inputHash,
-        outputHash,
-        modelWeightsHash,
-        combinedHash,
-        signature,
-        transactionHash: null,
-        blockNumber: null,
-        timestamp,
-        notarizedAt: new Date(),
-        status: 'pending',
-      };
-
-      await this.db.saveNotarizationRecord(record);
-
-      this.logger.info(`Notarization proof created: ${proofId}`, {
-        combinedHash,
-        status: 'pending',
-      });
-
-      return proof;
-    } catch (error) {
-      this.logger.error(`Failed to notarize inference for proof ${proofId}`, error);
-      throw error;
+      const expectedSignature = this.signProof(proof);
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+      );
+    } catch {
+      return false;
     }
   }
 
-  async submitProofToBlockchain(proof: NotarizationProof): Promise<NotarizationProof> {
-    try {
-      this.logger.info(`Submitting proof ${proof.proofId} to blockchain`);
+  public verifyChainProof(chainProof: ChainProof): boolean {
+    if (!chainProof.verified) {
+      return false;
+    }
 
-      const txHash = await this.blockchain.submitInferenceProof({
-        proofId: proof.proofId,
-        combinedHash: proof.combinedHash,
-        signature: proof.signature,
-        modelWeightsHash: proof.modelWeightsHash,
-        inputHash: proof.inputHash,
-        outputHash: proof.outputHash,
-        timestamp: proof.timestamp,
-      });
+    const signatureValid = this.verifyProofSignature(
+      chainProof.proof,
+      chainProof.signature
+    );
 
-      proof.transactionHash = txHash;
+    if (!signatureValid) {
+      return false;
+    }
 
-      await this.db.updateNotarizationRecord(proof.proofId, {
-        transactionHash: txHash,
-        status: 'pending',
-      });
+    if (!chainProof.blockNumber || !chainProof.transactionHash) {
+      return false;
+    }
 
-      this.logger.info(`Proof ${proof.proofId} submitted to blockchain`, { txHash });
+    return true;
+  }
 
-      return proof;
-    } catch (error) {
-      this.logger.error
+  public getNotarization(notarizationId: string): ChainProof | null {
+    return this.notarizationHistory.get(notarizationId) || null;
+  }
+
+  public getModelWeightsHash(modelId: string): HashableComponent | null {
+    return this.modelWeightsCache.get(modelId) || null;
+  }
+
+  public getAllNotarizations(): ChainProof[] {
+    return Array.from(this.notarizationHistory.values());
+  }
+
+  public getNotarizationsByTimeRange(
+    startTime: number,
+    endTime: number
+  ): ChainProof[] {
+    return Array.from(this.notarizationHistory.values()).filter((proof) => {
+      const time =
