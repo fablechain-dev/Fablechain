@@ -1,256 +1,220 @@
 ```typescript
 import { EventEmitter } from 'events';
-import { createHash } from 'crypto';
+import { Logger } from '../utils/Logger';
+import { ValidationError, InsufficientStakeError, ValidatorNotFoundError } from '../errors/CustomErrors';
 
-interface ValidatorInfo {
+export interface ValidatorInfo {
   address: string;
   stakedAmount: bigint;
   votingPower: bigint;
-  isActive: boolean;
-  joinedAtBlock: number;
-  slashEvents: SlashEvent[];
+  jailedUntil: number;
   commissionRate: number;
+  lastHeartbeat: number;
   delegators: Map<string, bigint>;
+  totalDelegated: bigint;
+  slashCount: number;
+  isActive: boolean;
 }
 
-interface SlashEvent {
-  timestamp: number;
+export interface SlashingEvent {
+  validatorAddress: string;
   reason: string;
-  penaltyPercentage: number;
-  amountSlashed: bigint;
+  slashAmount: bigint;
+  timestamp: number;
   evidence: string;
 }
 
-interface DelegationInfo {
+export interface DelegationInfo {
   delegator: string;
-  validator: string;
   amount: bigint;
-  delegatedAtBlock: number;
+  shares: bigint;
 }
 
 export class ValidatorRegistry extends EventEmitter {
   private validators: Map<string, ValidatorInfo>;
-  private delegations: Map<string, DelegationInfo[]>;
-  private totalVotingPower: bigint;
-  private minStakeAmount: bigint;
-  private slashingParams: {
-    doubleSignPenalty: number;
-    downtimePenalty: number;
-    maxSlashPercentage: number;
-  };
-  private currentBlock: number;
-  private consensusThreshold: number;
+  private slashingHistory: SlashingEvent[];
+  private logger: Logger;
+  private minStakeRequired: bigint;
   private maxValidators: number;
-  private delegationLocks: Map<string, number>;
+  private slashingRate: number;
+  private unbondingPeriod: number;
+  private jailingDuration: number;
+  private votingPowerScale: bigint;
 
-  constructor(
-    minStakeAmount: bigint = BigInt('1000000000000000000'),
-    maxValidators: number = 128,
-    consensusThreshold: number = 0.66
-  ) {
+  constructor(config: {
+    minStakeRequired?: bigint;
+    maxValidators?: number;
+    slashingRate?: number;
+    unbondingPeriod?: number;
+    jailingDuration?: number;
+  } = {}) {
     super();
     this.validators = new Map();
-    this.delegations = new Map();
-    this.delegationLocks = new Map();
-    this.totalVotingPower = BigInt(0);
-    this.minStakeAmount = minStakeAmount;
-    this.maxValidators = maxValidators;
-    this.consensusThreshold = consensusThreshold;
-    this.currentBlock = 0;
-    this.slashingParams = {
-      doubleSignPenalty: 0.05,
-      downtimePenalty: 0.001,
-      maxSlashPercentage: 0.5,
-    };
+    this.slashingHistory = [];
+    this.logger = new Logger('ValidatorRegistry');
+    
+    this.minStakeRequired = config.minStakeRequired || BigInt(1000) * BigInt(10) ** BigInt(18);
+    this.maxValidators = config.maxValidators || 100;
+    this.slashingRate = config.slashingRate || 0.05;
+    this.unbondingPeriod = config.unbondingPeriod || 604800;
+    this.jailingDuration = config.jailingDuration || 86400;
+    this.votingPowerScale = BigInt(10) ** BigInt(18);
   }
 
   public registerValidator(
     address: string,
     stakedAmount: bigint,
-    commissionRate: number = 0.05
-  ): boolean {
+    commissionRate: number
+  ): ValidatorInfo {
+    if (!this.isValidAddress(address)) {
+      throw new ValidationError('Invalid validator address format');
+    }
+
     if (this.validators.has(address)) {
-      throw new Error(`Validator ${address} is already registered`);
+      throw new ValidationError(`Validator ${address} is already registered`);
     }
 
-    if (stakedAmount < this.minStakeAmount) {
-      throw new Error(
-        `Staked amount ${stakedAmount} is below minimum requirement ${this.minStakeAmount}`
+    if (stakedAmount < this.minStakeRequired) {
+      throw new InsufficientStakeError(
+        `Minimum stake of ${this.minStakeRequired.toString()} required, got ${stakedAmount.toString()}`
       );
-    }
-
-    if (commissionRate < 0 || commissionRate > 0.5) {
-      throw new Error('Commission rate must be between 0 and 50%');
     }
 
     if (this.validators.size >= this.maxValidators) {
-      throw new Error(
-        `Maximum number of validators (${this.maxValidators}) reached`
-      );
+      throw new ValidationError('Maximum validator limit reached');
     }
 
-    const votingPower = this.computeVotingPower(stakedAmount);
+    if (commissionRate < 0 || commissionRate > 1) {
+      throw new ValidationError('Commission rate must be between 0 and 1');
+    }
+
+    const votingPower = this.calculateVotingPower(stakedAmount);
+
     const validator: ValidatorInfo = {
       address,
       stakedAmount,
       votingPower,
-      isActive: true,
-      joinedAtBlock: this.currentBlock,
-      slashEvents: [],
+      jailedUntil: 0,
       commissionRate,
+      lastHeartbeat: Date.now(),
       delegators: new Map(),
+      totalDelegated: BigInt(0),
+      slashCount: 0,
+      isActive: true,
     };
 
     this.validators.set(address, validator);
-    this.totalVotingPower += votingPower;
+    this.logger.info(`Validator registered: ${address} with stake: ${stakedAmount.toString()}`);
+    this.emit('validatorRegistered', { address, stakedAmount, votingPower });
 
-    this.emit('ValidatorRegistered', {
-      address,
-      stakedAmount,
-      votingPower,
-      timestamp: Date.now(),
-      blockNumber: this.currentBlock,
-    });
-
-    return true;
+    return validator;
   }
 
-  public deregisterValidator(address: string): boolean {
-    const validator = this.validators.get(address);
-
-    if (!validator) {
-      throw new Error(`Validator ${address} not found`);
-    }
+  public deregisterValidator(address: string): void {
+    const validator = this.getValidator(address);
 
     if (!validator.isActive) {
-      throw new Error(`Validator ${address} is not active`);
+      throw new ValidationError(`Validator ${address} is not active`);
     }
 
-    this.totalVotingPower -= validator.votingPower;
     validator.isActive = false;
+    this.updateValidatorVotingPower(address);
 
-    const delegationKey = this.getDelegationKey(address);
-    this.delegations.delete(delegationKey);
-    this.delegationLocks.delete(delegationKey);
-
-    this.emit('ValidatorDeregistered', {
-      address,
-      unbondingAmount: validator.stakedAmount,
-      timestamp: Date.now(),
-      blockNumber: this.currentBlock,
-    });
-
-    return true;
+    this.logger.info(`Validator deregistered: ${address}`);
+    this.emit('validatorDeregistered', { address });
   }
 
-  public delegate(
-    delegator: string,
-    validator: string,
-    amount: bigint
-  ): boolean {
-    const validatorInfo = this.validators.get(validator);
-
-    if (!validatorInfo) {
-      throw new Error(`Validator ${validator} not found`);
-    }
-
-    if (!validatorInfo.isActive) {
-      throw new Error(`Validator ${validator} is not active`);
+  public delegate(delegatorAddress: string, validatorAddress: string, amount: bigint): DelegationInfo {
+    if (!this.isValidAddress(delegatorAddress) || !this.isValidAddress(validatorAddress)) {
+      throw new ValidationError('Invalid address format');
     }
 
     if (amount <= BigInt(0)) {
-      throw new Error('Delegation amount must be positive');
+      throw new ValidationError('Delegation amount must be positive');
     }
 
-    const delegationKey = this.getDelegationKey(validator);
-    let delegationList = this.delegations.get(delegationKey) || [];
+    const validator = this.getValidator(validatorAddress);
 
-    const existingDelegation = delegationList.find(
-      (d) => d.delegator === delegator
+    if (validator.jailedUntil > Date.now()) {
+      throw new ValidationError(`Validator ${validatorAddress} is currently jailed`);
+    }
+
+    const currentDelegation = validator.delegators.get(delegatorAddress) || BigInt(0);
+    const newDelegation = currentDelegation + amount;
+    validator.delegators.set(delegatorAddress, newDelegation);
+    validator.totalDelegated += amount;
+
+    this.updateValidatorVotingPower(validatorAddress);
+
+    const shares = this.calculateShares(amount, validator.totalDelegated);
+
+    this.logger.info(
+      `Delegation: ${delegatorAddress} delegated ${amount.toString()} to ${validatorAddress}`
     );
+    this.emit('delegationCreated', { delegatorAddress, validatorAddress, amount });
 
-    if (existingDelegation) {
-      existingDelegation.amount += amount;
-    } else {
-      delegationList.push({
-        delegator,
-        validator,
-        amount,
-        delegatedAtBlock: this.currentBlock,
-      });
-    }
-
-    this.delegations.set(delegationKey, delegationList);
-    validatorInfo.delegators.set(delegator, amount);
-
-    const newStakedAmount =
-      validatorInfo.stakedAmount + amount;
-    const oldVotingPower = validatorInfo.votingPower;
-    const newVotingPower = this.computeVotingPower(newStakedAmount);
-
-    this.totalVotingPower = this.totalVotingPower - oldVotingPower + newVotingPower;
-    validatorInfo.stakedAmount = newStakedAmount;
-    validatorInfo.votingPower = newVotingPower;
-
-    this.emit('DelegationAdded', {
-      delegator,
-      validator,
-      amount,
-      newVotingPower,
-      timestamp: Date.now(),
-      blockNumber: this.currentBlock,
-    });
-
-    return true;
+    return { delegator: delegatorAddress, amount, shares };
   }
 
-  public undelegate(
-    delegator: string,
-    validator: string,
-    amount: bigint
-  ): boolean {
-    const validatorInfo = this.validators.get(validator);
+  public undelegate(delegatorAddress: string, validatorAddress: string, amount: bigint): void {
+    const validator = this.getValidator(validatorAddress);
 
-    if (!validatorInfo) {
-      throw new Error(`Validator ${validator} not found`);
-    }
-
-    const delegationKey = this.getDelegationKey(validator);
-    const delegationList = this.delegations.get(delegationKey) || [];
-
-    const delegationIndex = delegationList.findIndex(
-      (d) => d.delegator === delegator
-    );
-
-    if (delegationIndex === -1) {
-      throw new Error(`No delegation found from ${delegator} to ${validator}`);
-    }
-
-    const delegation = delegationList[delegationIndex];
-
-    if (delegation.amount < amount) {
-      throw new Error(
-        `Undelegation amount exceeds delegated amount: ${amount} > ${delegation.amount}`
+    const currentDelegation = validator.delegators.get(delegatorAddress);
+    if (!currentDelegation || currentDelegation < amount) {
+      throw new ValidationError(
+        `Insufficient delegation balance for ${delegatorAddress} in validator ${validatorAddress}`
       );
     }
 
-    delegation.amount -= amount;
-
-    if (delegation.amount === BigInt(0)) {
-      delegationList.splice(delegationIndex, 1);
+    const newDelegation = currentDelegation - amount;
+    if (newDelegation === BigInt(0)) {
+      validator.delegators.delete(delegatorAddress);
+    } else {
+      validator.delegators.set(delegatorAddress, newDelegation);
     }
 
-    this.delegations.set(delegationKey, delegationList);
+    validator.totalDelegated -= amount;
+    this.updateValidatorVotingPower(validatorAddress);
 
-    const delegatedTotal =
-      Array.from(validatorInfo.delegators.values()).reduce(
-        (sum, amt) => sum + amt,
-        BigInt(0)
-      ) - amount;
-    validatorInfo.delegators.set(
-      delegator,
-      validatorInfo.delegators.get(delegator)! - amount
+    this.logger.info(
+      `Undelegation: ${delegatorAddress} undelegated ${amount.toString()} from ${validatorAddress}`
     );
+    this.emit('undelegationCreated', { delegatorAddress, validatorAddress, amount });
+  }
 
-    const newStakedAmount = validatorInfo.stakedAmount - amount;
-    const oldV
+  public slash(validatorAddress: string, reason: string, evidence: string): SlashingEvent {
+    const validator = this.getValidator(validatorAddress);
+
+    const slashAmount = (validator.stakedAmount * BigInt(Math.floor(this.slashingRate * 100))) /
+      BigInt(100);
+
+    if (validator.stakedAmount < slashAmount) {
+      throw new ValidationError(
+        `Insufficient staked amount to slash for validator ${validatorAddress}`
+      );
+    }
+
+    validator.stakedAmount -= slashAmount;
+    validator.slashCount += 1;
+
+    const slashingEvent: SlashingEvent = {
+      validatorAddress,
+      reason,
+      slashAmount,
+      timestamp: Date.now(),
+      evidence,
+    };
+
+    this.slashingHistory.push(slashingEvent);
+    this.updateValidatorVotingPower(validatorAddress);
+
+    this.logger.warn(
+      `Validator slashed: ${validatorAddress}, Amount: ${slashAmount.toString()}, Reason: ${reason}`
+    );
+    this.emit('validatorSlashed', slashingEvent);
+
+    if (validator.slashCount >= 3) {
+      this.jailValidator(validatorAddress, `Accumulated ${validator.slashCount} slashes`);
+    }
+
+    return slashingEvent
