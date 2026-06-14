@@ -1,258 +1,233 @@
+```typescript
 import { Transaction } from '../types/Transaction';
-import { Logger } from '../utils/Logger';
+import { TransactionPool } from './TransactionPool';
+import { Logger } from '../logger/Logger';
 
-interface TransactionWithFee extends Transaction {
+export interface TransactionWithFee extends Transaction {
   feePerGas: bigint;
-  feeRevenue: bigint;
+  totalFee: bigint;
 }
 
-interface SenderQueue {
-  transactions: TransactionWithFee[];
-  nextNonce: bigint;
+export interface SenderNonceTracker {
+  address: string;
+  currentNonce: number;
+  pendingTransactions: Map<number, TransactionWithFee>;
 }
 
-interface OrderingResult {
+export interface OrderingResult {
   ordered: TransactionWithFee[];
-  excluded: TransactionWithFee[];
+  rejected: Array<{
+    transaction: TransactionWithFee;
+    reason: string;
+  }>;
 }
 
 export class TransactionOrdering {
   private logger: Logger;
-  private maxBlockSize: number;
-  private minGasPrice: bigint;
+  private transactionPool: TransactionPool;
+  private senderTrackers: Map<string, SenderNonceTracker> = new Map();
 
-  constructor(
-    logger: Logger,
-    maxBlockSize: number = 30000000,
-    minGasPrice: bigint = BigInt(1)
-  ) {
+  constructor(transactionPool: TransactionPool, logger: Logger) {
+    this.transactionPool = transactionPool;
     this.logger = logger;
-    this.maxBlockSize = maxBlockSize;
-    this.minGasPrice = minGasPrice;
   }
 
   /**
-   * Orders transactions to maximize fee revenue while respecting nonce ordering.
-   * Uses a greedy algorithm with per-sender nonce validation.
+   * Order transactions for block inclusion, maximizing fee revenue while maintaining
+   * nonce ordering per sender. Uses a greedy algorithm with heap-based selection.
    */
-  public orderTransactions(transactions: Transaction[]): OrderingResult {
-    const validatedTxs = this.validateAndEnrichTransactions(transactions);
-    const senderQueues = this.groupBySender(validatedTxs);
-    
-    return this.greedyOrdering(senderQueues);
-  }
+  public orderTransactionsForBlock(
+    maxBlockSize: number,
+    currentBlockNumber: number,
+    gasLimit: bigint
+  ): OrderingResult {
+    const transactions = this.transactionPool.getAllTransactions();
+    const enrichedTxs = this.enrichTransactionsWithFees(transactions);
+    const rejected: Array<{ transaction: TransactionWithFee; reason: string }> = [];
 
-  /**
-   * Validates transactions and calculates fee metrics
-   */
-  private validateAndEnrichTransactions(
-    transactions: Transaction[]
-  ): TransactionWithFee[] {
-    const enriched: TransactionWithFee[] = [];
+    // Initialize sender trackers with current nonces
+    this.initializeSenderTrackers(enrichedTxs, currentBlockNumber);
 
-    for (const tx of transactions) {
-      if (!this.isValidTransaction(tx)) {
-        this.logger.debug(`Skipping invalid transaction: ${tx.hash}`);
+    const ordered: TransactionWithFee[] = [];
+    let usedGas = 0n;
+    let processedCount = 0;
+
+    // Priority queue: transactions ordered by fee per gas (descending), then by nonce
+    const priorityQueue = this.buildPriorityQueue(enrichedTxs);
+
+    while (priorityQueue.length > 0 && processedCount < maxBlockSize) {
+      const tx = priorityQueue.shift();
+      if (!tx) break;
+
+      const senderTracker = this.senderTrackers.get(tx.from);
+      if (!senderTracker) {
+        rejected.push({
+          transaction: tx,
+          reason: 'Sender tracker not found',
+        });
         continue;
       }
 
-      const feePerGas = tx.gasPrice || this.minGasPrice;
-      const feeRevenue = feePerGas * BigInt(tx.gasLimit);
-
-      enriched.push({
-        ...tx,
-        feePerGas,
-        feeRevenue,
-      });
-    }
-
-    return enriched;
-  }
-
-  /**
-   * Validates basic transaction properties
-   */
-  private isValidTransaction(tx: Transaction): boolean {
-    if (!tx.hash || !tx.from || !tx.gasLimit) {
-      return false;
-    }
-
-    if (typeof tx.nonce !== 'bigint' || tx.nonce < 0n) {
-      return false;
-    }
-
-    if (typeof tx.gasPrice !== 'bigint' && tx.gasPrice !== undefined) {
-      return false;
-    }
-
-    if (tx.gasPrice && tx.gasPrice < this.minGasPrice) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Groups transactions by sender address with nonce ordering
-   */
-  private groupBySender(txs: TransactionWithFee[]): Map<string, SenderQueue> {
-    const queues = new Map<string, SenderQueue>();
-
-    for (const tx of txs) {
-      const sender = tx.from.toLowerCase();
-
-      if (!queues.has(sender)) {
-        queues.set(sender, {
-          transactions: [],
-          nextNonce: 0n,
+      // Check if this transaction can be included based on nonce ordering
+      const nextExpectedNonce = senderTracker.currentNonce;
+      if (tx.nonce < nextExpectedNonce) {
+        rejected.push({
+          transaction: tx,
+          reason: `Nonce too low: expected ${nextExpectedNonce}, got ${tx.nonce}`,
         });
+        continue;
       }
 
-      const queue = queues.get(sender)!;
-      queue.transactions.push(tx);
-    }
+      if (tx.nonce > nextExpectedNonce) {
+        // Gap in nonce sequence; skip this and try next from queue
+        senderTracker.pendingTransactions.set(tx.nonce, tx);
+        continue;
+      }
 
-    // Sort each sender's transactions by nonce
-    for (const queue of queues.values()) {
-      queue.transactions.sort((a, b) =>
-        Number(a.nonce - b.nonce)
+      // Check gas limit
+      if (usedGas + BigInt(tx.gasLimit) > gasLimit) {
+        rejected.push({
+          transaction: tx,
+          reason: `Block gas limit exceeded: ${usedGas + BigInt(tx.gasLimit)} > ${gasLimit}`,
+        });
+        continue;
+      }
+
+      // Include transaction in block
+      ordered.push(tx);
+      usedGas += BigInt(tx.gasLimit);
+      senderTracker.currentNonce = tx.nonce + 1;
+      processedCount++;
+
+      // Check if there's a next transaction from this sender queued
+      this.includeQueuedTransactionsForSender(
+        senderTracker,
+        ordered,
+        usedGas,
+        gasLimit,
+        maxBlockSize,
+        processedCount,
+        rejected
       );
     }
 
-    return queues;
-  }
-
-  /**
-   * Performs greedy ordering: selects highest-fee transactions that respect nonce ordering
-   */
-  private greedyOrdering(
-    senderQueues: Map<string, SenderQueue>
-  ): OrderingResult {
-    const ordered: TransactionWithFee[] = [];
-    const excluded: TransactionWithFee[] = [];
-    let blockSize = 0;
-
-    // Create a heap of candidateTransactions (highest fee first)
-    const candidates = this.buildCandidateHeap(senderQueues);
-
-    while (candidates.length > 0) {
-      const candidate = candidates.shift()!;
-      const txSize = candidate.gasLimit;
-
-      // Check if transaction fits in block
-      if (blockSize + txSize > this.maxBlockSize) {
-        excluded.push(candidate);
-        continue;
+    // Log ordering results
+    this.logger.debug(
+      `Transaction ordering complete: ${ordered.length} included, ${rejected.length} rejected`,
+      {
+        usedGas: usedGas.toString(),
+        gasLimit: gasLimit.toString(),
+        blockSpace: `${processedCount}/${maxBlockSize}`,
       }
-
-      // Check nonce ordering for sender
-      const queue = senderQueues.get(candidate.from.toLowerCase());
-      if (!queue || candidate.nonce !== queue.nextNonce) {
-        excluded.push(candidate);
-        continue;
-      }
-
-      // Transaction is valid and fits
-      ordered.push(candidate);
-      blockSize += txSize;
-      queue.nextNonce += 1n;
-
-      // Add next transaction from same sender if available
-      const senderNextTx = this.getNextValidTransaction(queue);
-      if (senderNextTx) {
-        this.insertIntoHeap(candidates, senderNextTx);
-      }
-    }
-
-    // Collect remaining excluded transactions
-    for (const queue of senderQueues.values()) {
-      for (const tx of queue.transactions) {
-        if (!ordered.includes(tx) && !excluded.includes(tx)) {
-          excluded.push(tx);
-        }
-      }
-    }
-
-    this.logger.info(
-      `Ordered ${ordered.length} transactions, ` +
-      `excluded ${excluded.length}, block size: ${blockSize}/${this.maxBlockSize}`
     );
 
-    return { ordered, excluded };
+    return { ordered, rejected };
   }
 
   /**
-   * Builds initial candidate heap sorted by fee (highest first)
+   * Build a priority queue of transactions ordered by fee efficiency and nonce
    */
-  private buildCandidateHeap(
-    senderQueues: Map<string, SenderQueue>
-  ): TransactionWithFee[] {
-    const candidates: TransactionWithFee[] = [];
-
-    for (const queue of senderQueues.values()) {
-      const firstTx = queue.transactions[0];
-      if (firstTx && firstTx.nonce === 0n) {
-        candidates.push(firstTx);
-      }
-    }
-
-    // Sort by fee descending
-    candidates.sort((a, b) =>
-      Number(b.feeRevenue - a.feeRevenue)
-    );
-
-    return candidates;
-  }
-
-  /**
-   * Gets next valid transaction from sender queue (respecting nonce)
-   */
-  private getNextValidTransaction(queue: SenderQueue): TransactionWithFee | null {
-    for (const tx of queue.transactions) {
-      if (tx.nonce === queue.nextNonce) {
-        return tx;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Inserts transaction into heap maintaining fee-descending order
-   */
-  private insertIntoHeap(heap: TransactionWithFee[], tx: TransactionWithFee): void {
-    heap.push(tx);
-    heap.sort((a, b) => Number(b.feeRevenue - a.feeRevenue));
-  }
-
-  /**
-   * Calculates total fee revenue from ordered transactions
-   */
-  public calculateTotalFeeRevenue(txs: TransactionWithFee[]): bigint {
-    return txs.reduce((sum, tx) => sum + tx.feeRevenue, 0n);
-  }
-
-  /**
-   * Validates that ordering respects all nonce constraints
-   */
-  public validateOrdering(
-    ordered: TransactionWithFee[]
-  ): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
-    const nonceBySender = new Map<string, bigint>();
-
-    for (const tx of ordered) {
-      const sender = tx.from.toLowerCase();
-      const expectedNonce = nonceBySender.get(sender) ?? 0n;
-
-      if (tx.nonce !== expectedNonce) {
-        errors.push(
-          `Nonce violation for ${sender}: expected ${expectedNonce}, got ${tx.nonce}`
-        );
+  private buildPriorityQueue(transactions: TransactionWithFee[]): TransactionWithFee[] {
+    return transactions.sort((a, b) => {
+      // Primary: sort by fee per gas (descending)
+      if (a.feePerGas !== b.feePerGas) {
+        return a.feePerGas > b.feePerGas ? -1 : 1;
       }
 
-      nonceBySender.set(sender, expectedNonce + 1n);
+      // Secondary: sort by total fee (descending)
+      if (a.totalFee !== b.totalFee) {
+        return a.totalFee > b.totalFee ? -1 : 1;
+      }
+
+      // Tertiary: sort by nonce (ascending) for same sender
+      if (a.from === b.from) {
+        return a.nonce - b.nonce;
+      }
+
+      // Final: stable sort by transaction hash
+      return a.hash.localeCompare(b.hash);
+    });
+  }
+
+  /**
+   * Enrich transactions with calculated fees
+   */
+  private enrichTransactionsWithFees(transactions: Transaction[]): TransactionWithFee[] {
+    return transactions.map((tx) => {
+      const gasLimit = BigInt(tx.gasLimit);
+      const gasPrice = BigInt(tx.gasPrice);
+      const totalFee = gasLimit * gasPrice;
+      const feePerGas = gasPrice;
+
+      return {
+        ...tx,
+        feePerGas,
+        totalFee,
+      };
+    });
+  }
+
+  /**
+   * Initialize sender nonce trackers from blockchain state
+   */
+  private initializeSenderTrackers(
+    transactions: TransactionWithFee[],
+    currentBlockNumber: number
+  ): void {
+    this.senderTrackers.clear();
+
+    // Group transactions by sender
+    const senderTxMap = new Map<string, TransactionWithFee[]>();
+    for (const tx of transactions) {
+      if (!senderTxMap.has(tx.from)) {
+        senderTxMap.set(tx.from, []);
+      }
+      senderTxMap.get(tx.from)!.push(tx);
     }
 
-    return {
-      valid: errors.length === 0,
-      errors,
+    // Initialize tracker for each sender
+    for (const [sender, senderTxs] of senderTxMap.entries()) {
+      const pendingMap = new Map<number, TransactionWithFee>();
+      for (const tx of senderTxs) {
+        pendingMap.set(tx.nonce, tx);
+      }
+
+      // In production, currentNonce would be fetched from chain state
+      // Here we use a placeholder that should be replaced with actual state query
+      const startingNonce = this.getAccountNonce(sender, currentBlockNumber);
+
+      this.senderTrackers.set(sender, {
+        address: sender,
+        currentNonce: startingNonce,
+        pendingTransactions: pendingMap,
+      });
+    }
+  }
+
+  /**
+   * Include all queued transactions for a sender that now have valid nonces
+   */
+  private includeQueuedTransactionsForSender(
+    tracker: SenderNonceTracker,
+    ordered: TransactionWithFee[],
+    usedGas: bigint,
+    gasLimit: bigint,
+    maxBlockSize: number,
+    processedCount: number,
+    rejected: Array<{ transaction: TransactionWithFee; reason: string }>
+  ): void {
+    let nextNonce = tracker.currentNonce;
+
+    while (tracker.pendingTransactions.has(nextNonce)) {
+      const tx = tracker.pendingTransactions.get(nextNonce)!;
+      tracker.pendingTransactions.delete(nextNonce);
+
+      if (processedCount >= maxBlockSize) {
+        rejected.push({
+          transaction: tx,
+          reason: 'Block is full',
+        });
+        return;
+      }
+
+      if (used
