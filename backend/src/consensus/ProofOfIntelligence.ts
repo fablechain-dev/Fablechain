@@ -1,246 +1,262 @@
 ```typescript
-import crypto from 'crypto';
 import { EventEmitter } from 'events';
-import { Logger } from '../utils/Logger';
-import { ValidatorSet } from '../types/ValidatorSet';
-import { Block } from '../types/Block';
-import { Transaction } from '../types/Transaction';
+import crypto from 'crypto';
 
-interface ValidatorInfo {
+export interface ValidatorInfo {
   address: string;
+  publicKey: string;
   stake: bigint;
+  reputation: number;
+  lastProposalRound: number;
   intelligenceScore: number;
-  lastProposalBlock: number;
-  slashingPenalty: bigint;
   isActive: boolean;
+  joinedAt: number;
 }
 
-interface RoundState {
+export interface RoundInfo {
   roundNumber: number;
+  startTime: number;
+  endTime: number;
   proposer: string;
-  validators: ValidatorInfo[];
   quorumSize: number;
-  startHeight: number;
-  endHeight: number;
-  timeout: number;
-  commitments: Map<string, string>;
-  votes: Map<string, number>;
-  createdAt: number;
+  validators: string[];
+  blockHash?: string;
+  sealed: boolean;
 }
 
-interface PoIConfig {
+export interface ConsensusConfig {
   minValidators: number;
   maxValidators: number;
-  blockTime: number;
   roundDuration: number;
-  minQuorumPercentage: number;
-  intelligenceDecayFactor: number;
-  slashingPercentage: bigint;
+  quorumPercentage: number;
+  minStakeRequired: bigint;
+  reputationDecayRate: number;
+  intelligenceWeightage: number;
+  maxValidatorsPerRound: number;
   rotationInterval: number;
-  minStake: bigint;
 }
 
 export class ProofOfIntelligence extends EventEmitter {
-  private config: PoIConfig;
-  private logger: Logger;
-  private currentRound: RoundState | null = null;
-  private validatorSet: Map<string, ValidatorInfo> = new Map();
-  private roundHistory: Map<number, RoundState> = new Map();
-  private lastRotationHeight: number = 0;
-  private accumulatedScore: Map<string, number> = new Map();
-  private blockCommitments: Map<number, string> = new Map();
-  private sealed: boolean = false;
+  private validators: Map<string, ValidatorInfo>;
+  private currentRound: RoundInfo;
+  private roundHistory: Map<number, RoundInfo>;
+  private config: ConsensusConfig;
+  private roundTimer: NodeJS.Timeout | null = null;
+  private validatorRotationSchedule: Map<number, string[]>;
+  private intelligenceCache: Map<string, number>;
+  private lastRotationRound: number = 0;
 
-  constructor(config: PoIConfig, logger: Logger) {
+  constructor(config: ConsensusConfig) {
     super();
-    this.config = {
-      minValidators: 4,
-      maxValidators: 100,
-      blockTime: 4000,
-      roundDuration: 20000,
-      minQuorumPercentage: 66,
-      intelligenceDecayFactor: 0.98,
-      slashingPercentage: 5n,
-      rotationInterval: 1000,
-      minStake: 100000000000000000n,
-      ...config,
-    };
-    this.logger = logger;
-  }
-
-  public initializeValidators(validators: ValidatorInfo[]): void {
-    if (this.sealed) {
-      throw new Error('ProofOfIntelligence already sealed for genesis');
-    }
-
-    if (validators.length < this.config.minValidators) {
-      throw new Error(
-        `Minimum ${this.config.minValidators} validators required`
-      );
-    }
-
-    if (validators.length > this.config.maxValidators) {
-      throw new Error(
-        `Maximum ${this.config.maxValidators} validators allowed`
-      );
-    }
-
-    validators.forEach((validator) => {
-      if (validator.stake < this.config.minStake) {
-        throw new Error(
-          `Validator ${validator.address} stake below minimum requirement`
-        );
-      }
-      this.validatorSet.set(validator.address, {
-        ...validator,
-        intelligenceScore: 1000,
-        lastProposalBlock: 0,
-        slashingPenalty: 0n,
-        isActive: true,
-      });
-      this.accumulatedScore.set(validator.address, 1000);
-    });
-
-    this.logger.info(
-      `Initialized ${validators.length} validators for Proof of Intelligence`
-    );
-  }
-
-  public sealGenesis(): void {
-    if (this.sealed) {
-      throw new Error('Genesis already sealed');
-    }
-    this.sealed = true;
-    this.startNewRound(0);
-    this.logger.info('Proof of Intelligence genesis sealed');
-  }
-
-  public startNewRound(blockHeight: number): void {
-    if (!this.sealed) {
-      throw new Error('Genesis not sealed');
-    }
-
-    const roundNumber = Math.floor(blockHeight / this.config.blockTime);
-    const activeValidators = Array.from(this.validatorSet.values()).filter(
-      (v) => v.isActive && v.slashingPenalty < v.stake
-    );
-
-    if (activeValidators.length === 0) {
-      throw new Error('No active validators available');
-    }
-
-    const proposer = this.selectProposer(roundNumber, activeValidators);
-    const quorumSize = this.calculateQuorum(activeValidators.length);
+    this.config = config;
+    this.validators = new Map();
+    this.roundHistory = new Map();
+    this.validatorRotationSchedule = new Map();
+    this.intelligenceCache = new Map();
 
     this.currentRound = {
-      roundNumber,
-      proposer,
-      validators: activeValidators,
-      quorumSize,
-      startHeight: blockHeight,
-      endHeight: blockHeight + this.config.blockTime,
-      timeout: Date.now() + this.config.roundDuration,
-      commitments: new Map(),
-      votes: new Map(),
-      createdAt: Date.now(),
+      roundNumber: 0,
+      startTime: Date.now(),
+      endTime: Date.now() + config.roundDuration,
+      proposer: '',
+      quorumSize: 0,
+      validators: [],
+      sealed: false,
     };
 
-    this.roundHistory.set(roundNumber, this.currentRound);
-    this.emit('roundStarted', {
-      round: roundNumber,
-      proposer,
-      quorumSize,
-      validatorCount: activeValidators.length,
+    this.initializeConsensus();
+  }
+
+  private initializeConsensus(): void {
+    this.emit('consensus:initialized', {
+      config: this.config,
+      timestamp: Date.now(),
     });
-
-    this.logger.debug(
-      `Started round ${roundNumber} with proposer ${proposer.substring(0, 8)}`
-    );
   }
 
-  private selectProposer(
-    roundNumber: number,
-    validators: ValidatorInfo[]
-  ): string {
-    const seed = Buffer.from(
-      roundNumber.toString() +
-        this.currentRound?.createdAt.toString() +
-        'fablechain-poi'
-    );
-    const hash = crypto.createHash('sha256').update(seed).digest();
-    const index = hash.readUInt32BE(0) % validators.length;
-
-    const weighted = this.selectWeightedValidator(validators, index);
-    return weighted.address;
-  }
-
-  private selectWeightedValidator(
-    validators: ValidatorInfo[],
-    seed: number
-  ): ValidatorInfo {
-    const totalScore = validators.reduce(
-      (sum, v) => sum + v.intelligenceScore,
-      0
-    );
-
-    if (totalScore === 0) {
-      return validators[seed % validators.length];
+  public registerValidator(
+    address: string,
+    publicKey: string,
+    stake: bigint,
+  ): void {
+    if (this.validators.has(address)) {
+      throw new Error(`Validator ${address} already registered`);
     }
 
-    let random = (seed * 7919) % totalScore;
-    let accumulated = 0;
+    if (stake < this.config.minStakeRequired) {
+      throw new Error(
+        `Stake ${stake} below minimum required ${this.config.minStakeRequired}`,
+      );
+    }
 
-    for (const validator of validators) {
-      accumulated += validator.intelligenceScore;
-      if (random < accumulated) {
-        return validator;
+    const validator: ValidatorInfo = {
+      address,
+      publicKey,
+      stake,
+      reputation: 100,
+      lastProposalRound: -1,
+      intelligenceScore: 50,
+      isActive: true,
+      joinedAt: Date.now(),
+    };
+
+    this.validators.set(address, validator);
+    this.intelligenceCache.set(address, 50);
+
+    this.emit('validator:registered', {
+      address,
+      stake: stake.toString(),
+      timestamp: Date.now(),
+    });
+  }
+
+  public removeValidator(address: string): void {
+    const validator = this.validators.get(address);
+    if (!validator) {
+      throw new Error(`Validator ${address} not found`);
+    }
+
+    validator.isActive = false;
+    this.validators.set(address, validator);
+
+    this.emit('validator:removed', {
+      address,
+      timestamp: Date.now(),
+    });
+  }
+
+  public updateValidatorReputation(
+    address: string,
+    delta: number,
+  ): void {
+    const validator = this.validators.get(address);
+    if (!validator) {
+      throw new Error(`Validator ${address} not found`);
+    }
+
+    const oldReputation = validator.reputation;
+    validator.reputation = Math.max(0, Math.min(100, validator.reputation + delta));
+    this.validators.set(address, validator);
+
+    this.emit('validator:reputation:updated', {
+      address,
+      oldReputation,
+      newReputation: validator.reputation,
+      delta,
+      timestamp: Date.now(),
+    });
+  }
+
+  public updateIntelligenceScore(
+    address: string,
+    score: number,
+  ): void {
+    const validator = this.validators.get(address);
+    if (!validator) {
+      throw new Error(`Validator ${address} not found`);
+    }
+
+    if (score < 0 || score > 100) {
+      throw new Error('Intelligence score must be between 0 and 100');
+    }
+
+    const oldScore = validator.intelligenceScore;
+    validator.intelligenceScore = score;
+    this.intelligenceCache.set(address, score);
+    this.validators.set(address, validator);
+
+    this.emit('validator:intelligence:updated', {
+      address,
+      oldScore,
+      newScore: score,
+      timestamp: Date.now(),
+    });
+  }
+
+  private calculateValidatorWeight(validator: ValidatorInfo): number {
+    const stakeWeight = Number(validator.stake) / 1e18;
+    const reputationWeight = (validator.reputation / 100) * this.config.intelligenceWeightage;
+    const intelligenceWeight =
+      (validator.intelligenceScore / 100) * this.config.intelligenceWeightage;
+
+    return stakeWeight + reputationWeight + intelligenceWeight;
+  }
+
+  private selectValidatorsForRound(): string[] {
+    const activeValidators = Array.from(this.validators.values()).filter(
+      (v) => v.isActive,
+    );
+
+    if (activeValidators.length < this.config.minValidators) {
+      throw new Error(
+        `Insufficient validators: ${activeValidators.length} < ${this.config.minValidators}`,
+      );
+    }
+
+    const weighted = activeValidators.map((validator) => ({
+      address: validator.address,
+      weight: this.calculateValidatorWeight(validator),
+    }));
+
+    weighted.sort((a, b) => b.weight - a.weight);
+
+    const selectedCount = Math.min(
+      weighted.length,
+      this.config.maxValidatorsPerRound,
+    );
+
+    return weighted.slice(0, selectedCount).map((w) => w.address);
+  }
+
+  private selectProposer(validators: string[]): string {
+    if (validators.length === 0) {
+      throw new Error('Cannot select proposer from empty validator set');
+    }
+
+    let totalWeight = 0;
+    const weights = validators.map((address) => {
+      const validator = this.validators.get(address);
+      if (!validator) {
+        throw new Error(`Validator ${address} not found`);
+      }
+      const weight = this.calculateValidatorWeight(validator);
+      totalWeight += weight;
+      return weight;
+    });
+
+    let randomValue = crypto.randomBytes(32).readUInt32BE(0) % totalWeight;
+
+    for (let i = 0; i < validators.length; i++) {
+      randomValue -= weights[i];
+      if (randomValue <= 0) {
+        return validators[i];
       }
     }
 
     return validators[validators.length - 1];
   }
 
-  private calculateQuorum(validatorCount: number): number {
-    return Math.ceil((validatorCount * this.config.minQuorumPercentage) / 100);
-  }
+  public calculateQuorum(): number {
+    const activeValidators = Array.from(this.validators.values()).filter(
+      (v) => v.isActive,
+    ).length;
 
-  public submitCommitment(validatorAddress: string, blockHash: string): void {
-    if (!this.currentRound) {
-      throw new Error('No active round');
+    if (activeValidators === 0) {
+      return 0;
     }
 
-    if (!this.validatorSet.has(validatorAddress)) {
-      throw new Error('Validator not registered');
-    }
-
-    const validator = this.validatorSet.get(validatorAddress)!;
-    if (!validator.isActive) {
-      throw new Error('Validator is inactive');
-    }
-
-    if (Date.now() > this.currentRound.timeout) {
-      throw new Error('Round timeout exceeded');
-    }
-
-    const commitment = this.hashCommitment(validatorAddress, blockHash);
-    this.currentRound.commitments.set(validatorAddress, commitment);
-
-    this.emit('commitmentReceived', {
-      validator: validatorAddress,
-      round: this.currentRound.roundNumber,
-      timestamp: Date.now(),
-    });
-
-    this.logger.debug(
-      `Commitment received from ${validatorAddress.substring(0, 8)}`
+    const quorum = Math.ceil(
+      (activeValidators * this.config.quorumPercentage) / 100,
     );
+
+    return Math.max(1, quorum);
   }
 
-  public recordVote(validatorAddress: string, blockHash: string): boolean {
-    if (!this.currentRound) {
-      throw new Error('No active round');
-    }
+  public scheduleNextRound(): RoundInfo {
+    const validators = this.selectValidatorsForRound();
+    const proposer = this.selectProposer(validators);
+    const quorum = this.calculateQuorum();
 
-    if (!this.currentRound.commitments.has(validatorAddress)) {
-      throw new Error('Validator has not committed');
-    }
+    const roundNumber = this.currentRound.roundNumber + 1;
+    const startTime = Date.now();
+    const endTime = startTime + this.config.roundDuration;
