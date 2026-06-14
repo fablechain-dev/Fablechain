@@ -1029,7 +1029,7 @@ button {
   gap: 10px;
 }
 
-.lp-logo { color: var(--cyan); font-size: clamp(5px, 1.4cqi, 10.5px); }
+.lp-logo { color: var(--cyan); font-size: clamp(7px, 2cqi, 14px); }
 .lp-globe { color: var(--cyan); font-size: clamp(4.5px, 1.5cqi, 9.5px); opacity: 0.9; }
 
 .lp-tag {
