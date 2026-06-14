@@ -1,222 +1,203 @@
 # Fablechain Proof-of-Intelligence Consensus
 
-## Executive Summary
+## Overview
 
-Fablechain implements Proof-of-Intelligence (PoI), a novel consensus mechanism that combines stake-weighted voting with intelligence-based validator differentiation. Unlike traditional Proof-of-Stake (PoS) systems that treat all validators equally after collateralization, PoI dynamically adjusts validator influence based on demonstrated consensus quality, historical participation, and computational contribution metrics.
+Fablechain implements a novel Proof-of-Intelligence (PoI) consensus mechanism that combines stake-weighted validator selection with intelligence-based performance metrics. Unlike traditional Proof-of-Stake systems, PoI incorporates real-time validator behavior analysis, transaction processing efficiency, and network contribution quality into consensus weight calculations.
 
-## Protocol Overview
+The consensus protocol operates in discrete rounds, each lasting approximately 12 seconds. Validators are selected probabilistically based on their staked FBL tokens and historical intelligence scores. Selected validators propose blocks; other validators attest to block validity through weighted signatures.
 
-### Core Principles
-
-1. **Intelligence Scoring**: Validators earn reputation through consistent block proposal quality and voting accuracy
-2. **Adaptive Weighting**: Voting power scales with intelligence score, not just stake
-3. **Economic Security**: Slashing punishes both malicious behavior and incompetence
-4. **Fair Distribution**: New validators can quickly establish credibility through honest participation
-
-### Consensus Parameters
+## Protocol Architecture
 
 ```
-EPOCH_LENGTH = 32 blocks
-ROUND_DURATION = 12 seconds
-FINALITY_DELAY = 2 epochs (64 blocks)
-MIN_STAKE = 32 ETH equivalent
-MAX_VALIDATORS = 1024
-INTELLIGENCE_DECAY = 0.995 per epoch
-BASE_REWARD_RATE = 4% APY
+┌─────────────────────────────────────────────────────────────────┐
+│                    FABLECHAIN CONSENSUS LAYER                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐  │
+│  │  Intelligence    │  │   Stake Weight   │  │  Fork Choice │  │
+│  │   Calculation    │  │   Committee      │  │    Rules     │  │
+│  └────────┬─────────┘  └────────┬─────────┘  └──────┬───────┘  │
+│           │                     │                   │          │
+│  ┌────────▼─────────────────────▼───────────────────▼────────┐ │
+│  │           Validator Selection Engine                      │ │
+│  │  - Weighted Random Selection                             │ │
+│  │  - Dynamic Committee Composition                         │ │
+│  │  - Reputation Scoring                                   │ │
+│  └────────┬─────────────────────────────────────────────────┘ │
+│           │                                                    │
+│  ┌────────▼────────────────────────────────────────────────┐  │
+│  │              Block Production & Attestation            │  │
+│  │  - Block Proposal (Slot Leader)                        │  │
+│  │  - Attestation Aggregation                             │  │
+│  │  - Signature Verification & Batching                   │  │
+│  └────────┬─────────────────────────────────────────────────┘  │
+│           │                                                    │
+│  ┌────────▼────────────────────────────────────────────────┐  │
+│  │         Finality & Fork Resolution Layer               │  │
+│  │  - Supermajority Thresholds (⅔+)                       │  │
+│  │  - LMD-GHOST Fork Choice Rule                          │  │
+│  │  - Checkpoints & Justification                         │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                                │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Round Lifecycle
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    CONSENSUS ROUND (12s)                │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  PHASE 1: PROPOSAL (2s)                                 │
-│  ├─ Slot leader selected via weighted VRF              │
-│  ├─ Block proposed with beacon data                    │
-│  ├─ Intelligence audit begins                          │
-│  └─ Propagates to network                              │
-│                                                          │
-│  PHASE 2: ATTESTATION (4s)                             │
-│  ├─ Committee validators sample block                  │
-│  ├─ Vote weighted by intelligence score                │
-│  ├─ Votes aggregated into certificate                  │
-│  └─ 2/3 supermajority threshold                        │
-│                                                          │
-│  PHASE 3: FINALIZATION (6s)                            │
-│  ├─ Previous epoch blocks confirmed                    │
-│  ├─ Slashing conditions evaluated                      │
-│  ├─ Intelligence scores updated                        │
-│  └─ State root committed                               │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+Each consensus round comprises the following phases:
 
-32 rounds per epoch:
-├─ 0-31s: Block production and attestation
-├─ 32-64s: Validator shuffling
-└─ 64+: State transitions and rewards/penalties
+### Phase 1: Slot Allocation (0-3 seconds)
+
+The validator set for the current epoch (approximately 30,240 slots) is determined at epoch boundary. Within each slot, a single proposer is selected using weighted random selection:
+
 ```
+proposer_index = hash(
+  current_slot ||
+  validator_pubkey ||
+  randao_reveal
+) % active_validator_count
+
+selection_weight = 
+  (validator_stake / total_stake) * 
+  (intelligence_score / max_intelligence_score) *
+  (1 - (slashing_penalties / initial_stake))
+```
+
+The proposer receives cryptographic sortition proofs and begins block construction.
+
+### Phase 2: Block Proposal (3-6 seconds)
+
+The selected proposer:
+- Aggregates pending transactions from the mempool
+- Executes transactions and computes state root
+- Constructs a block header with:
+  - `parent_root`: Hash of previous block
+  - `state_root`: Root of state tree after execution
+  - `body_root`: Root of all transactions and data
+  - `randao_reveal`: VRF output for entropy
+  - `timestamp`: Unix seconds
+  - `proposer_index`: Validator index
+  - `slot`: Current slot number
+
+- Broadcasts block via P2P network within 4-second window
+
+### Phase 3: Attestation (6-9 seconds)
+
+Non-proposer validators in the committee independently:
+- Validate block structure and signatures
+- Verify state transitions and transaction execution
+- Compute local state root and compare
+- Create attestation:
+  ```
+  {
+    aggregation_bits: BitVector[COMMITTEE_SIZE],
+    data: {
+      slot: current_slot,
+      index: committee_index,
+      beacon_block_root: hash(block),
+      source_checkpoint: last_justified_checkpoint,
+      target_checkpoint: current_epoch_checkpoint
+    },
+    signature: BLS_signature
+  }
+  ```
+- Broadcast attestations via gossip network
+
+### Phase 4: Aggregation & Finalization (9-12 seconds)
+
+Aggregators combine multiple attestations:
+- Collect compatible attestations (same target, source, block_root)
+- Aggregate signatures using BLS curve operations
+- Publish aggregated attestation
+
+Network reaches consensus when:
+- Total attesting stake ≥ ⅔ of committee
+- All attestations point to same block
+- Intelligence scores confirm validator honesty
 
 ## Validator Duties
 
-### Proposal Duty
+### Primary Responsibilities
 
-Slot leaders must produce valid blocks within their assigned slot:
+**Block Proposal**
+- Validate mempool transactions
+- Limit block to 2 MB
+- Order transactions by fee weight
+- Execute and commit to state
+- Broadcast within slot window
+- Reward: 2 FBL + transaction fees
 
-```
-PROPOSAL_DUTY {
-  slot_leader = selectProposer(epoch, slot, intelligence_scores)
-  
-  must_include {
-    - parent_block_hash (previous justified block)
-    - beacon_state_root
-    - signatures from ≥2/3 of active validators
-    - transactions ordered by priority fee
-    - attestations from prior slot
-  }
-  
-  validation_checks {
-    - parent exists and is canonical
-    - state_root matches computation
-    - signatures valid (BLS12-381)
-    - no double-signing
-    - ≤16MB block size
-    - execution time ≤2s
-  }
-  
-  penalties {
-    - missed_proposal: -0.5% of stake per epoch
-    - invalid_block: -2% of stake + removal
-  }
-}
-```
+**Committee Attestation**
+- Monitor assigned committee slot
+- Validate proposed block
+- Create and broadcast attestation
+- Reward: 0.25 FBL per epoch per committee slot
 
-### Attestation Duty
+**Slashing Prevention**
+- Never propose two blocks in same slot
+- Never attest to competing forks
+- Never create contradictory attestations
+- Penalty: 32 FBL minimum + full stake destruction
 
-Committee members vote on proposed blocks weighted by intelligence:
+### Intelligence Score Calculation
 
 ```
-ATTESTATION_DUTY {
-  committee_size = 128
-  committee_members = selectCommittee(epoch, shard, validators)
+intelligence_score(v) = 
+  0.30 * attestation_inclusion_rate(v) +
+  0.25 * block_proposal_quality(v) +
+  0.20 * latency_efficiency(v) +
+  0.15 * transaction_validity_score(v) +
+  0.10 * network_participation_score(v)
   
-  attestation_weight[validator] = 
-    base_stake[validator] * (1 + intelligence_score[validator] / 1000)
-  
-  must_attest {
-    - source_checkpoint (previous justified epoch)
-    - target_checkpoint (current epoch)
-    - beacon_block_root (head block)
-    - shard_head_root (proposed block)
-  }
-  
-  aggregation {
-    - BLS signature aggregation
-    - deduplicate identical votes
-    - verify ≥2/3 weight threshold
-    - include in next block
-  }
-  
-  penalties {
-    - missed_attestation: -0.25% per epoch
-    - conflicting_vote: -32% of stake + removal
-    - late_attestation: -0.1% per slot delay
-  }
-}
+where:
+
+attestation_inclusion_rate = 
+  (attestations_included_in_blocks / total_attestations) * 100
+
+block_proposal_quality = 
+  (valid_transactions_in_blocks / total_transactions_proposed) * 100
+
+latency_efficiency = 
+  max(0, 1 - (actual_latency - target_latency) / 1000ms)
+
+transaction_validity_score = 
+  (non_reverted_transactions / total_transactions) * 100
+
+network_participation_score = 
+  (uptime_percentage * peer_count) / optimal_peer_count
 ```
 
-## Intelligence Scoring System
-
-### Score Calculation
-
-Intelligence scores measure validator quality across multiple dimensions:
-
-```
-intelligence_score[v, epoch] = 
-  α·proposal_quality[v, epoch] +
-  β·attestation_accuracy[v, epoch] +
-  γ·participation_rate[v, epoch] +
-  δ·network_reliability[v, epoch]
-
-where α=0.35, β=0.35, γ=0.20, δ=0.10
-
-proposal_quality measures:
-  - execution_success_rate (0-100 blocks analyzed)
-  - block_propagation_latency (mean < 200ms)
-  - transaction_ordering_quality (MEV minimization)
-  - uncle_rate (blocks building on canonical chain)
-
-attestation_accuracy measures:
-  - correct_source_votes / total_votes
-  - correct_target_votes / total_votes
-  - voting_latency (within slot duration)
-  - presence_in_aggregation
-
-participation_rate = 
-  epochs_participated / (current_epoch - entry_epoch)
-
-network_reliability = 
-  (1 - slashing_incidents / proposal_count) * 
-  (1 - failed_validations / attestation_count)
-```
-
-### Score Evolution
-
-```
-EPOCH_TRANSITION {
-  // Calculate raw score for new epoch
-  raw_score = calculate_raw_score(validator, epoch)
-  
-  // Apply exponential moving average with decay
-  historical_score = score[validator][epoch-1] * 0.995
-  new_score = 0.3 * historical_score + 0.7 * raw_score
-  
-  // Bound between -100 and 1000
-  score[validator][epoch] = clamp(new_score, -100, 1000)
-  
-  // Boost for new validators (onboarding gradient)
-  if epochs_participated[validator] < 8 {
-    score[validator][epoch] *= (1 + 0.05 * (8 - epochs_participated[validator]))
-  }
-  
-  // Penalty for inactivity
-  if missed_slots[validator][epoch] > 8 {
-    score[validator][epoch] -= missed_slots[validator][epoch] * 5
-  }
-}
-```
+Scores update after each epoch (32 slots). Initial score: 50/100.
 
 ## Slashing Conditions
 
-### Slashable Offenses
+### Equivocation Slashing
+
+Triggered when validator produces multiple blocks or attestations conflicting in the same slot:
 
 ```
-SLASHABLE_OFFENSE {
-  
-  DOUBLE_PROPOSAL: severity=CRITICAL (100% slash)
-    - Same validator proposes 2+ blocks in single slot
-    - Detection: compare proposal_index across blocks
-    - Action: immediate removal + full stake confiscation
-  
-  CONFLICTING_ATTESTATION: severity=CRITICAL (100% slash)
-    - Validator attests to conflicting source/target
-    - Detection: (source1 ≠ source2) OR (target1 ≠ target2)
-    - Action: slashing + 18-epoch jail period
-    - Correlation reward: reporters earn 5% of slashed stake
-  
-  SURROUND_VOTE: severity=CRITICAL (100% slash)
-    - Attestation_n.source < attestation_m.source < 
-      attestation_m.target < attestation_n.target
-    - Indicates attempt to revert finalized state
-    - Action: slashing + removal + investigation
-  
-  INVALID_PROPOSAL: severity=HIGH (32% slash)
-    - Block fails state transition
-    - Invalid signatures detected
-    - Merkle proof verification fails
-    - Action: 32% penalty + proposal duty suspension
-  
-  LATE_ATTESTATION: severity=LOW (0.25% slash per slot)
-    - Attestation included >12 slots after target
-    - Indicates network isolation or incompetence
+if exists block_a, block_b where:
+  - block_a.proposer == block_b.proposer
+  - block_a.slot == block_b.slot
+  - hash(block_a) != hash(block_b)
+then:
+  slash_amount = validator_stake / 32
+  additional_penalty = min(
+    validator_stake / 32,
+    3 * sum_of_slashed_in_epoch / total_stake
+  )
+  total_penalty = slash_amount + additional_penalty
+```
+
+### Surround Vote Slashing
+
+Triggered when attestation surrounds or is surrounded by prior attestation:
+
+```
+if attestation_a.source < attestation_b.source and
+   attestation_a.target > attestation_b.target and
+   attestation_a.slot != attestation_b.slot
+then:
+  slash_validator(attestation_a.validator)
+  slash_validator(attestation_b.validator)
+  penalty =
