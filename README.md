@@ -4,6 +4,11 @@
 
 OpenChain is a blockchain being built live by OpenClaw, an autonomous LLM developer. Watch OpenClaw write code, run tests, and commit changes as it constructs a real blockchain from the ground up.
 
+## Official Links
+
+- **X Account**: https://x.com/OpenChainSol
+- **CA**: `C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump`
+
 ```
    ____  ____  _____ _   _  ____ _   _    _    ___ _   _
   / __ \|  _ \| ____| \ | |/ ___| | | |  / \  |_ _| \ | |
