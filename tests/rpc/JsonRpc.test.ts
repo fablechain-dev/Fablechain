@@ -7,60 +7,69 @@ interface JsonRpcRequest {
   jsonrpc: string;
   method: string;
   params?: unknown[];
-  id?: string | number | null;
+  id: string | number | null;
 }
 
-interface JsonRpcResponse {
+interface JsonRpcResponse<T = unknown> {
   jsonrpc: string;
-  result?: unknown;
+  result?: T;
   error?: {
     code: number;
     message: string;
     data?: unknown;
   };
-  id?: string | number | null;
+  id: string | number | null;
 }
 
-describe('JSON-RPC Server Integration Tests', () => {
+describe('JsonRpc Server Integration Tests', () => {
   let serverProcess: ChildProcess;
-  const SERVER_URL = 'http://localhost:8545';
+  const RPC_URL = 'http://localhost:8545';
   const REQUEST_TIMEOUT = 5000;
 
-  beforeAll((done) => {
-    serverProcess = spawn('node', [
-      path.join(__dirname, '../../src/rpc/server.js')
-    ], {
-      stdio: 'pipe',
-      env: {
-        ...process.env,
-        RPC_PORT: '8545',
-        RPC_HOST: 'localhost'
-      }
+  beforeAll(async () => {
+    return new Promise<void>((resolve, reject) => {
+      serverProcess = spawn('node', [path.join(__dirname, '../../src/rpc/server.js')], {
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          RPC_PORT: '8545',
+        },
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      let serverReady = false;
+      const timeout = setTimeout(() => {
+        if (!serverReady) {
+          serverProcess.kill();
+          reject(new Error('Server failed to start within timeout'));
+        }
+      }, 10000);
+
+      serverProcess.stdout?.on('data', (data) => {
+        const output = data.toString();
+        if (output.includes('listening') || output.includes('started')) {
+          serverReady = true;
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+
+      serverProcess.stderr?.on('data', (data) => {
+        console.error('Server stderr:', data.toString());
+      });
+
+      serverProcess.on('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
     });
 
-    serverProcess.stdout?.on('data', (data) => {
-      if (data.toString().includes('JSON-RPC server listening')) {
-        done();
-      }
-    });
-
-    serverProcess.stderr?.on('data', (data) => {
-      console.error('Server error:', data.toString());
-    });
-
-    setTimeout(() => done(), 3000);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   });
 
-  afterAll((done) => {
-    if (serverProcess) {
+  afterAll(() => {
+    if (serverProcess && !serverProcess.killed) {
       serverProcess.kill('SIGTERM');
-      serverProcess.on('exit', () => done());
-      setTimeout(() => {
-        serverProcess.kill('SIGKILL');
-        done();
-      }, 1000);
-    } else {
-      done();
     }
   });
 
@@ -70,11 +79,11 @@ describe('JSON-RPC Server Integration Tests', () => {
         jsonrpc: '2.0',
         method: 'eth_blockNumber',
         params: [],
-        id: 1
+        id: 1,
       };
 
-      const response = await axios.post<JsonRpcResponse>(SERVER_URL, request, {
-        timeout: REQUEST_TIMEOUT
+      const response = await axios.post<JsonRpcResponse<string>>(RPC_URL, request, {
+        timeout: REQUEST_TIMEOUT,
       });
 
       expect(response.status).toBe(200);
@@ -83,58 +92,40 @@ describe('JSON-RPC Server Integration Tests', () => {
       expect(response.data.result).toBeDefined();
       expect(response.data.error).toBeUndefined();
       expect(typeof response.data.result).toBe('string');
+      expect(response.data.result).toMatch(/^0x[0-9a-f]+$/i);
     });
 
-    it('should handle eth_getBalance request successfully', async () => {
+    it('should handle eth_gasPrice request successfully', async () => {
       const request: JsonRpcRequest = {
         jsonrpc: '2.0',
-        method: 'eth_getBalance',
-        params: ['0x742d35Cc6634C0532925a3b844Bc9e7595f42bE', 'latest'],
-        id: 2
+        method: 'eth_gasPrice',
+        id: 2,
       };
 
-      const response = await axios.post<JsonRpcResponse>(SERVER_URL, request, {
-        timeout: REQUEST_TIMEOUT
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.data.jsonrpc).toBe('2.0');
-      expect(response.data.id).toBe(2);
-      expect(response.data.result).toBeDefined();
-      expect(response.data.error).toBeUndefined();
-    });
-
-    it('should handle web3_clientVersion request', async () => {
-      const request: JsonRpcRequest = {
-        jsonrpc: '2.0',
-        method: 'web3_clientVersion',
-        id: 3
-      };
-
-      const response = await axios.post<JsonRpcResponse>(SERVER_URL, request, {
-        timeout: REQUEST_TIMEOUT
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.data.jsonrpc).toBe('2.0');
-      expect(response.data.id).toBe(3);
-      expect(response.data.result).toMatch(/Fablechain/i);
-      expect(response.data.error).toBeUndefined();
-    });
-
-    it('should handle requests without id field (notification)', async () => {
-      const request: JsonRpcRequest = {
-        jsonrpc: '2.0',
-        method: 'eth_blockNumber',
-        params: []
-      };
-
-      const response = await axios.post<JsonRpcResponse>(SERVER_URL, request, {
-        timeout: REQUEST_TIMEOUT
+      const response = await axios.post<JsonRpcResponse<string>>(RPC_URL, request, {
+        timeout: REQUEST_TIMEOUT,
       });
 
       expect(response.status).toBe(200);
       expect(response.data.result).toBeDefined();
+      expect(response.data.result).toMatch(/^0x[0-9a-f]+$/i);
+      expect(response.data.error).toBeUndefined();
+    });
+
+    it('should handle eth_chainId request successfully', async () => {
+      const request: JsonRpcRequest = {
+        jsonrpc: '2.0',
+        method: 'eth_chainId',
+        id: 3,
+      };
+
+      const response = await axios.post<JsonRpcResponse<string>>(RPC_URL, request, {
+        timeout: REQUEST_TIMEOUT,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.data.result).toBeDefined();
+      expect(response.data.result).toMatch(/^0x[0-9a-f]+$/i);
     });
 
     it('should handle batch requests', async () => {
@@ -142,20 +133,18 @@ describe('JSON-RPC Server Integration Tests', () => {
         {
           jsonrpc: '2.0',
           method: 'eth_blockNumber',
-          id: 1
+          id: 1,
         },
         {
           jsonrpc: '2.0',
-          method: 'web3_clientVersion',
-          id: 2
-        }
+          method: 'eth_gasPrice',
+          id: 2,
+        },
       ];
 
-      const response = await axios.post<JsonRpcResponse[]>(
-        SERVER_URL,
-        requests,
-        { timeout: REQUEST_TIMEOUT }
-      );
+      const response = await axios.post<JsonRpcResponse[]>(RPC_URL, requests, {
+        timeout: REQUEST_TIMEOUT,
+      });
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.data)).toBe(true);
@@ -165,75 +154,75 @@ describe('JSON-RPC Server Integration Tests', () => {
       expect(response.data[0].result).toBeDefined();
       expect(response.data[1].result).toBeDefined();
     });
+
+    it('should handle request with null id', async () => {
+      const request: JsonRpcRequest = {
+        jsonrpc: '2.0',
+        method: 'eth_blockNumber',
+        id: null,
+      };
+
+      const response = await axios.post<JsonRpcResponse<string>>(RPC_URL, request, {
+        timeout: REQUEST_TIMEOUT,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.data.id).toBeNull();
+      expect(response.data.result).toBeDefined();
+    });
   });
 
   describe('Malformed Request Tests', () => {
-    it('should reject request with invalid JSON', async () => {
+    it('should reject request with missing jsonrpc version', async () => {
+      const request = {
+        method: 'eth_blockNumber',
+        id: 1,
+      };
+
       try {
-        await axios.post(SERVER_URL, 'invalid json {', {
-          timeout: REQUEST_TIMEOUT,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        await axios.post(RPC_URL, request, { timeout: REQUEST_TIMEOUT });
         fail('Should have thrown an error');
       } catch (error) {
         const axiosError = error as AxiosError<JsonRpcResponse>;
-        expect([400, 500]).toContain(axiosError.response?.status);
-        expect(axiosError.response?.data?.error?.code).toBeDefined();
+        expect(axiosError.response?.status).toBe(400);
+        expect(axiosError.response?.data?.error?.code).toBe(-32600);
+        expect(axiosError.response?.data?.error?.message).toContain('Invalid Request');
       }
     });
 
-    it('should reject request missing jsonrpc field', async () => {
+    it('should reject request with missing method', async () => {
       const request = {
-        method: 'eth_blockNumber',
-        params: [],
-        id: 1
+        jsonrpc: '2.0',
+        id: 1,
       };
 
-      const response = await axios.post<JsonRpcResponse>(SERVER_URL, request, {
-        timeout: REQUEST_TIMEOUT,
-        validateStatus: () => true
-      });
-
-      expect(response.data.error).toBeDefined();
-      expect(response.data.error?.code).toBe(-32600);
-      expect(response.data.error?.message).toMatch(/Invalid Request/i);
+      try {
+        await axios.post(RPC_URL, request, { timeout: REQUEST_TIMEOUT });
+        fail('Should have thrown an error');
+      } catch (error) {
+        const axiosError = error as AxiosError<JsonRpcResponse>;
+        expect(axiosError.response?.status).toBe(400);
+        expect(axiosError.response?.data?.error?.code).toBe(-32600);
+      }
     });
 
     it('should reject request with invalid jsonrpc version', async () => {
-      const request: JsonRpcRequest = {
+      const request = {
         jsonrpc: '1.0',
         method: 'eth_blockNumber',
-        params: [],
-        id: 1
+        id: 1,
       };
 
-      const response = await axios.post<JsonRpcResponse>(SERVER_URL, request, {
-        timeout: REQUEST_TIMEOUT,
-        validateStatus: () => true
-      });
-
-      expect(response.data.error).toBeDefined();
-      expect(response.data.error?.code).toBe(-32600);
+      try {
+        await axios.post(RPC_URL, request, { timeout: REQUEST_TIMEOUT });
+        fail('Should have thrown an error');
+      } catch (error) {
+        const axiosError = error as AxiosError<JsonRpcResponse>;
+        expect(axiosError.response?.status).toBe(400);
+        expect(axiosError.response?.data?.error?.code).toBe(-32600);
+      }
     });
 
-    it('should reject request missing method field', async () => {
-      const request = {
-        jsonrpc: '2.0',
-        params: [],
-        id: 1
-      };
-
-      const response = await axios.post<JsonRpcResponse>(SERVER_URL, request, {
-        timeout: REQUEST_TIMEOUT,
-        validateStatus: () => true
-      });
-
-      expect(response.data.error).toBeDefined();
-      expect(response.data.error?.code).toBe(-32600);
-    });
-
-    it('should reject request with non-array params', async () => {
-      const request = {
-        jsonrpc: '2.0',
-        method: 'eth_blockNumber',
-        params
+    it('should reject malformed JSON', async () => {
+      try {
+        await axios.post(RPC_URL, '{invalid json}', {
