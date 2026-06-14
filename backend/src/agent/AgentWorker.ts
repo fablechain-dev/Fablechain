@@ -608,7 +608,7 @@ export const generated_${timestamp} = {
   private async writeTaskArtifact(task: Task, output: string): Promise<void> {
     const timestamp = Date.now();
     const taskSlug = task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'task';
-    const filePath = `backend/src/open-generated/${taskSlug}-${timestamp}.ts`;
+    const filePath = `backend/src/fable-generated/${taskSlug}-${timestamp}.ts`;
     const artifact = {
       taskId: task.id,
       title: task.title,
@@ -646,7 +646,7 @@ export const generated_${timestamp} = {
     
     // Actually write a file based on the task
     const fileContent = this.generateCodeForTask(task, timestamp);
-    const filePath = `backend/src/open-generated/${taskSlug}-${timestamp}.ts`;
+    const filePath = `backend/src/fable-generated/${taskSlug}-${timestamp}.ts`;
     
     // Use the executor to actually write the file
     const writeResult = await agentExecutor.writeFile(filePath, fileContent);

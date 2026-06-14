@@ -164,15 +164,15 @@ export class GitIntegration {
     }
   }
 
-  // Auto-commit and push changes - SAFE MODE: only commits to open-generated/
+  // Auto-commit and push changes - SAFE MODE: only commits to fable-generated/
   async autoCommitAndPush(message: string, taskId?: string): Promise<GitOperationResult> {
     console.log('[GIT] autoCommitAndPush called (SAFE MODE):', message);
     
     // SAFE DIRECTORIES - agent can ONLY commit files in these paths
     const SAFE_PATHS = [
-      'backend/src/open-generated',
-      'open-generated',
-      'src/open-generated'
+      'backend/src/fable-generated',
+      'fable-generated',
+      'src/fable-generated'
     ];
 
     try {
@@ -185,7 +185,7 @@ export class GitIntegration {
         return { success: true, output: 'No changes to commit' };
       }
       
-      // Filter to only safe files (in open-generated directories)
+      // Filter to only safe files (in fable-generated directories)
       const safeFiles: string[] = [];
       const blockedFiles: string[] = [];
       
@@ -205,7 +205,7 @@ export class GitIntegration {
       }
       
       if (safeFiles.length === 0) {
-        console.log('[GIT] No safe files to commit (all changes are outside open-generated/)');
+        console.log('[GIT] No safe files to commit (all changes are outside fable-generated/)');
         return { success: true, output: 'No safe files to commit' };
       }
       

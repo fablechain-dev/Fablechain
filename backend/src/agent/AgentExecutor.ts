@@ -241,9 +241,9 @@ const BLOCKED_PATHS = [
 // ONLY these directories are allowed for agent writes
 // This prevents the agent from deleting deployment configs
 const ALLOWED_WRITE_DIRS = [
-  'backend/src/open-generated',
-  'open-generated',
-  'src/open-generated'
+  'backend/src/fable-generated',
+  'fable-generated',
+  'src/fable-generated'
 ];
 
 export class AgentExecutor {
@@ -341,11 +341,11 @@ export class AgentExecutor {
       return false;
     }
     
-    // Block commands that write outside open-generated
+    // Block commands that write outside fable-generated
     if ((lowerCommand.includes('echo ') || lowerCommand.includes('cat ')) && 
         lowerCommand.includes('>') && 
-        !lowerCommand.includes('open-generated')) {
-      console.log('[EXECUTOR] BLOCKED write redirect outside open-generated');
+        !lowerCommand.includes('fable-generated')) {
+      console.log('[EXECUTOR] BLOCKED write redirect outside fable-generated');
       return false;
     }
     
@@ -683,8 +683,8 @@ export class AgentExecutor {
         break;
       
       case 'git_commit':
-        // Re-enabled with SAFE MODE - only commits to open-generated/
-        console.log(`[EXECUTOR] Git commit (SAFE MODE) - only open-generated/ files`);
+        // Re-enabled with SAFE MODE - only commits to fable-generated/
+        console.log(`[EXECUTOR] Git commit (SAFE MODE) - only fable-generated/ files`);
         result = await gitIntegration.autoCommitAndPush(args.message, args.taskId);
         break;
       
@@ -695,7 +695,7 @@ export class AgentExecutor {
         console.log(`[EXECUTOR] Git operation ${toolName} DISABLED for safety`);
         result = { 
           success: false, 
-          error: 'This git operation is disabled. Only git_commit is allowed (to open-generated/ only).' 
+          error: 'This git operation is disabled. Only git_commit is allowed (to fable-generated/ only).' 
         };
         break;
       
