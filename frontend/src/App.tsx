@@ -115,6 +115,9 @@ export default function App() {
   const histIdx = useRef(-1);
   const [locationPath, setLocationPath] = useState(() => window.location.pathname);
 
+  const [streamingMsg, setStreamingMsg] = useState<string | null>(null);
+  const streamRef = useRef<{ target: string; idx: number; timer: number | null } | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const lastBlockTime = useRef<number>(Date.now());
@@ -282,9 +285,33 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Stream cleanup on unmount
+  useEffect(() => () => { if (streamRef.current?.timer) clearTimeout(streamRef.current.timer); }, []);
+
   // Auto-scroll
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [streamingMsg]);
   useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
+
+  const startStream = (text: string) => {
+    if (streamRef.current?.timer) clearTimeout(streamRef.current.timer);
+    streamRef.current = { target: text, idx: 0, timer: null };
+    const tick = () => {
+      const sr = streamRef.current;
+      if (!sr) return;
+      const next = Math.min(sr.idx + 4, sr.target.length);
+      setStreamingMsg(sr.target.slice(0, next));
+      sr.idx = next;
+      if (next < sr.target.length) {
+        sr.timer = window.setTimeout(tick, 22);
+      } else {
+        setMessages(p => [...p, { role: 'molt', content: text }]);
+        setStreamingMsg(null);
+        streamRef.current = null;
+      }
+    };
+    tick();
+  };
 
   const handleTab = (tab: TabType) => {
     setActiveTab(tab);
@@ -325,16 +352,17 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg, conversationHistory })
       });
+      setLoading(false);
       if (res.ok) {
         const data = await res.json();
-        setMessages(p => [...p, { role: 'molt', content: data.message || data.response }]);
+        startStream(data.message || data.response);
       } else {
-        setMessages(p => [...p, { role: 'molt', content: 'Processing your request... The validators are deliberating.' }]);
+        startStream('Processing your request... The validators are deliberating.');
       }
     } catch {
-      setMessages(p => [...p, { role: 'molt', content: 'Network sync in progress. The chain continues autonomously.' }]);
+      setLoading(false);
+      startStream('Network sync in progress. The chain continues autonomously.');
     }
-    setLoading(false);
   };
 
   const tabs = [
@@ -482,7 +510,12 @@ export default function App() {
               )}
             </div>
           ))}
-          {loading && <div className="cl-thinking">FABLE-5 is thinking...</div>}
+          {loading && <div className="cl-thinking">FABLE-5 is thinking<span className="blink-cursor">_</span></div>}
+          {streamingMsg !== null && (
+            <div className="cl-entry">
+              <div className="cl-bot">{'FABLE-5:\n ' + streamingMsg}<span className="blink-cursor">▋</span></div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
         <div className="trace">
@@ -497,9 +530,9 @@ export default function App() {
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleCmdKey}
             placeholder="/ask FABLE-5 anything..."
-            disabled={loading}
+            disabled={loading || streamingMsg !== null}
           />
-          <button className="ci-send" onClick={sendMessage} disabled={loading || !input.trim()}>SEND</button>
+          <button className="ci-send" onClick={sendMessage} disabled={loading || streamingMsg !== null || !input.trim()}>SEND</button>
         </div>
       </section>
 
