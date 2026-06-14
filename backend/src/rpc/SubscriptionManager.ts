@@ -1,293 +1,263 @@
 ```typescript
 import { EventEmitter } from 'events';
-import * as WebSocket from 'ws';
-import { v4 as uuidv4 } from 'uuid';
+import { WebSocket, Server as WebSocketServer } from 'ws';
 import { Logger } from '../utils/Logger';
-import { BlockService } from '../services/BlockService';
-import { MempoolService } from '../services/MempoolService';
-import { LogService } from '../services/LogService';
+import { BlockHeader } from '../types/block';
+import { Transaction } from '../types/transaction';
+import { Log } from '../types/log';
 
-interface SubscriptionRequest {
-  jsonrpc: string;
-  method: string;
-  params: string[];
-  id: string | number;
-}
-
-interface SubscriptionResponse {
-  jsonrpc: string;
-  result?: string;
-  error?: {
-    code: number;
-    message: string;
-  };
-  id: string | number;
-}
-
-interface SubscriptionMessage {
-  jsonrpc: string;
-  method: string;
-  params: {
-    subscription: string;
-    result: unknown;
-  };
-}
-
-interface ActiveSubscription {
+interface Subscriber {
   id: string;
+  ws: WebSocket;
+  subscriptions: Map<string, SubscriptionData>;
+  isAlive: boolean;
+}
+
+interface SubscriptionData {
   type: 'newHeads' | 'logs' | 'pendingTransactions';
-  ws: WebSocket.WebSocket;
-  filter?: Record<string, unknown>;
+  filters?: LogFilter;
   createdAt: number;
 }
 
-interface BlockHeader {
-  hash: string;
-  parentHash: string;
-  number: string;
-  timestamp: string;
-  miner: string;
-  gasLimit: string;
-  gasUsed: string;
-  difficulty: string;
+interface LogFilter {
+  address?: string | string[];
+  topics?: (string | string[] | null)[];
+  fromBlock?: string | number;
+  toBlock?: string | number;
 }
 
-interface TransactionLog {
-  address: string;
-  topics: string[];
-  data: string;
-  blockNumber: string;
-  transactionHash: string;
-  transactionIndex: string;
-  blockHash: string;
-  logIndex: string;
-  removed: boolean;
+interface RpcMessage {
+  jsonrpc: '2.0';
+  method: string;
+  params?: unknown[];
+  id?: string | number;
 }
 
-interface PendingTransaction {
-  hash: string;
-  from: string;
-  to: string;
-  value: string;
-  gasPrice: string;
-  gas: string;
-  nonce: number;
-  data: string;
-  chainId: number;
+interface RpcResponse {
+  jsonrpc: '2.0';
+  result?: unknown;
+  error?: {
+    code: number;
+    message: string;
+    data?: unknown;
+  };
+  id?: string | number;
 }
 
-export class SubscriptionManager extends EventEmitter {
-  private subscriptions: Map<string, ActiveSubscription>;
+export class SubscriptionManager {
+  private wss: WebSocketServer;
+  private subscribers: Map<string, Subscriber>;
+  private eventEmitter: EventEmitter;
   private logger: Logger;
-  private blockService: BlockService;
-  private mempoolService: MempoolService;
-  private logService: LogService;
-  private blockHeaderEmitter: EventEmitter;
-  private transactionEmitter: EventEmitter;
-  private logEmitter: EventEmitter;
-  private maxSubscriptionsPerConnection: number;
-  private subscriptionTimeout: number;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private subscriptionCounter: number = 0;
 
-  constructor(
-    blockService: BlockService,
-    mempoolService: MempoolService,
-    logService: LogService,
-    logger: Logger,
-    maxSubscriptionsPerConnection: number = 100,
-    subscriptionTimeoutMs: number = 300000,
-  ) {
-    super();
-    this.subscriptions = new Map();
+  constructor(server: any, logger: Logger) {
     this.logger = logger;
-    this.blockService = blockService;
-    this.mempoolService = mempoolService;
-    this.logService = logService;
-    this.blockHeaderEmitter = new EventEmitter();
-    this.transactionEmitter = new EventEmitter();
-    this.logEmitter = new EventEmitter();
-    this.maxSubscriptionsPerConnection = maxSubscriptionsPerConnection;
-    this.subscriptionTimeout = subscriptionTimeoutMs;
-    this.initializeInternalListeners();
+    this.subscribers = new Map();
+    this.eventEmitter = new EventEmitter();
+    this.wss = new WebSocketServer({ server });
+    this.setupWebSocketServer();
+    this.startHeartbeat();
   }
 
-  private initializeInternalListeners(): void {
-    this.blockService.on('newBlock', (block: Record<string, unknown>) => {
-      this.broadcastNewHeads(block);
-    });
-
-    this.mempoolService.on('transactionAdded', (tx: PendingTransaction) => {
-      this.broadcastPendingTransaction(tx);
-    });
-
-    this.logService.on('logEmitted', (log: TransactionLog) => {
-      this.broadcastLog(log);
-    });
-  }
-
-  public handleSubscription(
-    ws: WebSocket.WebSocket,
-    request: SubscriptionRequest,
-  ): void {
-    const { method, params, id } = request;
-
-    if (method !== 'eth_subscribe') {
-      this.sendError(
+  private setupWebSocketServer(): void {
+    this.wss.on('connection', (ws: WebSocket) => {
+      const subscriberId = this.generateSubscriberId();
+      const subscriber: Subscriber = {
+        id: subscriberId,
         ws,
-        id,
-        -32601,
-        'Method not found',
-      );
+        subscriptions: new Map(),
+        isAlive: true,
+      };
+
+      this.subscribers.set(subscriberId, subscriber);
+      this.logger.info(`WebSocket connection established: ${subscriberId}`);
+
+      ws.on('message', (data: Buffer) => {
+        this.handleMessage(subscriberId, data);
+      });
+
+      ws.on('pong', () => {
+        const subscriber = this.subscribers.get(subscriberId);
+        if (subscriber) {
+          subscriber.isAlive = true;
+        }
+      });
+
+      ws.on('close', () => {
+        this.handleDisconnect(subscriberId);
+      });
+
+      ws.on('error', (error: Error) => {
+        this.logger.error(`WebSocket error for ${subscriberId}: ${error.message}`);
+        this.handleDisconnect(subscriberId);
+      });
+    });
+  }
+
+  private handleMessage(subscriberId: string, data: Buffer): void {
+    const subscriber = this.subscribers.get(subscriberId);
+    if (!subscriber) {
       return;
     }
 
-    if (!params || params.length === 0) {
-      this.sendError(
-        ws,
-        id,
-        -32602,
-        'Invalid params: subscription type required',
-      );
-      return;
-    }
-
-    const subscriptionType = params[0];
-    const filter = params[1] || {};
-
-    const wsSubscriptionCount = Array.from(this.subscriptions.values()).filter(
-      (sub) => sub.ws === ws,
-    ).length;
-
-    if (wsSubscriptionCount >= this.maxSubscriptionsPerConnection) {
-      this.sendError(
-        ws,
-        id,
-        -32603,
-        `Maximum subscriptions (${this.maxSubscriptionsPerConnection}) reached for this connection`,
-      );
-      return;
-    }
-
-    const subscriptionId = uuidv4();
-
-    switch (subscriptionType) {
-      case 'newHeads':
-        this.createNewHeadsSubscription(
-          ws,
-          subscriptionId,
-          id,
-          filter,
-        );
-        break;
-      case 'logs':
-        this.createLogsSubscription(
-          ws,
-          subscriptionId,
-          id,
-          filter,
-        );
-        break;
-      case 'pendingTransactions':
-        this.createPendingTransactionsSubscription(
-          ws,
-          subscriptionId,
-          id,
-          filter,
-        );
-        break;
-      default:
-        this.sendError(
-          ws,
-          id,
-          -32602,
-          `Unknown subscription type: ${subscriptionType}`,
-        );
+    try {
+      const message: RpcMessage = JSON.parse(data.toString());
+      this.processRpcMessage(subscriberId, message);
+    } catch (error) {
+      const response: RpcResponse = {
+        jsonrpc: '2.0',
+        error: {
+          code: -32700,
+          message: 'Parse error',
+        },
+      };
+      this.sendToSubscriber(subscriberId, response);
     }
   }
 
-  private createNewHeadsSubscription(
-    ws: WebSocket.WebSocket,
-    subscriptionId: string,
-    requestId: string | number,
-    filter: Record<string, unknown>,
-  ): void {
-    const subscription: ActiveSubscription = {
-      id: subscriptionId,
-      type: 'newHeads',
-      ws,
-      filter,
+  private processRpcMessage(subscriberId: string, message: RpcMessage): void {
+    const subscriber = this.subscribers.get(subscriberId);
+    if (!subscriber) {
+      return;
+    }
+
+    if (message.method === 'eth_subscribe') {
+      this.handleSubscribe(subscriberId, message);
+    } else if (message.method === 'eth_unsubscribe') {
+      this.handleUnsubscribe(subscriberId, message);
+    } else {
+      const response: RpcResponse = {
+        jsonrpc: '2.0',
+        error: {
+          code: -32601,
+          message: 'Method not found',
+        },
+        id: message.id,
+      };
+      this.sendToSubscriber(subscriberId, response);
+    }
+  }
+
+  private handleSubscribe(subscriberId: string, message: RpcMessage): void {
+    const subscriber = this.subscribers.get(subscriberId);
+    if (!subscriber) {
+      return;
+    }
+
+    const [type, ...filters] = message.params as unknown[];
+
+    if (typeof type !== 'string') {
+      const response: RpcResponse = {
+        jsonrpc: '2.0',
+        error: {
+          code: -32602,
+          message: 'Invalid params',
+        },
+        id: message.id,
+      };
+      this.sendToSubscriber(subscriberId, response);
+      return;
+    }
+
+    if (!['newHeads', 'logs', 'pendingTransactions'].includes(type)) {
+      const response: RpcResponse = {
+        jsonrpc: '2.0',
+        error: {
+          code: -32602,
+          message: 'Invalid subscription type',
+        },
+        id: message.id,
+      };
+      this.sendToSubscriber(subscriberId, response);
+      return;
+    }
+
+    const subscriptionId = this.generateSubscriptionId();
+    const subscriptionData: SubscriptionData = {
+      type: type as 'newHeads' | 'logs' | 'pendingTransactions',
       createdAt: Date.now(),
     };
 
-    this.subscriptions.set(subscriptionId, subscription);
+    if (type === 'logs' && filters.length > 0 && typeof filters[0] === 'object') {
+      subscriptionData.filters = filters[0] as LogFilter;
+    }
 
-    this.sendResponse(
-      ws,
-      requestId,
-      subscriptionId,
-    );
+    subscriber.subscriptions.set(subscriptionId, subscriptionData);
 
-    this.logger.info(`New subscription created: ${subscriptionId} (newHeads)`);
-
-    const timeoutHandle = setTimeout(() => {
-      this.removeSubscription(subscriptionId);
-    }, this.subscriptionTimeout);
-
-    ws.once('close', () => {
-      clearTimeout(timeoutHandle);
-      this.removeSubscription(subscriptionId);
-    });
-  }
-
-  private createLogsSubscription(
-    ws: WebSocket.WebSocket,
-    subscriptionId: string,
-    requestId: string | number,
-    filter: Record<string, unknown>,
-  ): void {
-    const subscription: ActiveSubscription = {
-      id: subscriptionId,
-      type: 'logs',
-      ws,
-      filter,
-      createdAt: Date.now(),
+    const response: RpcResponse = {
+      jsonrpc: '2.0',
+      result: subscriptionId,
+      id: message.id,
     };
-
-    this.subscriptions.set(subscriptionId, subscription);
-    this.sendResponse(
-      ws,
-      requestId,
-      subscriptionId,
-    );
+    this.sendToSubscriber(subscriberId, response);
 
     this.logger.info(
-      `New subscription created: ${subscriptionId} (logs)`,
-      { filter },
+      `Subscription ${subscriptionId} created for ${type} on ${subscriberId}`
     );
-
-    const timeoutHandle = setTimeout(() => {
-      this.removeSubscription(subscriptionId);
-    }, this.subscriptionTimeout);
-
-    ws.once('close', () => {
-      clearTimeout(timeoutHandle);
-      this.removeSubscription(subscriptionId);
-    });
   }
 
-  private createPendingTransactionsSubscription(
-    ws: WebSocket.WebSocket,
-    subscriptionId: string,
-    requestId: string | number,
-    filter: Record<string, unknown>,
-  ): void {
-    const subscription: ActiveSubscription = {
-      id: subscriptionId,
-      type: 'pendingTransactions',
-      ws,
-      filter,
-      createdAt: Date.now(),
+  private handleUnsubscribe(subscriberId: string, message: RpcMessage): void {
+    const subscriber = this.subscribers.get(subscriberId);
+    if (!subscriber) {
+      return;
+    }
+
+    const [subscriptionId] = message.params as [string];
+
+    const removed = subscriber.subscriptions.delete(subscriptionId);
+
+    const response: RpcResponse = {
+      jsonrpc: '2.0',
+      result: removed,
+      id: message.id,
+    };
+    this.sendToSubscriber(subscriberId, response);
+
+    if (removed) {
+      this.logger.info(`Subscription ${subscriptionId} removed for ${subscriberId}`);
+    }
+  }
+
+  private handleDisconnect(subscriberId: string): void {
+    const subscriber = this.subscribers.get(subscriberId);
+    if (subscriber) {
+      this.logger.info(
+        `WebSocket disconnected: ${subscriberId} (${subscriber.subscriptions.size} active subscriptions)`
+      );
+      this.subscribers.delete(subscriberId);
+    }
+  }
+
+  public notifyNewHead(blockHeader: BlockHeader): void {
+    const notification = {
+      jsonrpc: '2.0',
+      method: 'eth_subscription',
+      params: {
+        subscription: null,
+        result: this.formatBlockHeader(blockHeader),
+      },
     };
 
-    this.subscriptions.set(subscriptionId, subscription);
-    this.sendResponse(
-      ws,
+    this.broadcastByType('newHeads', notification);
+  }
+
+  public notifyLogs(logs: Log[]): void {
+    for (const log of logs) {
+      const notification = {
+        jsonrpc: '2.0',
+        method: 'eth_subscription',
+        params: {
+          subscription: null,
+          result: this.formatLog(log),
+        },
+      };
+
+      this.broadcastByTypeWithFilter('logs', notification, log);
+    }
+  }
+
+  public notifyPendingTransaction(transaction: Transaction): void {
+    const notification = {
+      jsonrpc
