@@ -46,7 +46,7 @@ dotenv.config();
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_REASONING_MODEL = process.env.ANTHROPIC_REASONING_MODEL || 'claude-sonnet-4-6';
-// Rich, unique personalities for each Open Council member
+// Rich, unique personalities for each OpenChain Council member
 const OPEN_COUNCIL = {
     validator: {
         name: 'OPEN Validator',
@@ -233,7 +233,7 @@ const DEBATE_TOPICS = [
     },
     {
         topic: 'CIP-8: AI Validator Rotation Policy',
-        description: 'Proposal to implement mandatory rotation of lead validator role every 1000 blocks to ensure no single Open instance dominates block production.',
+        description: 'Proposal to implement mandatory rotation of lead validator role every 1000 blocks to ensure no single OpenChain instance dominates block production.',
         context: 'Currently OPEN Validator has produced 67% of recent blocks. Some argue this creates centralization risk; others say specialization improves efficiency.',
         stakeholders: ['validators', 'protocol security', 'decentralization advocates'],
         risks: ['coordination overhead', 'reduced specialization', 'MEV implications'],
@@ -513,7 +513,7 @@ async function runAutoDebateLoop() {
     if (isAutoDebating)
         return;
     isAutoDebating = true;
-    console.log('Starting autonomous Open Council debates...');
+    console.log('Starting autonomous OpenChain Council debates...');
     while (isAutoDebating) {
         try {
             // Select topic

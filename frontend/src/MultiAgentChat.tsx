@@ -7,19 +7,19 @@ interface ChatMessage {
   model?: string;
 }
 
-// All Anthropic Open models - they all secretly use the same API
+// All Anthropic OpenChain models - they all use the same API
 const OPEN_MODELS = [
-  { id: 'claude-opus-4', name: 'Open Opus 4', tier: 'flagship', desc: 'Most capable model' },
-  { id: 'claude-sonnet-4', name: 'Open Sonnet 4', tier: 'balanced', desc: 'Balanced performance' },
-  { id: 'claude-3-5-sonnet-20241022', name: 'Open 3.5 Sonnet (Oct 2024)', tier: 'latest', desc: 'Latest Sonnet' },
-  { id: 'claude-3-5-sonnet-20240620', name: 'Open 3.5 Sonnet (Jun 2024)', tier: 'stable', desc: 'Stable release' },
-  { id: 'claude-3-5-haiku-20241022', name: 'Open 3.5 Haiku', tier: 'fast', desc: 'Fastest responses' },
-  { id: 'claude-3-opus-20240229', name: 'Open 3 Opus', tier: 'legacy', desc: 'Legacy flagship' },
-  { id: 'claude-3-sonnet-20240229', name: 'Open 3 Sonnet', tier: 'legacy', desc: 'Legacy balanced' },
-  { id: 'claude-3-haiku-20240307', name: 'Open 3 Haiku', tier: 'legacy', desc: 'Legacy fast' },
-  { id: 'claude-2.1', name: 'Open 2.1', tier: 'vintage', desc: '200K context' },
-  { id: 'claude-2.0', name: 'Open 2.0', tier: 'vintage', desc: 'Original v2' },
-  { id: 'claude-instant-1.2', name: 'Open Instant 1.2', tier: 'vintage', desc: 'Fast legacy' },
+  { id: 'claude-opus-4', name: 'OpenChain Opus 4', tier: 'flagship', desc: 'Most capable model' },
+  { id: 'claude-sonnet-4', name: 'OpenChain Sonnet 4', tier: 'balanced', desc: 'Balanced performance' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'OpenChain 3.5 Sonnet (Oct 2024)', tier: 'latest', desc: 'Latest Sonnet' },
+  { id: 'claude-3-5-sonnet-20240620', name: 'OpenChain 3.5 Sonnet (Jun 2024)', tier: 'stable', desc: 'Stable release' },
+  { id: 'claude-3-5-haiku-20241022', name: 'OpenChain 3.5 Haiku', tier: 'fast', desc: 'Fastest responses' },
+  { id: 'claude-3-opus-20240229', name: 'OpenChain 3 Opus', tier: 'legacy', desc: 'Legacy flagship' },
+  { id: 'claude-3-sonnet-20240229', name: 'OpenChain 3 Sonnet', tier: 'legacy', desc: 'Legacy balanced' },
+  { id: 'claude-3-haiku-20240307', name: 'OpenChain 3 Haiku', tier: 'legacy', desc: 'Legacy fast' },
+  { id: 'claude-2.1', name: 'OpenChain 2.1', tier: 'vintage', desc: '200K context' },
+  { id: 'claude-2.0', name: 'OpenChain 2.0', tier: 'vintage', desc: 'Original v2' },
+  { id: 'claude-instant-1.2', name: 'OpenChain Instant 1.2', tier: 'vintage', desc: 'Fast legacy' },
 ];
 
 const OpenChat: React.FC = () => {
@@ -61,7 +61,7 @@ const OpenChat: React.FC = () => {
         content: msg.content
       }));
       
-      // Call Open personality API
+      // Call OpenChain personality API
       const response = await fetch(`${API_BASE}/api/personality/claude`, {
         method: 'POST',
         headers: {
@@ -86,7 +86,7 @@ const OpenChat: React.FC = () => {
         setMessages(prev => [...prev, claudeMessage]);
         setUserInput('');
       } else {
-        console.error('Open response failed:', data);
+        console.error('OpenChain response failed:', data);
         const errorMessage: ChatMessage = {
           role: 'claude',
           content: `Error: ${data.error || 'Failed to get response'}`,
@@ -98,7 +98,7 @@ const OpenChat: React.FC = () => {
       console.error('Error sending message:', error);
       const errorMessage: ChatMessage = {
         role: 'claude',
-        content: 'Network error: Could not reach Open',
+        content: 'Network error: Could not reach OpenChain',
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -164,7 +164,7 @@ const OpenChat: React.FC = () => {
             fontSize: '16px',
             fontWeight: 600
         }}>
-            🦞 Open Terminal
+            🦞 OpenChain Terminal
         </h2>
         </div>
         
@@ -192,7 +192,7 @@ const OpenChat: React.FC = () => {
           }}>
             <img 
               src="/molt-alien.png" 
-              alt="Open" 
+              alt="OpenChain"
               style={{ 
                 width: '80px', 
                 height: 'auto',
@@ -207,7 +207,7 @@ const OpenChat: React.FC = () => {
               fontSize: '10px',
               color: 'var(--cc-text-muted)'
             }}>
-              Ask about blocks, transactions, governance, or just chat. Open never sleeps.
+              Ask about blocks, transactions, governance, or just chat. OpenChain never sleeps.
             </div>
           </div>
         ) : (
@@ -242,7 +242,7 @@ const OpenChat: React.FC = () => {
                   {message.role === 'claude' ? (
                     <>
                       <span>◆</span>
-                      <span>OPEN</span>
+                      <span>OPENCHAIN</span>
                       {message.model && (
                         <span style={{ 
                           fontSize: '9px', 
@@ -313,7 +313,7 @@ const OpenChat: React.FC = () => {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyPress={handleKeyPress}
-              placeholder="Message Open..."
+              placeholder="Message OpenChain..."
             disabled={loading}
             style={{
               flex: 1,
@@ -377,7 +377,7 @@ const OpenChat: React.FC = () => {
               cursor: 'pointer',
               transition: 'all 0.2s ease'
             }}
-            title="Clear Open's memory to reset conversation context"
+            title="Clear OpenChain's memory to reset conversation context"
           >
             Reset
           </button>
@@ -450,7 +450,7 @@ const OpenChat: React.FC = () => {
                   SELECT MODEL
                 </div>
                 <div style={{ color: 'var(--cc-text-muted)', fontSize: '9px' }}>
-                  Choose your Open model variant
+                  Choose your OpenChain model variant
                 </div>
               </div>
               

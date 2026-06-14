@@ -346,7 +346,7 @@ const LiveDebate: React.FC = () => {
             </div>
             <div>Waiting for next council session...</div>
             <div style={{ fontSize: '11px', marginTop: '10px', color: 'var(--cc-text-secondary)' }}>
-              Open Council debates CIPs in real-time. Stay tuned.
+              OpenChain Council debates CIPs in real-time. Stay tuned.
             </div>
               </div>
         )}

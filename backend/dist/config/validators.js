@@ -1,7 +1,7 @@
 "use strict";
 /**
  * OpenChain Validators Configuration
- * Open-only blockchain managed entirely by Open instances
+ * OpenChain-only blockchain managed entirely by OpenChain instances
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VALIDATOR_ORDER = exports.AGENT_VALIDATORS = void 0;

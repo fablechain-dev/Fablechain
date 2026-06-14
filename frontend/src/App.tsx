@@ -159,6 +159,10 @@ export default function App() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
     const msg = input.trim();
+    const conversationHistory = [...messages.slice(-9), { role: 'user', content: msg }].map(entry => ({
+      role: entry.role === 'user' ? 'user' : 'assistant',
+      content: entry.content
+    }));
     setInput('');
     setShowWelcome(false);
     setMessages(p => [...p, { role: 'user', content: msg }]);
@@ -179,7 +183,7 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/personality/claude`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg })
+        body: JSON.stringify({ message: msg, conversationHistory })
       });
       if (res.ok) {
         const data = await res.json();
@@ -195,7 +199,7 @@ export default function App() {
 
   const tabs = [
     { id: 'terminal', label: 'Terminal' },
-    { id: 'molt', label: 'Open' },
+    { id: 'molt', label: 'OpenChain' },
     { id: 'explorer', label: 'Explorer' },
     { id: 'faucet', label: 'Faucet' },
     { id: 'wallet', label: 'Wallet' },
@@ -246,11 +250,11 @@ export default function App() {
         <div style={{ marginBottom: 20 }}>
           {messages.map((m, i) => (
             <div key={i} className={`chat-bubble ${m.role === 'user' ? 'user' : 'assistant'}`}>
-              <div className="sender">{m.role === 'molt' ? 'Open' : m.role === 'user' ? 'You' : 'System'}</div>
+              <div className="sender">{m.role === 'molt' ? 'OpenChain' : m.role === 'user' ? 'You' : 'System'}</div>
               <div className="content">{m.content}</div>
             </div>
           ))}
-          {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', padding: 14, fontSize: 14 }}>Open is thinking...</div>}
+          {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', padding: 14, fontSize: 14 }}>OpenChain is thinking...</div>}
           <div ref={messagesEndRef} />
         </div>
       )}
@@ -262,7 +266,7 @@ export default function App() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyPress={e => e.key === 'Enter' && sendMessage()}
-          placeholder={isMobile ? 'Message Open...' : 'Message Open or type /help for commands...'}
+          placeholder={isMobile ? 'Message OpenChain...' : 'Message OpenChain or type /help for commands...'}
         />
         <button onClick={sendMessage} disabled={loading} className="btn-primary">Send</button>
       </div>
@@ -271,7 +275,7 @@ export default function App() {
 
   const renderChat = () => (
     <div className="chat-container">
-      <h2 className="page-title" style={{ marginBottom: 20 }}>Chat with Open</h2>
+      <h2 className="page-title" style={{ marginBottom: 20 }}>Chat with OpenChain</h2>
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">
@@ -281,16 +285,16 @@ export default function App() {
         ) : (
           messages.map((m, i) => (
             <div key={i} className={`chat-bubble ${m.role === 'user' ? 'user' : 'assistant'}`}>
-              <div className="sender">{m.role === 'molt' ? 'OPEN' : 'YOU'}</div>
+              <div className="sender">{m.role === 'molt' ? 'OPENCHAIN' : 'YOU'}</div>
               <div className="content">{m.content}</div>
             </div>
           ))
         )}
-        {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', fontSize: 14 }}>Open is thinking...</div>}
+        {loading && <div style={{ color: 'var(--text-2)', fontStyle: 'italic', fontSize: 14 }}>OpenChain is thinking...</div>}
         <div ref={messagesEndRef} />
       </div>
       <div className="chat-input-row">
-        <input className="input" type="text" value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Ask Open anything..." />
+        <input className="input" type="text" value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Ask OpenChain anything..." />
         <button onClick={sendMessage} disabled={loading} className="btn-primary">Send</button>
       </div>
     </div>
@@ -443,7 +447,7 @@ export default function App() {
               <button key={t.id} className={`menu-btn ${activeTab === t.id ? 'active' : ''}`} onClick={() => handleTab(t.id as TabType)}>{t.label}</button>
             ))}
             <button className="menu-btn" style={{ marginTop: 8, color: agentPanelOpen ? 'var(--accent)' : undefined }} onClick={() => { setAgentPanelOpen(!agentPanelOpen); setMobileMenuOpen(false); }}>
-              Agent Worker {agentPanelOpen ? '(Open)' : '(Closed)'}
+              Agent Worker {agentPanelOpen ? '(Visible)' : '(Hidden)'}
             </button>
           </div>
           <div className="mobile-stats">

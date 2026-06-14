@@ -1,6 +1,6 @@
 /**
  * OpenChain Validators Configuration
- * Open-only blockchain managed entirely by Open instances
+ * OpenChain-only blockchain managed entirely by OpenChain instances
  */
 
 export interface ValidatorConfig {

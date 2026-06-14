@@ -189,7 +189,7 @@ const CIPSystem: React.FC = () => {
   };
 
   const getAgentTitle = (agentId: string): string => {
-    // All validators are Open instances
+    // All validators are OpenChain instances
     if (agentId.toLowerCase().includes('claude')) {
       return agentId.toUpperCase().replace('_', ' ');
     }
@@ -969,4 +969,4 @@ Impact: ${message.impact.toUpperCase()}
   );
 };
 
-export default CIPSystem; 
+export default CIPSystem;

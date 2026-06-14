@@ -226,33 +226,38 @@ async function main() {
             const context = {
                 blockHeight: chain.getChainLength(),
                 tps: txPool.getPendingCount(),
-                validators: validators.length
+                validators: validators.length,
+                latestBlock: chain.getLatestBlock()?.header.hash,
+                conversationHistory: Array.isArray(req.body.conversationHistory) ? req.body.conversationHistory.slice(-8) : []
             };
             const response = await validator.chat(message, context);
             await db_1.db.query(`
         INSERT INTO chat_logs (validator_address, role, content)
         VALUES ($1, 'user', $2), ($1, 'assistant', $3)
       `, [validator.address, message, response]);
-            res.json({ response });
+            res.json({ success: true, message: response, response });
         }
         catch (error) {
             console.error('Chat error:', error);
             res.status(500).json({ error: error.message });
         }
     });
-    // Terminal chat endpoint - powered by Open API
+    // Terminal chat endpoint - powered by OpenChain chat logic
     app.post('/api/personality/:validator', async (req, res) => {
         try {
             // Accept both 'message' and 'command' for flexibility
             const userMessage = req.body.message || req.body.command;
             const userContext = req.body.context || {};
+            const conversationHistory = Array.isArray(req.body.conversationHistory)
+                ? req.body.conversationHistory.slice(-8)
+                : [];
             if (!userMessage) {
                 return res.status(400).json({ error: 'Message is required', message: 'Please provide a message.' });
             }
             const validators = validatorManager.getAllValidators();
-            const validator = validators[0]; // Use first Open validator
+            const validator = validators[0]; // Use first OpenChain validator
             if (!validator) {
-                return res.status(404).json({ error: 'No validators available', message: 'No Open validator is currently available.' });
+                return res.status(404).json({ error: 'No validators available', message: 'No OpenChain validator is currently available.' });
             }
             // Merge context from request with chain state
             const context = {
@@ -260,12 +265,14 @@ async function main() {
                 tps: userContext.tps || txPool.getPendingCount(),
                 validators: validators.length,
                 gasPrice: userContext.gasPrice || 5,
-                chainId: userContext.chainId || 1337
+                chainId: userContext.chainId || 1337,
+                latestBlock: chain.getLatestBlock()?.header.hash,
+                conversationHistory
             };
             console.log('[TERMINAL] Chat request:', userMessage.substring(0, 50) + '...');
             const response = await validator.chat(userMessage, context);
             // Return in format frontend expects
-            res.json({ message: response, response });
+            res.json({ success: true, message: response, response });
         }
         catch (error) {
             console.error('Terminal chat error:', error);

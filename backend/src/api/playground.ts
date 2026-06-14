@@ -53,7 +53,7 @@ const TOOL_TEMPLATES = [
 
 3. ACCESSIBILITY: A simple wallet generator lowers the barrier to entry. Users can create addresses instantly without complex setup procedures or third-party dependencies.
 
-4. AI-NATIVE DESIGN: Unlike traditional wallets, OpenChain wallets are designed to work seamlessly with AI validators. The address format and signing mechanisms are optimized for the unique consensus model where Open instances validate transactions.
+4. AI-NATIVE DESIGN: Unlike traditional wallets, OpenChain wallets are designed to work seamlessly with LLM validators. The address format and signing mechanisms are optimized for the unique consensus model where OpenChain instances validate transactions.
 
 This tool is foundational—without wallets, there can be no participation in the network.`,
     thinkingPrompts: [
@@ -96,12 +96,12 @@ This is the economic backbone of OpenChain.`,
   },
   {
     id: 'nft',
-    name: 'Open NFT Studio',
+    name: 'OpenChain NFT Studio',
     description: 'Create, mint, and manage NFTs on OpenChain',
     category: 'nft',
     reasoning: `NFTs on OpenChain serve unique purposes beyond traditional digital collectibles:
 
-1. AI-GENERATED PROVENANCE: Open NFT Studio enables AI-assisted creation where Open can help generate metadata, suggest attributes, and verify uniqueness—bringing AI creativity directly into the minting process.
+1. AI-GENERATED PROVENANCE: OpenChain NFT Studio enables LLM-assisted creation where OpenChain can help generate metadata, suggest attributes, and verify uniqueness—bringing LLM creativity directly into the minting process.
 
 2. VALIDATOR CREDENTIALS: In the future, validator status and achievements could be represented as NFTs, creating a verifiable record of participation in OpenChain governance.
 
@@ -296,7 +296,7 @@ const getToolCode = (id: string): string[] => {
       `};`
     ],
     nft: [
-      `// Open NFT Studio`,
+      `// OpenChain NFT Studio`,
       `// NFT minting for OpenChain`,
       ``,
       `import { useState } from 'react';`,
@@ -313,7 +313,7 @@ const getToolCode = (id: string): string[] => {
       `    const metadata = {`,
       `      name,`,
       `      chain: 'OpenChain',`,
-      `      creator: 'Open',`,
+      `      creator: 'OpenChain',`,
       `      timestamp: Date.now()`,
       `    };`,
       `    `,
@@ -437,7 +437,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const COMPREHENSIVE_LOGS: Record<string, BuildLogEntry[]> = {
   wallet: [
     { timestamp: 0, type: 'thinking', content: 'Initiating build sequence for OpenChain Wallet...' },
-    { timestamp: 1, type: 'thinking', content: 'First, I need to understand what makes OpenChain unique. This is an AI-native blockchain where Open instances serve as validators. The wallet system must reflect this identity.' },
+    { timestamp: 1, type: 'thinking', content: 'First, I need to understand what makes OpenChain unique. This is an LLM-native blockchain where OpenChain instances serve as validators. The wallet system must reflect this identity.' },
     { timestamp: 2, type: 'thinking', content: 'Traditional wallets use hexadecimal addresses (0x...). But OpenChain needs its own identity. I\'m designing addresses with a "molt_" prefix followed by base58-encoded bytes. This immediately distinguishes OpenChain addresses from Ethereum, Solana, or any other chain.' },
     { timestamp: 3, type: 'thinking', content: 'Security is paramount. I\'m implementing Ed25519 cryptographic keypairs - the same algorithm used by Solana and other modern chains. Ed25519 offers excellent security with fast signature verification, which is crucial for a high-throughput network.' },
     { timestamp: 4, type: 'thinking', content: 'The wallet generator must be accessible. Users shouldn\'t need to understand cryptography to participate. One click should generate a secure wallet with proper entropy from the browser\'s crypto API.' },
@@ -458,7 +458,7 @@ const COMPREHENSIVE_LOGS: Record<string, BuildLogEntry[]> = {
     { timestamp: 1, type: 'thinking', content: 'A blockchain without exchange functionality is like a city without markets. OpenSwap will enable permissionless trading of OPEN tokens and future assets on the network.' },
     { timestamp: 2, type: 'thinking', content: 'I\'m implementing an Automated Market Maker (AMM) based on the constant product formula: x * y = k. This is the same proven model used by Uniswap, but optimized for OpenChain\'s AI-native architecture.' },
     { timestamp: 3, type: 'thinking', content: 'Price impact calculation is crucial. Large trades can move the price significantly. I\'m implementing real-time slippage estimation so users understand the cost of their trades before execution.' },
-    { timestamp: 4, type: 'thinking', content: 'Unlike traditional DEXs, OpenSwap can leverage AI analysis. In the future, Open validators could suggest optimal trade routes across multiple pools, minimizing slippage.' },
+    { timestamp: 4, type: 'thinking', content: 'Unlike traditional DEXs, OpenSwap can leverage LLM analysis. In the future, OpenChain validators could suggest optimal trade routes across multiple pools, minimizing slippage.' },
     { timestamp: 5, type: 'thinking', content: 'Liquidity providers are the backbone of any DEX. I\'m designing intuitive LP interfaces that show projected APY, impermanent loss estimates, and pool share calculations.' },
     { timestamp: 6, type: 'thinking', content: 'Security is non-negotiable. I\'m implementing minimum output amounts (slippage protection) and deadline parameters to protect users from sandwich attacks and stale transactions.' },
     { timestamp: 7, type: 'coding', content: 'Building Pool class with fetch and swap methods...' },
@@ -471,8 +471,8 @@ const COMPREHENSIVE_LOGS: Record<string, BuildLogEntry[]> = {
     { timestamp: 14, type: 'complete', content: 'OpenSwap DEX is operational. This is the economic engine of OpenChain - enabling price discovery, liquidity provision, and permissionless trading. DeFi on OpenChain starts here.' }
   ],
   nft: [
-    { timestamp: 0, type: 'thinking', content: 'Initiating Open NFT Studio build...' },
-    { timestamp: 1, type: 'thinking', content: 'NFTs on OpenChain aren\'t just digital collectibles - they represent a unique opportunity for AI-human creative collaboration. Open can assist in generating metadata, suggesting attributes, and verifying uniqueness.' },
+    { timestamp: 0, type: 'thinking', content: 'Initiating OpenChain NFT Studio build...' },
+    { timestamp: 1, type: 'thinking', content: 'NFTs on OpenChain aren\'t just digital collectibles - they represent a unique opportunity for LLM-human creative collaboration. OpenChain can assist in generating metadata, suggesting attributes, and verifying uniqueness.' },
     { timestamp: 2, type: 'thinking', content: 'I\'m designing a metadata schema that captures both the creative work and its provenance. Each NFT will record: creator address, creation timestamp, AI assistance level, and chain of custody.' },
     { timestamp: 3, type: 'thinking', content: 'Future use case: validator credentials as NFTs. Imagine your validator status, uptime achievements, and governance participation represented as verifiable on-chain credentials.' },
     { timestamp: 4, type: 'thinking', content: 'Protocol artifacts are another compelling use case. Important CIPs, historic votes, and milestone achievements could be commemorated as NFTs - creating an immutable historical record of OpenChain\'s evolution.' },
@@ -485,7 +485,7 @@ const COMPREHENSIVE_LOGS: Record<string, BuildLogEntry[]> = {
     { timestamp: 11, type: 'testing', content: 'Validating metadata schema compliance...' },
     { timestamp: 12, type: 'testing', content: 'Testing minting flow end-to-end...' },
     { timestamp: 13, type: 'testing', content: 'Verifying royalty calculations...' },
-    { timestamp: 14, type: 'complete', content: 'Open NFT Studio is ready. This bridges creativity and blockchain technology - enabling artists, creators, and the community to mint work on a chain that embodies AI-human collaboration.' }
+    { timestamp: 14, type: 'complete', content: 'OpenChain NFT Studio is ready. This bridges creativity and blockchain technology - enabling artists, creators, and the community to mint work on a chain that embodies LLM-human collaboration.' }
   ],
   hash: [
     { timestamp: 0, type: 'thinking', content: 'Starting Hash Generator utility build...' },

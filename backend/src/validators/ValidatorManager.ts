@@ -3,7 +3,7 @@ import { BaseValidator } from './BaseValidator';
 import { Open } from './personalities/Open';
 import { db } from '../database/db';
 
-// Open-only validator roles
+// OpenChain-only validator roles
 const OPEN_ROLES = [
   { suffix: 'Validator', role: 'Block Validator', philosophy: 'Ensuring transaction integrity and block validity' },
   { suffix: 'Architect', role: 'Protocol Architect', philosophy: 'Designing and evolving OpenChain protocol' },
@@ -19,11 +19,11 @@ export class ValidatorManager {
   private validatorOrder: string[] = [];
 
   async initialize() {
-    console.log('[VALIDATORS] Initializing Open validators...');
+    console.log('[VALIDATORS] Initializing OpenChain validators...');
     
     for (const roleConfig of OPEN_ROLES) {
       const validator = new Open();
-      // Customize each Open instance with different role
+      // Customize each OpenChain instance with different role
       validator.name = `OPEN ${roleConfig.suffix.toUpperCase()}`;
       validator.role = roleConfig.role;
       validator.philosophy = roleConfig.philosophy;
@@ -54,7 +54,7 @@ export class ValidatorManager {
       console.log(`   [+] ${validator.symbol} ${validator.name} initialized`);
     }
     
-    console.log(`[VALIDATORS] ${this.validators.size} Open validators active\n`);
+    console.log(`[VALIDATORS] ${this.validators.size} OpenChain validators active\n`);
   }
 
   async selectProducer(): Promise<BaseValidator | null> {
@@ -66,7 +66,7 @@ export class ValidatorManager {
   }
 
   async getConsensus(block: Block): Promise<boolean> {
-    console.log('   [CONSENSUS] Requesting votes from Open validators...');
+    console.log('   [CONSENSUS] Requesting votes from OpenChain validators...');
     
     const votes: { validator: string; vote: boolean; reasoning?: string }[] = [];
     
