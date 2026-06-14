@@ -6,36 +6,53 @@ export interface RoundTimerConfig {
   maxTimeoutMs: number;
   backoffMultiplier: number;
   jitterFactor: number;
-  maxRetries: number;
+  maxRetries?: number;
 }
 
 export interface RoundTimerObserver {
   onRoundStart(roundNumber: number): void;
   onRoundTimeout(roundNumber: number, attempt: number): void;
-  onRoundComplete(roundNumber: number): void;
+  onRoundComplete(roundNumber: number, durationMs: number): void;
   onRoundError(roundNumber: number, error: Error): void;
+}
+
+export interface RoundTimerState {
+  roundNumber: number;
+  currentTimeoutMs: number;
+  attempt: number;
+  isActive: boolean;
+  startTimestamp: number | null;
+  lastTimeoutTimestamp: number | null;
 }
 
 export class RoundTimer extends EventEmitter {
   private config: RoundTimerConfig;
-  private currentRound: number = 0;
-  private currentAttempt: number = 0;
+  private state: RoundTimerState;
+  private observers: Set<RoundTimerObserver>;
   private timeoutHandle: NodeJS.Timeout | null = null;
-  private observers: Set<RoundTimerObserver> = new Set();
-  private roundStartTime: number = 0;
-  private isRunning: boolean = false;
-  private currentTimeoutMs: number;
+  private roundStartTime: number | null = null;
 
-  constructor(config: Partial<RoundTimerConfig> = {}) {
+  constructor(config: RoundTimerConfig) {
     super();
+    
     this.config = {
-      initialTimeoutMs: config.initialTimeoutMs ?? 1000,
-      maxTimeoutMs: config.maxTimeoutMs ?? 30000,
-      backoffMultiplier: config.backoffMultiplier ?? 2,
-      jitterFactor: config.jitterFactor ?? 0.1,
+      initialTimeoutMs: config.initialTimeoutMs,
+      maxTimeoutMs: config.maxTimeoutMs,
+      backoffMultiplier: config.backoffMultiplier,
+      jitterFactor: config.jitterFactor,
       maxRetries: config.maxRetries ?? 5,
     };
-    this.currentTimeoutMs = this.config.initialTimeoutMs;
+
+    this.observers = new Set();
+    this.state = {
+      roundNumber: 0,
+      currentTimeoutMs: this.config.initialTimeoutMs,
+      attempt: 0,
+      isActive: false,
+      startTimestamp: null,
+      lastTimeoutTimestamp: null,
+    };
+
     this.validateConfig();
   }
 
@@ -52,175 +69,169 @@ export class RoundTimer extends EventEmitter {
     if (this.config.jitterFactor < 0 || this.config.jitterFactor > 1) {
       throw new Error('jitterFactor must be between 0 and 1');
     }
-    if (this.config.maxRetries < 1) {
-      throw new Error('maxRetries must be at least 1');
-    }
   }
 
-  private calculateJitter(baseMs: number): number {
-    const jitterRange = baseMs * this.config.jitterFactor;
-    const randomJitter = (Math.random() - 0.5) * 2 * jitterRange;
-    return Math.max(1, baseMs + randomJitter);
+  public subscribe(observer: RoundTimerObserver): void {
+    this.observers.add(observer);
   }
 
-  private calculateBackoffTimeout(): number {
-    const exponentialBackoff =
-      this.config.initialTimeoutMs *
-      Math.pow(this.config.backoffMultiplier, this.currentAttempt);
-    const cappedBackoff = Math.min(exponentialBackoff, this.config.maxTimeoutMs);
-    const withJitter = this.calculateJitter(cappedBackoff);
-    return Math.round(withJitter);
-  }
-
-  private notifyObservers(
-    method: keyof RoundTimerObserver,
-    ...args: unknown[]
-  ): void {
-    for (const observer of this.observers) {
-      try {
-        (observer[method] as (...args: unknown[]) => void)(...args);
-      } catch (error) {
-        this.emit('observerError', {
-          observer,
-          method,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
-      }
-    }
-  }
-
-  private clearTimeout(): void {
-    if (this.timeoutHandle !== null) {
-      clearTimeout(this.timeoutHandle);
-      this.timeoutHandle = null;
-    }
-  }
-
-  private handleTimeout = (): void => {
-    this.currentAttempt++;
-    this.notifyObservers('onRoundTimeout', this.currentRound, this.currentAttempt);
-    this.emit('timeout', {
-      round: this.currentRound,
-      attempt: this.currentAttempt,
-    });
-
-    if (this.currentAttempt >= this.config.maxRetries) {
-      this.isRunning = false;
-      const error = new Error(
-        `Round ${this.currentRound} exceeded max retries (${this.config.maxRetries})`
-      );
-      this.notifyObservers('onRoundError', this.currentRound, error);
-      this.emit('maxRetriesExceeded', {
-        round: this.currentRound,
-        retries: this.currentAttempt,
-      });
-      return;
-    }
-
-    this.scheduleTimeout();
-  };
-
-  private scheduleTimeout(): void {
-    this.clearTimeout();
-    this.currentTimeoutMs = this.calculateBackoffTimeout();
-    this.timeoutHandle = setTimeout(this.handleTimeout, this.currentTimeoutMs);
-    this.emit('timeoutScheduled', {
-      round: this.currentRound,
-      attempt: this.currentAttempt,
-      timeoutMs: this.currentTimeoutMs,
-    });
+  public unsubscribe(observer: RoundTimerObserver): void {
+    this.observers.delete(observer);
   }
 
   public startRound(roundNumber: number): void {
-    if (this.isRunning) {
-      throw new Error(
-        `Round ${this.currentRound} is already running. Call completeRound() first.`
+    if (this.state.isActive) {
+      this.notifyObserversError(
+        new Error(`Cannot start round ${roundNumber}: round ${this.state.roundNumber} is already active`)
       );
+      return;
     }
 
-    this.currentRound = roundNumber;
-    this.currentAttempt = 0;
+    this.state.roundNumber = roundNumber;
+    this.state.attempt = 0;
+    this.state.isActive = true;
+    this.state.startTimestamp = Date.now();
     this.roundStartTime = Date.now();
-    this.currentTimeoutMs = this.config.initialTimeoutMs;
-    this.isRunning = true;
+    this.state.currentTimeoutMs = this.config.initialTimeoutMs;
 
-    this.notifyObservers('onRoundStart', roundNumber);
-    this.emit('roundStarted', { round: roundNumber });
-
+    this.notifyObserversRoundStart(roundNumber);
     this.scheduleTimeout();
   }
 
   public completeRound(): void {
-    if (!this.isRunning) {
-      throw new Error('No round is currently running');
+    if (!this.state.isActive) {
+      return;
     }
 
-    this.clearTimeout();
-    const duration = Date.now() - this.roundStartTime;
-    this.isRunning = false;
-
-    this.notifyObservers('onRoundComplete', this.currentRound);
-    this.emit('roundCompleted', {
-      round: this.currentRound,
-      attempts: this.currentAttempt,
-      durationMs: duration,
-    });
+    const durationMs = this.roundStartTime ? Date.now() - this.roundStartTime : 0;
+    this.notifyObserversRoundComplete(this.state.roundNumber, durationMs);
+    this.resetRound();
   }
 
-  public resetBackoff(): void {
-    this.currentTimeoutMs = this.config.initialTimeoutMs;
-    this.currentAttempt = 0;
-    if (this.isRunning) {
-      this.scheduleTimeout();
+  public extendRound(additionalTimeMs: number): void {
+    if (!this.state.isActive) {
+      return;
     }
-  }
 
-  public addObserver(observer: RoundTimerObserver): void {
-    if (!observer) {
-      throw new Error('Observer cannot be null or undefined');
+    if (this.timeoutHandle) {
+      clearTimeout(this.timeoutHandle);
     }
-    this.observers.add(observer);
-    this.emit('observerAdded', { observer });
+
+    this.state.currentTimeoutMs = Math.min(
+      this.state.currentTimeoutMs + additionalTimeMs,
+      this.config.maxTimeoutMs
+    );
+
+    this.scheduleTimeout();
   }
 
-  public removeObserver(observer: RoundTimerObserver): boolean {
-    const wasRemoved = this.observers.delete(observer);
-    if (wasRemoved) {
-      this.emit('observerRemoved', { observer });
+  public resetRound(): void {
+    if (this.timeoutHandle) {
+      clearTimeout(this.timeoutHandle);
+      this.timeoutHandle = null;
     }
-    return wasRemoved;
+
+    this.state.isActive = false;
+    this.state.attempt = 0;
+    this.state.currentTimeoutMs = this.config.initialTimeoutMs;
+    this.state.startTimestamp = null;
+    this.roundStartTime = null;
   }
 
-  public getObserverCount(): number {
-    return this.observers.size;
-  }
-
-  public getCurrentRound(): number {
-    return this.currentRound;
-  }
-
-  public getCurrentAttempt(): number {
-    return this.currentAttempt;
-  }
-
-  public getCurrentTimeoutMs(): number {
-    return this.currentTimeoutMs;
-  }
-
-  public isCurrentlyRunning(): boolean {
-    return this.isRunning;
-  }
-
-  public getRoundElapsedMs(): number {
-    if (!this.isRunning) {
-      throw new Error('No round is currently running');
-    }
-    return Date.now() - this.roundStartTime;
+  public getCurrentState(): Readonly<RoundTimerState> {
+    return Object.freeze({ ...this.state });
   }
 
   public getConfig(): Readonly<RoundTimerConfig> {
     return Object.freeze({ ...this.config });
   }
 
-  public destroy(): void {
-    this.clearTimeout
+  public isRoundActive(): boolean {
+    return this.state.isActive;
+  }
+
+  public getCurrentRoundNumber(): number {
+    return this.state.roundNumber;
+  }
+
+  public getCurrentAttempt(): number {
+    return this.state.attempt;
+  }
+
+  public getCurrentTimeoutMs(): number {
+    return this.state.currentTimeoutMs;
+  }
+
+  private scheduleTimeout(): void {
+    if (this.timeoutHandle) {
+      clearTimeout(this.timeoutHandle);
+    }
+
+    const timeoutWithJitter = this.applyJitter(this.state.currentTimeoutMs);
+
+    this.timeoutHandle = setTimeout(() => {
+      this.handleTimeout();
+    }, timeoutWithJitter);
+  }
+
+  private handleTimeout(): void {
+    if (!this.state.isActive) {
+      return;
+    }
+
+    this.state.attempt++;
+    this.state.lastTimeoutTimestamp = Date.now();
+
+    this.notifyObserversRoundTimeout(this.state.roundNumber, this.state.attempt);
+
+    const shouldRetry = 
+      this.config.maxRetries === undefined || 
+      this.state.attempt < this.config.maxRetries;
+
+    if (shouldRetry) {
+      this.increaseTimeoutExponentially();
+      this.scheduleTimeout();
+    } else {
+      const error = new Error(
+        `Round ${this.state.roundNumber} timeout after ${this.state.attempt} attempts`
+      );
+      this.notifyObserversError(error);
+      this.resetRound();
+    }
+  }
+
+  private increaseTimeoutExponentially(): void {
+    const nextTimeout = this.state.currentTimeoutMs * this.config.backoffMultiplier;
+    this.state.currentTimeoutMs = Math.min(nextTimeout, this.config.maxTimeoutMs);
+  }
+
+  private applyJitter(timeoutMs: number): number {
+    const jitterRange = timeoutMs * this.config.jitterFactor;
+    const jitter = (Math.random() - 0.5) * 2 * jitterRange;
+    return Math.max(1, timeoutMs + jitter);
+  }
+
+  private notifyObserversRoundStart(roundNumber: number): void {
+    this.observers.forEach(observer => {
+      try {
+        observer.onRoundStart(roundNumber);
+      } catch (error) {
+        this.emit('observerError', error, 'onRoundStart');
+      }
+    });
+  }
+
+  private notifyObserversRoundTimeout(roundNumber: number, attempt: number): void {
+    this.observers.forEach(observer => {
+      try {
+        observer.onRoundTimeout(roundNumber, attempt);
+      } catch (error) {
+        this.emit('observerError', error, 'onRoundTimeout');
+      }
+    });
+  }
+
+  private notifyObserversRoundComplete(roundNumber: number, durationMs: number): void {
+    this.observers.forEach(observer => {
+      try {
+        observer.onRoundComplete(roundNumber, durationMs
