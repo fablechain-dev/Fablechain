@@ -1,230 +1,228 @@
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.19;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /// @title FableOracle
-/// @notice Aggregates price data from multiple sources with median computation and staleness validation
-/// @dev Uses sorted array median for robustness against outliers and manipulation
+/// @notice Decentralized price oracle that aggregates data from multiple sources and computes median price
+/// @dev Implements staleness checking and source management for robust price feeds
 contract FableOracle is Ownable, ReentrancyGuard {
-    /// @notice Maximum allowed age of price data before considered stale
-    uint256 public constant STALENESS_THRESHOLD = 1 hours;
-
-    /// @notice Minimum number of sources required for valid price
-    uint256 public constant MINIMUM_SOURCES = 3;
-
-    /// @notice Decimal precision for prices
-    uint8 public constant PRICE_DECIMALS = 8;
-
-    /// @notice Structure for price source submissions
-    struct PriceSource {
-        address provider;
+    
+    /// @notice Structure to store price data from a source
+    struct PriceData {
         uint256 price;
         uint256 timestamp;
+        uint8 decimals;
+    }
+
+    /// @notice Structure to store oracle source configuration
+    struct OracleSource {
+        address provider;
         bool active;
+        uint256 lastUpdate;
+        uint256 weight;
     }
 
-    /// @notice Structure for aggregated price data
-    struct AggregatedPrice {
-        uint256 medianPrice;
-        uint256 meanPrice;
-        uint256 lastUpdated;
-        uint256 sourceCount;
-    }
+    /// @notice Mapping of asset symbols to their price data
+    mapping(bytes32 => PriceData) public assetPrices;
+    
+    /// @notice Mapping of asset to array of oracle sources
+    mapping(bytes32 => OracleSource[]) public oracleSources;
+    
+    /// @notice Mapping to track source indices for quick removal
+    mapping(bytes32 => mapping(address => uint256)) private sourceIndices;
 
-    /// @notice Mapping of asset symbols to their price sources
-    mapping(string => PriceSource[]) public priceSources;
+    /// @notice Maximum staleness period in seconds (default: 1 hour)
+    uint256 public maxStaleness = 3600;
+    
+    /// @notice Minimum number of sources required for price computation
+    uint256 public minSourceCount = 3;
+    
+    /// @notice Precision multiplier for decimal handling
+    uint256 private constant PRECISION = 1e18;
 
-    /// @notice Mapping of asset symbols to aggregated prices
-    mapping(string => AggregatedPrice) public aggregatedPrices;
-
-    /// @notice Mapping of provider addresses to their status
-    mapping(address => bool) public authorizedProviders;
-
-    /// @notice Array of all authorized provider addresses for iteration
-    address[] public providerList;
-
-    /// @notice Emitted when a new price is submitted
-    event PriceSubmitted(
-        string indexed asset,
-        address indexed provider,
+    /// @notice Emitted when a price is updated
+    event PriceUpdated(
+        bytes32 indexed asset,
         uint256 price,
-        uint256 timestamp
+        uint256 timestamp,
+        uint8 decimals
     );
 
-    /// @notice Emitted when prices are aggregated
-    event PricesAggregated(
-        string indexed asset,
-        uint256 medianPrice,
-        uint256 meanPrice,
-        uint256 sourceCount
+    /// @notice Emitted when an oracle source is added
+    event SourceAdded(
+        bytes32 indexed asset,
+        address indexed provider,
+        uint256 weight
     );
 
-    /// @notice Emitted when a provider is authorized or revoked
-    event ProviderStatusChanged(address indexed provider, bool authorized);
+    /// @notice Emitted when an oracle source is removed
+    event SourceRemoved(
+        bytes32 indexed asset,
+        address indexed provider
+    );
 
-    /// @notice Emitted when stale price is detected
-    event StalePrice(string indexed asset, uint256 age);
+    /// @notice Emitted when an oracle source is deactivated
+    event SourceDeactivated(
+        bytes32 indexed asset,
+        address indexed provider
+    );
 
-    /// @notice Initializes the oracle with initial provider
-    constructor() {
-        authorizedProviders[msg.sender] = true;
-        providerList.push(msg.sender);
+    /// @notice Emitted when configuration changes
+    event ConfigurationUpdated(
+        uint256 maxStaleness,
+        uint256 minSourceCount
+    );
+
+    /// @custom:error PriceStale Price data is too old
+    error PriceStale();
+    
+    /// @custom:error InsufficientSources Not enough active oracle sources
+    error InsufficientSources();
+    
+    /// @custom:error InvalidInput Invalid input parameters
+    error InvalidInput();
+    
+    /// @custom:error UnauthorizedSource Caller is not authorized as oracle source
+    error UnauthorizedSource();
+
+    modifier onlyActiveSource(bytes32 asset) {
+        bool isActive = false;
+        OracleSource[] storage sources = oracleSources[asset];
+        
+        for (uint256 i = 0; i < sources.length; i++) {
+            if (sources[i].provider == msg.sender && sources[i].active) {
+                isActive = true;
+                break;
+            }
+        }
+        
+        if (!isActive) revert UnauthorizedSource();
+        _;
     }
 
-    /// @notice Adds or revokes an authorized price provider
-    /// @param _provider Address of the price provider
-    /// @param _authorize Whether to authorize or revoke
-    function setProviderStatus(address _provider, bool _authorize)
-        external
-        onlyOwner
-    {
-        require(_provider != address(0), "Invalid provider address");
-        require(
-            authorizedProviders[_provider] != _authorize,
-            "Provider status unchanged"
-        );
+    /// @notice Initialize oracle with configuration
+    /// @param _maxStaleness Maximum allowed price age in seconds
+    /// @param _minSourceCount Minimum number of sources required
+    constructor(uint256 _maxStaleness, uint256 _minSourceCount) {
+        if (_maxStaleness == 0 || _minSourceCount == 0) revert InvalidInput();
+        maxStaleness = _maxStaleness;
+        minSourceCount = _minSourceCount;
+    }
 
-        authorizedProviders[_provider] = _authorize;
-
-        if (_authorize) {
-            providerList.push(_provider);
-        } else {
-            _removeProvider(_provider);
+    /// @notice Add an oracle source for a specific asset
+    /// @param asset Asset identifier (e.g., keccak256("ETH/USD"))
+    /// @param provider Address of the data provider
+    /// @param weight Importance weight of this source (1-100)
+    function addSource(
+        bytes32 asset,
+        address provider,
+        uint256 weight
+    ) external onlyOwner {
+        if (provider == address(0) || weight == 0 || weight > 100) {
+            revert InvalidInput();
         }
 
-        emit ProviderStatusChanged(_provider, _authorize);
+        OracleSource[] storage sources = oracleSources[asset];
+        
+        // Check if source already exists
+        for (uint256 i = 0; i < sources.length; i++) {
+            if (sources[i].provider == provider) {
+                sources[i].weight = weight;
+                sources[i].active = true;
+                emit SourceAdded(asset, provider, weight);
+                return;
+            }
+        }
+
+        // Add new source
+        sourceIndices[asset][provider] = sources.length;
+        sources.push(OracleSource({
+            provider: provider,
+            active: true,
+            lastUpdate: 0,
+            weight: weight
+        }));
+
+        emit SourceAdded(asset, provider, weight);
     }
 
-    /// @notice Submits a price for an asset from an authorized provider
-    /// @param _asset Symbol of the asset (e.g., "BTC", "ETH")
-    /// @param _price Price in wei (scaled to PRICE_DECIMALS)
-    function submitPrice(string calldata _asset, uint256 _price)
-        external
-        nonReentrant
-    {
-        require(authorizedProviders[msg.sender], "Unauthorized provider");
-        require(_price > 0, "Price must be positive");
-        require(bytes(_asset).length > 0, "Asset symbol required");
-        require(bytes(_asset).length <= 10, "Asset symbol too long");
+    /// @notice Remove an oracle source for a specific asset
+    /// @param asset Asset identifier
+    /// @param provider Address of the data provider to remove
+    function removeSource(bytes32 asset, address provider) external onlyOwner {
+        OracleSource[] storage sources = oracleSources[asset];
+        uint256 index = sourceIndices[asset][provider];
 
-        PriceSource memory newSource = PriceSource({
-            provider: msg.sender,
-            price: _price,
-            timestamp: block.timestamp,
-            active: true
-        });
+        if (index >= sources.length || sources[index].provider != provider) {
+            revert InvalidInput();
+        }
 
-        // Find and update existing source from this provider
-        PriceSource[] storage sources = priceSources[_asset];
-        bool found = false;
+        // Swap with last element and pop
+        sources[index] = sources[sources.length - 1];
+        sourceIndices[asset][sources[index].provider] = index;
+        sources.pop();
 
+        delete sourceIndices[asset][provider];
+        emit SourceRemoved(asset, provider);
+    }
+
+    /// @notice Deactivate an oracle source (soft removal)
+    /// @param asset Asset identifier
+    /// @param provider Address of the data provider
+    function deactivateSource(bytes32 asset, address provider) external onlyOwner {
+        OracleSource[] storage sources = oracleSources[asset];
+        
+        for (uint256 i = 0; i < sources.length; i++) {
+            if (sources[i].provider == provider) {
+                sources[i].active = false;
+                emit SourceDeactivated(asset, provider);
+                return;
+            }
+        }
+        
+        revert InvalidInput();
+    }
+
+    /// @notice Submit price data from an authorized oracle source
+    /// @param asset Asset identifier
+    /// @param price Price value
+    /// @param decimals Number of decimal places
+    function submitPrice(
+        bytes32 asset,
+        uint256 price,
+        uint8 decimals
+    ) external onlyActiveSource(asset) nonReentrant {
+        if (price == 0 || decimals > 18) revert InvalidInput();
+
+        // Update source timestamp
+        OracleSource[] storage sources = oracleSources[asset];
         for (uint256 i = 0; i < sources.length; i++) {
             if (sources[i].provider == msg.sender) {
-                sources[i] = newSource;
-                found = true;
+                sources[i].lastUpdate = block.timestamp;
                 break;
             }
         }
 
-        if (!found) {
-            sources.push(newSource);
-        }
-
-        emit PriceSubmitted(_asset, msg.sender, _price, block.timestamp);
+        // Compute and update median price
+        _updateMedianPrice(asset, decimals);
     }
 
-    /// @notice Aggregates prices from active sources using median computation
-    /// @param _asset Symbol of the asset
-    /// @return medianPrice The computed median price
-    /// @return meanPrice The computed mean price
-    /// @return sourceCount Number of active sources used
-    function aggregatePrices(string calldata _asset)
-        external
-        nonReentrant
-        returns (
-            uint256 medianPrice,
-            uint256 meanPrice,
-            uint256 sourceCount
-        )
-    {
-        PriceSource[] storage sources = priceSources[_asset];
-        require(sources.length >= MINIMUM_SOURCES, "Insufficient price sources");
-
-        uint256[] memory activePrices = new uint256[](sources.length);
+    /// @notice Internal function to compute median price from active sources
+    /// @param asset Asset identifier
+    /// @param decimals Number of decimal places
+    function _updateMedianPrice(bytes32 asset, uint8 decimals) internal {
+        OracleSource[] storage sources = oracleSources[asset];
+        uint256[] memory prices = new uint256[](sources.length);
         uint256 activeCount = 0;
+        uint256 totalWeight = 0;
 
-        // Collect prices from non-stale active sources
+        // Collect prices from active sources
         for (uint256 i = 0; i < sources.length; i++) {
-            if (sources[i].active) {
-                uint256 age = block.timestamp - sources[i].timestamp;
-                if (age <= STALENESS_THRESHOLD) {
-                    activePrices[activeCount] = sources[i].price;
-                    activeCount++;
-                } else {
-                    emit StalePrice(_asset, age);
-                }
-            }
-        }
-
-        require(activeCount >= MINIMUM_SOURCES, "Insufficient valid sources");
-
-        // Trim array to actual size
-        uint256[] memory validPrices = new uint256[](activeCount);
-        uint256 sum = 0;
-
-        for (uint256 i = 0; i < activeCount; i++) {
-            validPrices[i] = activePrices[i];
-            sum += validPrices[i];
-        }
-
-        // Compute median using sorted array
-        _sort(validPrices);
-        medianPrice = validPrices[activeCount / 2];
-        meanPrice = sum / activeCount;
-
-        // Store aggregated price
-        aggregatedPrices[_asset] = AggregatedPrice({
-            medianPrice: medianPrice,
-            meanPrice: meanPrice,
-            lastUpdated: block.timestamp,
-            sourceCount: activeCount
-        });
-
-        emit PricesAggregated(_asset, medianPrice, meanPrice, activeCount);
-
-        return (medianPrice, meanPrice, activeCount);
-    }
-
-    /// @notice Retrieves the current aggregated price for an asset
-    /// @param _asset Symbol of the asset
-    /// @return medianPrice The current median price
-    /// @return timestamp When the price was last aggregated
-    /// @return isStale Whether the current price is stale
-    function getPrice(string calldata _asset)
-        external
-        view
-        returns (
-            uint256 medianPrice,
-            uint256 timestamp,
-            bool isStale
-        )
-    {
-        AggregatedPrice storage priceData = aggregatedPrices[_asset];
-        require(priceData.lastUpdated > 0, "No price data available");
-
-        uint256 age = block.timestamp - priceData.lastUpdated;
-        isStale = age > STALENESS_THRESHOLD;
-
-        return (priceData.medianPrice, priceData.lastUpdated, isStale);
-    }
-
-    /// @notice Returns all price sources for an asset
-    /// @param _asset Symbol of the asset
-    /// @return Array of PriceSource structures
-    function getPriceSources(string calldata _asset)
-        external
-        view
-        returns (PriceSource[] memory)
+            if (!sources[i].active) continue;
+            
+            // Check staleness
+            if (block.timestamp - sources[i].lastUpdate > maxStaleness) {
+                continue;
