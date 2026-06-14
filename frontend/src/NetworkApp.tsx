@@ -582,12 +582,12 @@ const NetworkApp: React.FC = () => {
               wordBreak: 'break-all',
             }} 
             onClick={() => {
-              navigator.clipboard.writeText('BQ48k92gDbxDrpw8Zr7NtYA5Bi7kttZ5cDASnEZNpump');
+              navigator.clipboard.writeText('C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump');
               // Could add a toast notification here
             }} 
             title="Click to copy"
           >
-            {isMobile ? 'BQ48k92g...pump' : 'BQ48k92gDbxDrpw8Zr7NtYA5Bi7kttZ5cDASnEZNpump'}
+            {isMobile ? 'C3gj7Au7...pump' : 'C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump'}
           </span>
         </div>
         <span style={{ color: 'var(--text-muted)', fontSize: isMobile ? 11 : 12 }}>OpenChain Network</span>

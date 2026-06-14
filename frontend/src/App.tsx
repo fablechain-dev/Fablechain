@@ -493,8 +493,8 @@ export default function App() {
 
       {/* Footer */}
       <footer className="app-footer">
-        <span className="contract" onClick={() => navigator.clipboard.writeText('BQ48k92gDbxDrpw8Zr7NtYA5Bi7kttZ5cDASnEZNpump')} title="Click to copy">
-          BQ48k92gDbxDrpw8Zr7NtYA5Bi7kttZ5cDASnEZNpump
+        <span className="contract" onClick={() => navigator.clipboard.writeText('C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump')} title="Click to copy">
+          C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump
         </span>
       </footer>
     </div>
