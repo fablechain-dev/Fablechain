@@ -1,83 +1,52 @@
 ```typescript
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { ProofOfIntelligence } from '../../src/consensus/ProofOfIntelligence';
-import { Validator } from '../../src/types/Validator';
-import { Block } from '../../src/types/Block';
-import { IntelligenceChallenge } from '../../src/types/IntelligenceChallenge';
-import { ValidationResult } from '../../src/types/ValidationResult';
+import { ValidatorRegistry } from '../../src/validators/ValidatorRegistry';
+import { SlashingPool } from '../../src/penalties/SlashingPool';
+import { IntelligenceChallenge } from '../../src/challenges/IntelligenceChallenge';
+import { ConsensusState, ValidatorState, RoundState } from '../../src/types/consensus';
+import { ValidationError, QuorumError, SlashingError } from '../../src/errors';
 
 describe('ProofOfIntelligence Consensus', () => {
   let poi: ProofOfIntelligence;
-  let validators: Validator[];
-  let mockBlock: Block;
-  let mockChallenge: IntelligenceChallenge;
+  let validatorRegistry: ValidatorRegistry;
+  let slashingPool: SlashingPool;
+  let challengeEngine: IntelligenceChallenge;
+
+  const mockValidators = [
+    { id: 'val1', stake: 1000, reputation: 95, active: true, slashable: true },
+    { id: 'val2', stake: 800, reputation: 88, active: true, slashable: true },
+    { id: 'val3', stake: 600, reputation: 75, active: true, slashable: true },
+    { id: 'val4', stake: 500, reputation: 60, active: true, slashable: true },
+  ];
 
   beforeEach(() => {
+    validatorRegistry = new ValidatorRegistry();
+    slashingPool = new SlashingPool();
+    challengeEngine = new IntelligenceChallenge();
+
     poi = new ProofOfIntelligence({
+      validatorRegistry,
+      slashingPool,
+      challengeEngine,
+      quorumThreshold: 0.66,
+      maxRoundTime: 60000,
       minValidators: 3,
-      quorumPercentage: 66,
-      roundTimeout: 5000,
-      slashingPercentage: 10,
-      challengeDifficulty: 5,
+      slashingPercentage: 0.1,
+      reputationDecay: 0.95,
     });
 
-    validators = [
-      {
-        id: 'validator-1',
-        address: '0x1234567890123456789012345678901234567890',
-        stake: 1000,
-        isActive: true,
+    mockValidators.forEach((v) => {
+      validatorRegistry.register(v.id, {
+        stake: v.stake,
+        reputation: v.reputation,
+        active: v.active,
+        address: `0x${v.id}`,
         joinedAt: Date.now(),
-        reputation: 95,
-      },
-      {
-        id: 'validator-2',
-        address: '0x0987654321098765432109876543210987654321',
-        stake: 1000,
-        isActive: true,
-        joinedAt: Date.now(),
-        reputation: 90,
-      },
-      {
-        id: 'validator-3',
-        address: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-        stake: 1000,
-        isActive: true,
-        joinedAt: Date.now(),
-        reputation: 88,
-      },
-      {
-        id: 'validator-4',
-        address: '0xfedcbafedcbafedcbafedcbafedcbafedcbafedcba',
-        stake: 1000,
-        isActive: true,
-        joinedAt: Date.now(),
-        reputation: 92,
-      },
-    ];
-
-    validators.forEach((v) => poi.registerValidator(v));
-
-    mockBlock = {
-      height: 1,
-      hash: '0xabcd1234',
-      parentHash: '0x0000000000000000000000000000000000000000',
-      timestamp: Date.now(),
-      proposer: 'validator-1',
-      transactions: [],
-      merkleRoot: '0x5678efgh',
-      nonce: 12345,
-      difficulty: 5,
-    };
-
-    mockChallenge = {
-      id: 'challenge-001',
-      type: 'mathematical',
-      difficulty: 5,
-      question: 'Solve: What is the SHA256 hash of "test"?',
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 10000,
-    };
+        slashable: v.slashable,
+        consecutiveFailures: 0,
+      });
+    });
   });
 
   afterEach(() => {
@@ -85,108 +54,139 @@ describe('ProofOfIntelligence Consensus', () => {
   });
 
   describe('Round Progression', () => {
-    it('should initialize a new round with proper state', () => {
-      const round = poi.initializeRound(1, mockBlock);
+    it('should initialize round 0 with valid state', async () => {
+      const state = poi.getCurrentRoundState();
 
-      expect(round.roundNumber).toBe(1);
-      expect(round.blockHash).toBe(mockBlock.hash);
-      expect(round.status).toBe('active');
-      expect(round.validatorsParticipating).toHaveLength(0);
-      expect(round.votes).toEqual({});
+      expect(state.round).toBe(0);
+      expect(state.phase).toBe('proposal');
+      expect(state.validators.length).toBe(4);
+      expect(state.startTime).toBeGreaterThan(0);
+      expect(state.proposer).toBeDefined();
     });
 
-    it('should progress to next round when current round completes', () => {
-      const round1 = poi.initializeRound(1, mockBlock);
-      const block2: Block = { ...mockBlock, height: 2, hash: '0xefgh5678' };
-      const round2 = poi.initializeRound(2, block2);
+    it('should progress from proposal to commitment phase', async () => {
+      const initialPhase = poi.getCurrentRoundState().phase;
+      expect(initialPhase).toBe('proposal');
 
-      expect(round2.roundNumber).toBe(2);
-      expect(poi.getCurrentRound()).toBe(2);
-      expect(round1.status).toBe('completed');
+      await poi.advancePhase();
+      const nextPhase = poi.getCurrentRoundState().phase;
+
+      expect(nextPhase).toBe('commitment');
+      expect(nextPhase).not.toBe(initialPhase);
     });
 
-    it('should track validator participation across rounds', () => {
-      poi.initializeRound(1, mockBlock);
-      poi.recordParticipation('validator-1');
-      poi.recordParticipation('validator-2');
+    it('should progress through all phases sequentially', async () => {
+      const phases = ['proposal', 'commitment', 'reveal', 'finalization'];
+      let currentIndex = 0;
 
-      const participationRecord = poi.getValidatorParticipation('validator-1');
-      expect(participationRecord.totalRounds).toBe(1);
-      expect(participationRecord.activeParticipation).toBe(1);
-    });
-
-    it('should handle round timeout correctly', (done) => {
-      const round = poi.initializeRound(1, mockBlock);
-      expect(round.status).toBe('active');
-
-      setTimeout(() => {
-        const timedOutRound = poi.checkRoundTimeout();
-        if (timedOutRound) {
-          expect(timedOutRound.status).toBe('timeout');
-          done();
-        }
-      }, 5100);
-    });
-
-    it('should increment round number sequentially', () => {
-      for (let i = 1; i <= 5; i++) {
-        const block = { ...mockBlock, height: i, hash: `0xhash${i}` };
-        poi.initializeRound(i, block);
-        expect(poi.getCurrentRound()).toBe(i);
+      for (let i = 0; i < phases.length - 1; i++) {
+        expect(poi.getCurrentRoundState().phase).toBe(phases[currentIndex]);
+        await poi.advancePhase();
+        currentIndex++;
       }
+
+      expect(poi.getCurrentRoundState().phase).toBe('finalization');
+    });
+
+    it('should increment round number on finalization', async () => {
+      const initialRound = poi.getCurrentRoundState().round;
+
+      await poi.advancePhase();
+      await poi.advancePhase();
+      await poi.advancePhase();
+      await poi.finalizeRound();
+
+      const finalRound = poi.getCurrentRoundState().round;
+      expect(finalRound).toBe(initialRound + 1);
+    });
+
+    it('should rotate proposer selection across rounds', async () => {
+      const round0Proposer = poi.getCurrentRoundState().proposer;
+
+      await poi.finalizeRound();
+      const round1Proposer = poi.getCurrentRoundState().proposer;
+
+      await poi.finalizeRound();
+      const round2Proposer = poi.getCurrentRoundState().proposer;
+
+      expect(round0Proposer).not.toBe(round1Proposer);
+      expect(round1Proposer).not.toBe(round2Proposer);
+    });
+
+    it('should track timestamp progression during round', async () => {
+      const startTime = poi.getCurrentRoundState().startTime;
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      await poi.advancePhase();
+
+      const updatedState = poi.getCurrentRoundState();
+      expect(updatedState.phaseStartTime).toBeGreaterThan(startTime);
+    });
+
+    it('should handle rapid phase transitions', async () => {
+      const promises = Array(4)
+        .fill(null)
+        .map(() => poi.advancePhase());
+
+      await Promise.all(promises);
+
+      const finalPhase = poi.getCurrentRoundState().phase;
+      expect(finalPhase).toBeDefined();
     });
   });
 
-  describe('Quorum Handling', () => {
-    it('should fail consensus when quorum is not met', () => {
-      poi.initializeRound(1, mockBlock);
+  describe('Quorum Failure Handling', () => {
+    it('should detect quorum failure when validators below threshold', async () => {
+      const activeValidators = validatorRegistry.getActiveValidators();
+      const requiredQuorum = Math.ceil(activeValidators.length * 0.66);
+      const failingCount = activeValidators.length - Math.floor(requiredQuorum / 2);
 
-      // Only 1 validator out of 4 votes (need 3 for 66% quorum)
-      poi.recordVote('validator-1', mockBlock.hash, true);
+      for (let i = 0; i < failingCount; i++) {
+        validatorRegistry.setValidatorStatus(activeValidators[i].id, false);
+      }
 
-      const consensusResult = poi.checkConsensus(mockBlock);
-      expect(consensusResult.consensusReached).toBe(false);
-      expect(consensusResult.reason).toBe('quorum_not_met');
+      const hasQuorum = poi.hasQuorum();
+      expect(hasQuorum).toBe(false);
     });
 
-    it('should succeed consensus when quorum is met with approval', () => {
-      poi.initializeRound(1, mockBlock);
+    it('should throw QuorumError when attempting consensus without quorum', async () => {
+      const activeValidators = validatorRegistry.getActiveValidators();
 
-      // 3 out of 4 validators vote (75% > 66% quorum)
-      poi.recordVote('validator-1', mockBlock.hash, true);
-      poi.recordVote('validator-2', mockBlock.hash, true);
-      poi.recordVote('validator-3', mockBlock.hash, true);
+      for (let i = 0; i < activeValidators.length - 1; i++) {
+        validatorRegistry.setValidatorStatus(activeValidators[i].id, false);
+      }
 
-      const consensusResult = poi.checkConsensus(mockBlock);
-      expect(consensusResult.consensusReached).toBe(true);
-      expect(consensusResult.reason).toBe('quorum_met');
+      await expect(poi.proposeBlock({ data: 'test' })).rejects.toThrow(QuorumError);
     });
 
-    it('should fail consensus when majority rejects block', () => {
-      poi.initializeRound(1, mockBlock);
+    it('should calculate quorum threshold based on stake weight', async () => {
+      const totalStake = mockValidators.reduce((sum, v) => sum + v.stake, 0);
+      const quorumThreshold = Math.ceil(totalStake * 0.66);
 
-      poi.recordVote('validator-1', mockBlock.hash, false);
-      poi.recordVote('validator-2', mockBlock.hash, false);
-      poi.recordVote('validator-3', mockBlock.hash, true);
+      const validators = validatorRegistry.getActiveValidators();
+      const stakeSums = validators.reduce((sum, v) => sum + v.stake, 0);
 
-      const consensusResult = poi.checkConsensus(mockBlock);
-      expect(consensusResult.consensusReached).toBe(false);
-      expect(consensusResult.reason).toBe('majority_rejection');
+      expect(stakeSums).toBe(totalStake);
+      expect(poi.getRequiredQuorumStake()).toBe(quorumThreshold);
     });
 
-    it('should calculate quorum percentage correctly', () => {
-      poi.initializeRound(1, mockBlock);
+    it('should recover consensus when validators rejoin', async () => {
+      const activeValidators = validatorRegistry.getActiveValidators();
 
-      poi.recordVote('validator-1', mockBlock.hash, true);
-      poi.recordVote('validator-2', mockBlock.hash, true);
-      poi.recordVote('validator-3', mockBlock.hash, true);
-      poi.recordVote('validator-4', mockBlock.hash, false);
+      for (let i = 0; i < activeValidators.length - 1; i++) {
+        validatorRegistry.setValidatorStatus(activeValidators[i].id, false);
+      }
 
-      const quorumStats = poi.getQuorumStats(mockBlock);
-      expect(quorumStats.totalVotes).toBe(4);
-      expect(quorumStats.approvalPercentage).toBe(75);
-      expect(quorumStats.participationPercentage).toBe(100);
+      expect(poi.hasQuorum()).toBe(false);
+
+      validatorRegistry.setValidatorStatus(activeValidators[0].id, true);
+      expect(poi.hasQuorum()).toBe(true);
     });
 
-    it('should handle minimum validator requirements', () => {
-      const smallPoi = new ProofOfIntelligence({
+    it('should apply timeout penalties to quorum-failing validators', async () => {
+      const activeValidators = validatorRegistry.getActiveValidators();
+      const validator = activeValidators[0];
+
+      validatorRegistry.setValidatorStatus(validator.id, false);
+
+      await poi.ap
