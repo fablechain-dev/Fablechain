@@ -763,7 +763,6 @@ export default function App() {
       {/* Header */}
       <header className="app-header">
         <div className="win-title">
-          <span className="tl tl-r" /><span className="tl tl-y" /><span className="tl tl-g" />
           <span className="win-name">FableChain Terminal</span>
         </div>
         {!isMobile && (
