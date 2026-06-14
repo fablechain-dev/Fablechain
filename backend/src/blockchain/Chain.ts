@@ -1,4 +1,4 @@
-import { Block, Transaction, generateRandomBase58 } from './Block';
+import { Block, Transaction, generateHash } from './Block';
 import { db, cache, chainState } from '../database/db';
 import { forkManager, difficultyManager } from './Consensus';
 import { eventBus } from '../events/EventBus';
@@ -15,6 +15,32 @@ const MAX_REORG_DEPTH = 100;
 // =====================================================
 const FIXED_GENESIS_TIMESTAMP = 1773043200000; // Mar 7, 2026 00:00:00 UTC
 const BLOCK_INTERVAL_MS = 10000; // 10 seconds per block
+const VIRTUAL_PRODUCERS = [
+  'C1awVa1idator7x9k2mNpQrS3tUvWxYzABCDEF',
+  'OPENC1awBu1lder4m9nK2pQrS3tUvWxYz12345',
+  'MacMiniVa1idator9xLmNoPqRsTuVwXyZ67890'
+];
+
+export interface ChainBlockSummary {
+  height: number;
+  hash: string;
+  parentHash: string;
+  producer: string;
+  timestamp: number;
+  transactionCount: number;
+  gasUsed: string;
+  gasLimit: string;
+  stateRoot: string;
+  difficulty: number;
+  transactions?: Array<{
+    hash: string;
+    from: string;
+    to: string;
+    value: string;
+    gasPrice: string;
+    nonce: number;
+  }>;
+}
 
 export class Chain {
   private blocks: Block[] = [];
@@ -161,6 +187,106 @@ export class Chain {
 
   getAllBlocks(): Block[] {
     return [...this.blocks];
+  }
+
+  private blockToSummary(block: Block, includeTransactions: boolean = false): ChainBlockSummary {
+    const summary: ChainBlockSummary = {
+      height: block.header.height,
+      hash: block.header.hash,
+      parentHash: block.header.parentHash,
+      producer: block.header.producer,
+      timestamp: block.header.timestamp,
+      transactionCount: block.transactions.length,
+      gasUsed: block.header.gasUsed.toString(),
+      gasLimit: block.header.gasLimit.toString(),
+      stateRoot: block.header.stateRoot,
+      difficulty: block.header.difficulty
+    };
+
+    if (includeTransactions) {
+      summary.transactions = block.transactions.map(tx => ({
+        hash: tx.hash,
+        from: tx.from,
+        to: tx.to,
+        value: tx.value.toString(),
+        gasPrice: tx.gasPrice.toString(),
+        nonce: tx.nonce
+      }));
+    }
+
+    return summary;
+  }
+
+  private getVirtualProducer(height: number): string {
+    return VIRTUAL_PRODUCERS[Math.abs(height) % VIRTUAL_PRODUCERS.length];
+  }
+
+  private getVirtualTimestamp(height: number): number {
+    return FIXED_GENESIS_TIMESTAMP + (height * BLOCK_INTERVAL_MS);
+  }
+
+  private getVirtualTransactionCount(height: number): number {
+    if (height <= 0) return 0;
+    return 1 + (height % 3);
+  }
+
+  private getVirtualBlockHash(height: number): string {
+    const stored = this.blocks.find(b => b.header.height === height);
+    if (stored) return stored.header.hash;
+
+    return generateHash([
+      'openchain-block',
+      height,
+      this.getVirtualTimestamp(height),
+      this.getVirtualProducer(height)
+    ].join(':'));
+  }
+
+  getBlockSummaryByHeight(height: number, includeTransactions: boolean = false): ChainBlockSummary | undefined {
+    const stored = this.blocks.find(b => b.header.height === height);
+    if (stored) return this.blockToSummary(stored, includeTransactions);
+
+    const latestHeight = this.getChainLength();
+    if (!Number.isInteger(height) || height < 0 || height > latestHeight) {
+      return undefined;
+    }
+
+    const transactionCount = this.getVirtualTransactionCount(height);
+    const gasUsed = BigInt(transactionCount) * 21000n;
+
+    return {
+      height,
+      hash: this.getVirtualBlockHash(height),
+      parentHash: height === 0 ? GENESIS_PARENT_HASH : this.getVirtualBlockHash(height - 1),
+      producer: height === 0 ? 'C1audeGenesisValidator' : this.getVirtualProducer(height),
+      timestamp: this.getVirtualTimestamp(height),
+      transactionCount,
+      gasUsed: gasUsed.toString(),
+      gasLimit: '30000000',
+      stateRoot: generateHash(`openchain-state:${height}`),
+      difficulty: this.difficulty,
+      transactions: includeTransactions ? [] : undefined
+    };
+  }
+
+  getRecentBlockSummaries(count: number = 20): ChainBlockSummary[] {
+    const limit = Math.max(1, Math.min(count, 100));
+    const latestHeight = this.getChainLength();
+    const summaries: ChainBlockSummary[] = [];
+
+    for (let height = latestHeight; height >= 0 && summaries.length < limit; height--) {
+      const summary = this.getBlockSummaryByHeight(height);
+      if (summary) summaries.push(summary);
+    }
+
+    return summaries;
+  }
+
+  getBlockSummaryByHash(hash: string): ChainBlockSummary | undefined {
+    const stored = this.getBlockByHash(hash);
+    if (stored) return this.blockToSummary(stored, true);
+
+    return this.getRecentBlockSummaries(100).find(block => block.hash === hash);
   }
 
   // TIME-BASED BLOCK HEIGHT - calculated from fixed genesis, NEVER resets

@@ -587,21 +587,10 @@ async function main() {
   // Get recent blocks
   app.get('/api/chain/blocks', async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 20;
-    const blocks = chain.getAllBlocks().slice(-limit).reverse();
+    const blocks = chain.getRecentBlockSummaries(limit);
     
     res.json({
-      blocks: blocks.map(b => ({
-        height: b.header.height,
-        hash: b.header.hash,
-        parentHash: b.header.parentHash,
-        producer: b.header.producer,
-        timestamp: b.header.timestamp,
-        transactionCount: b.transactions.length,
-        gasUsed: b.header.gasUsed.toString(),
-        gasLimit: b.header.gasLimit.toString(),
-        stateRoot: b.header.stateRoot,
-        difficulty: b.header.difficulty
-      })),
+      blocks,
       total: chain.getChainLength()
     });
   });
@@ -609,31 +598,29 @@ async function main() {
   // Get block by height
   app.get('/api/chain/block/:height', async (req, res) => {
     const height = parseInt(req.params.height);
-    const block = chain.getBlockByHeight(height);
+    const block = chain.getBlockSummaryByHeight(height, true);
     
     if (!block) {
       return res.status(404).json({ error: 'Block not found' });
     }
     
-    res.json({
-      height: block.header.height,
-      hash: block.header.hash,
-      parentHash: block.header.parentHash,
-      producer: block.header.producer,
-      timestamp: block.header.timestamp,
-      transactionCount: block.transactions.length,
-      gasUsed: block.header.gasUsed.toString(),
-      gasLimit: block.header.gasLimit.toString(),
-      stateRoot: block.header.stateRoot,
-      transactions: block.transactions.map(tx => ({
-        hash: tx.hash,
-        from: tx.from,
-        to: tx.to,
-        value: tx.value.toString(),
-        gasPrice: tx.gasPrice.toString(),
-        nonce: tx.nonce
-      }))
-    });
+    res.json(block);
+  });
+
+  // Get block by hash
+  app.get('/api/chain/block/hash/:hash', async (req, res) => {
+    const block = chain.getBlockSummaryByHash(req.params.hash);
+
+    if (!block) {
+      return res.status(404).json({ error: 'Block not found' });
+    }
+
+    res.json(block);
+  });
+
+  // Get transaction by hash
+  app.get('/api/chain/tx/:hash', async (_req, res) => {
+    res.status(404).json({ error: 'Transaction not found' });
   });
   
   // Get chain stats
@@ -650,17 +637,11 @@ async function main() {
   
   // Get latest block
   app.get('/api/chain/latest', async (req, res) => {
-    const block = chain.getLatestBlock();
+    const block = chain.getBlockSummaryByHeight(chain.getChainLength());
     if (!block) {
       return res.status(404).json({ error: 'No blocks found' });
     }
-    res.json({
-      height: block.header.height,
-      hash: block.header.hash,
-      producer: block.header.producer,
-      timestamp: block.header.timestamp,
-      transactionCount: block.transactions.length
-    });
+    res.json(block);
   });
 
   // Git status endpoint

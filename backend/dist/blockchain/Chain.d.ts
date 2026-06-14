@@ -1,4 +1,24 @@
 import { Block } from './Block';
+export interface ChainBlockSummary {
+    height: number;
+    hash: string;
+    parentHash: string;
+    producer: string;
+    timestamp: number;
+    transactionCount: number;
+    gasUsed: string;
+    gasLimit: string;
+    stateRoot: string;
+    difficulty: number;
+    transactions?: Array<{
+        hash: string;
+        from: string;
+        to: string;
+        value: string;
+        gasPrice: string;
+        nonce: number;
+    }>;
+}
 export declare class Chain {
     private blocks;
     private difficulty;
@@ -13,6 +33,14 @@ export declare class Chain {
     getBlockByHeight(height: number): Block | undefined;
     getBlockByHash(hash: string): Block | undefined;
     getAllBlocks(): Block[];
+    private blockToSummary;
+    private getVirtualProducer;
+    private getVirtualTimestamp;
+    private getVirtualTransactionCount;
+    private getVirtualBlockHash;
+    getBlockSummaryByHeight(height: number, includeTransactions?: boolean): ChainBlockSummary | undefined;
+    getRecentBlockSummaries(count?: number): ChainBlockSummary[];
+    getBlockSummaryByHash(hash: string): ChainBlockSummary | undefined;
     getChainLength(): number;
     getStoredBlockCount(): number;
     getGenesisTime(): number;
