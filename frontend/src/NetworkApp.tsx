@@ -582,12 +582,12 @@ const NetworkApp: React.FC = () => {
               wordBreak: 'break-all',
             }} 
             onClick={() => {
-              navigator.clipboard.writeText('C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump');
+              navigator.clipboard.writeText('BucFPfoGNAeECbXaA6MxrvyZ2vaYXXaip3JtcY1Zpump');
               // Could add a toast notification here
-            }} 
+            }}
             title="Click to copy"
           >
-            {isMobile ? 'C3gj7Au7...pump' : 'C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump'}
+            {isMobile ? 'BucFPfoG...pump' : 'BucFPfoGNAeECbXaA6MxrvyZ2vaYXXaip3JtcY1Zpump'}
           </span>
         </div>
         <span style={{ color: 'var(--text-muted)', fontSize: isMobile ? 11 : 12 }}>FableChain Network</span>

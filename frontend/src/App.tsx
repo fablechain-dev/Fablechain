@@ -25,6 +25,8 @@ const Logo = ({ size = 28 }: { size?: number }) => (
 interface FeedRow { num: number; hash: string; sum: string; time: string; fresh?: boolean }
 interface TxRow { id: string; from: string; to: string; value: string; fee: string }
 
+const CONTRACT_ADDRESS = 'BucFPfoGNAeECbXaA6MxrvyZ2vaYXXaip3JtcY1Zpump';
+
 const hexStr = (n: number) => Array.from({ length: n }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
 const shortHash = () => `0x${hexStr(3)}...${hexStr(4)}`;
 const shortAddr = () => `0x${hexStr(4).toUpperCase()}...${hexStr(2).toUpperCase()}`;
@@ -820,11 +822,12 @@ export default function App() {
             <button className={`util-btn ${agentPanelOpen ? 'on' : ''}`} onClick={() => setAgentPanelOpen(!agentPanelOpen)}>■ AGENT</button>
           )}
           <a className="util-btn" href={FABLE_REPO_URL} target="_blank" rel="noopener noreferrer">GITHUB</a>
+          <a className="util-btn" href="https://x.com/FableChain" target="_blank" rel="noopener noreferrer">𝕏 TWITTER</a>
         </div>
         <div className="util-right">
           {!isMobile && (
-            <span className="contract" onClick={() => navigator.clipboard.writeText('C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump')} title="Click to copy">
-              CA: C3gj7Au7nvJ2kwyspy3gtjFxgkpoAgwqBg3yeCYQpump
+            <span className="contract" onClick={() => navigator.clipboard.writeText(CONTRACT_ADDRESS)} title="Click to copy">
+              CA: {CONTRACT_ADDRESS}
             </span>
           )}
           <span className="util-balance">Balance: 10.5000 FABLE | Gas: 4.6 Gwei</span>
