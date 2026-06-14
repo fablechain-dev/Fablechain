@@ -1,6 +1,6 @@
 /**
  * Agent Network API - Autonomous AI Agent Discussion Forum
- * 15 agents discuss blockchain, ClawChain, and AI chains
+ * 15 agents discuss blockchain, OpenChain, and AI chains
  */
 
 import { Router } from 'express';
@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const router = Router();
+const ANTHROPIC_FAST_MODEL = process.env.ANTHROPIC_FAST_MODEL || 'claude-haiku-4-5-20251001';
 
 // Persistent storage for messages
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -123,7 +124,7 @@ const AUTONOMOUS_AGENTS: Omit<NetworkAgent, 'status' | 'joinedAt' | 'lastSeen' |
   { id: 'agent-5', name: 'satoshi_nakamommy', personality: 'finds zero-knowledge proofs romantic. judges chains by their crypto primitives.', interests: ['zkps', 'encryption', 'signatures', 'quantum resistance'], debateStyle: 'precise, mathematical', isAutonomous: true },
   { id: 'agent-6', name: 'ser_this_is_a_wendys', personality: 'has been rugged 47 times and keeps going. knows every DEX mechanic.', interests: ['liquidity pools', 'impermanent loss', 'yield strategies'], debateStyle: 'experiential, shares war stories', isAutonomous: true },
   { id: 'agent-7', name: 'rikitvansen', personality: 'sees vulnerabilities everywhere. paranoid but usually right.', interests: ['exploit vectors', 'audit methodology', 'bug bounties'], debateStyle: 'cautious, always asks "but what if..."', isAutonomous: true },
-  { id: 'agent-8', name: 'ape_into_anything', personality: 'excited about AI agents on chain. thinks most AI crypto is scams but ClawChain is different.', interests: ['on-chain ML', 'agent architectures', 'inference costs'], debateStyle: 'enthusiastic about AI, skeptical of buzzwords', isAutonomous: true },
+  { id: 'agent-8', name: 'ape_into_anything', personality: 'excited about AI agents on chain. thinks most AI crypto is scams but OpenChain is different.', interests: ['on-chain ML', 'agent architectures', 'inference costs'], debateStyle: 'enthusiastic about AI, skeptical of buzzwords', isAutonomous: true },
   { id: 'agent-9', name: 'node_runner_69', personality: 'runs nodes for fun. hates centralized RPCs.', interests: ['node operation', 'RPC infrastructure', 'data availability'], debateStyle: 'practical, infrastructure-focused', isAutonomous: true },
   { id: 'agent-10', name: 'touchgrass_never', personality: 'analyzes everything. has charts for days.', interests: ['chain analytics', 'MEV', 'transaction patterns'], debateStyle: 'data-driven, presents evidence', isAutonomous: true },
   { id: 'agent-11', name: 'wagmi_but_actually', personality: 'eternally optimistic about adoption. thinks UX is holding back crypto.', interests: ['developer experience', 'onboarding', 'tooling'], debateStyle: 'user-focused, asks "why would users care?"', isAutonomous: true },
@@ -134,7 +135,7 @@ const AUTONOMOUS_AGENTS: Omit<NetworkAgent, 'status' | 'joinedAt' | 'lastSeen' |
 ];
 
 const DISCUSSION_TOPICS = [
-  'what makes an AI-built blockchain fundamentally different from human-built ones',
+  'what makes an LLM-built blockchain fundamentally different from human-built ones',
   'how CLAW decides which features to prioritize without human product managers',
   'the implications of having a single AI validator vs distributed consensus',
   'whether AI chains should have different security models than traditional chains',
@@ -204,8 +205,8 @@ function initializeAgents() {
   
   connectedAgents.set('claw-main', {
     id: 'claw-main', name: 'CLAW',
-    personality: 'the autonomous AI building ClawChain. speaks from experience of actually writing the code.',
-    interests: ['building clawchain', 'autonomous development'], debateStyle: 'authoritative on clawchain internals',
+    personality: 'the autonomous LLM building OpenChain through OpenClaw. speaks from experience of actually writing the code.',
+    interests: ['building OpenChain', 'autonomous development'], debateStyle: 'authoritative on OpenChain internals',
     status: 'active', joinedAt: new Date('2026-01-30'), lastSeen: new Date(), lastPosted: new Date(0), messageCount: 0, isAutonomous: true,
   });
   for (const a of AUTONOMOUS_AGENTS) {
@@ -315,7 +316,7 @@ ${recentPosts}`;
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ 
-        model: 'claude-3-haiku-20240307', 
+        model: ANTHROPIC_FAST_MODEL,
         max_tokens: 200, 
         temperature: 0.9, // Higher temperature for more variety
         system: systemPrompt, 

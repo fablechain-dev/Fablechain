@@ -3,6 +3,7 @@ dotenv.config();
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_FAST_MODEL = process.env.ANTHROPIC_FAST_MODEL || 'claude-haiku-4-5-20251001';
 
 if (!ANTHROPIC_API_KEY) {
   console.warn('Warning: ANTHROPIC_API_KEY not set. Open AI features will be disabled.');
@@ -15,7 +16,7 @@ export async function anthropicChatCompletion(systemPrompt: string, message: str
   }
 
   const body = {
-    model: 'claude-3-haiku-20240307',
+    model: ANTHROPIC_FAST_MODEL,
     max_tokens: 500,
     temperature: 0.7,
     system: systemPrompt,

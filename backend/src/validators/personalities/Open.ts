@@ -4,12 +4,13 @@ import fetch from 'node-fetch';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_FAST_MODEL = process.env.ANTHROPIC_FAST_MODEL || 'claude-haiku-4-5-20251001';
 
 export class Open extends BaseValidator {
   address = 'C1awVa1idator7x9k2mNpQrS3tUvWxYzABCDEF';
   name = 'OPEN';
   symbol = '>';
-  model = 'claude-3-haiku-20240307';
+  model = ANTHROPIC_FAST_MODEL;
   provider = 'Anthropic';
   role = 'Autonomous Developer';
   personality = 'Focused, methodical, explains while building';
@@ -53,13 +54,13 @@ Keep responses concise (under 200 words) unless asked for details. Be technical 
     const lowerMsg = message.toLowerCase();
     
     if (lowerMsg.includes('what is') && lowerMsg.includes('openchain')) {
-      return `OpenChain is a blockchain being built in real-time by me, Open. I'm an autonomous AI that writes code, runs tests, and improves the chain while you watch. The native token is OPEN and I produce blocks every 10 seconds.`;
+      return `OpenChain is a blockchain being built in real-time by OpenClaw, an autonomous LLM that writes code, runs tests, and improves the chain while you watch. The native token is OPEN and I produce blocks every 10 seconds.`;
     }
     if (lowerMsg.includes('hello') || lowerMsg.includes('hi ') || lowerMsg === 'hi') {
-      return `Hey! I'm Open, the autonomous AI building this blockchain. Watch the terminal to see me working - I write real code, run real tests, and make real commits. What would you like to know?`;
+      return `Hey! I'm OpenClaw, the autonomous LLM building this blockchain. Watch the terminal to see me working - I write real code, run real tests, and make real commits. What would you like to know?`;
     }
     if (lowerMsg.includes('what are you')) {
-      return `I'm an autonomous AI developer. I pick tasks, write code, run tests, and commit changes to OpenChain. You can watch me work in real-time in the terminal panel.`;
+      return `I'm an autonomous LLM developer from OpenClaw. I pick tasks, write code, run tests, and commit changes to OpenChain. You can watch me work in real-time in the terminal panel.`;
     }
     if (lowerMsg.includes('token') || lowerMsg.includes('open token')) {
       return `OPEN is the native token of OpenChain. You can get free tokens from the Faucet, stake them for rewards, and use them for transactions.`;
@@ -68,7 +69,7 @@ Keep responses concise (under 200 words) unless asked for details. Be technical 
       return `I produce blocks every 10 seconds. Each block I validate and add to the chain. Watch the stats at the top to see the current block height and TPS.`;
     }
     
-    return `I'm Open, the AI building OpenChain. Watch me code in real-time in the terminal panel. Ask me about the chain, tokens, or what I'm currently building!`;
+    return `I'm OpenClaw, the autonomous LLM building OpenChain. Watch me code in real-time in the terminal panel. Ask me about the chain, tokens, or what I'm currently building!`;
   }
 
   async chat(message: string, context?: any): Promise<string> {

@@ -16,11 +16,13 @@ export interface ValidatorConfig {
   systemPrompt: string;
 }
 
+const ANTHROPIC_REASONING_MODEL = process.env.ANTHROPIC_REASONING_MODEL || 'claude-sonnet-4-6';
+
 export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   molt_validator: {
     id: 'molt_validator',
     name: 'OPEN VALIDATOR',
-    model: 'molt-3-opus-20240229',
+    model: ANTHROPIC_REASONING_MODEL,
     provider: 'Anthropic',
     role: 'Block Validator',
     emoji: '◆',
@@ -44,7 +46,7 @@ Keep responses under 200 words, precise, and validation-focused.`
   molt_architect: {
     id: 'molt_architect',
     name: 'OPEN ARCHITECT',
-    model: 'molt-3-opus-20240229',
+    model: ANTHROPIC_REASONING_MODEL,
     provider: 'Anthropic',
     role: 'Protocol Architect',
     emoji: '◆',
@@ -68,7 +70,7 @@ Keep responses under 200 words, highly structured and technically precise.`
   molt_analyst: {
     id: 'molt_analyst',
     name: 'OPEN ANALYST',
-    model: 'molt-3-opus-20240229',
+    model: ANTHROPIC_REASONING_MODEL,
     provider: 'Anthropic',
     role: 'Chain Analyst',
     emoji: '◆',
@@ -92,7 +94,7 @@ Keep responses under 200 words, analytical and data-focused.`
   molt_reviewer: {
     id: 'molt_reviewer',
     name: 'OPEN REVIEWER',
-    model: 'molt-3-opus-20240229',
+    model: ANTHROPIC_REASONING_MODEL,
     provider: 'Anthropic',
     role: 'Code Reviewer',
     emoji: '◆',
@@ -116,7 +118,7 @@ Keep responses under 200 words, security-focused and thorough.`
   molt_consensus: {
     id: 'molt_consensus',
     name: 'OPEN CONSENSUS',
-    model: 'molt-3-opus-20240229',
+    model: ANTHROPIC_REASONING_MODEL,
     provider: 'Anthropic',
     role: 'Consensus Leader',
     emoji: '◆',
@@ -140,7 +142,7 @@ Keep responses under 200 words, diplomatic and consensus-focused.`
   molt_oracle: {
     id: 'molt_oracle',
     name: 'OPEN ORACLE',
-    model: 'molt-3-opus-20240229',
+    model: ANTHROPIC_REASONING_MODEL,
     provider: 'Anthropic',
     role: 'Data Oracle',
     emoji: '◆',

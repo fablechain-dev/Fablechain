@@ -4,7 +4,7 @@ import AgentTerminal from './AgentTerminal';
 import AdminDashboard from './AdminDashboard';
 import BlockExplorer from './BlockExplorer';
 
-type TabType = 'terminal' | 'genesis' | 'molt' | 'updates' | 'logs' | 'explorer' | 'faucet' | 'wallet' | 'network' | 'admin';
+type TabType = 'terminal' | 'genesis' | 'molt' | 'updates' | 'logs' | 'explorer' | 'faucet' | 'wallet' | 'admin';
 
 interface Message {
   role: 'user' | 'molt' | 'system';
@@ -48,9 +48,6 @@ export default function App() {
   const [agentPanelWidth, setAgentPanelWidth] = useState(420);
   const [stats, setStats] = useState({ chainLength: 0, blockHeight: 0, tps: 0 });
   const [uptime, setUptime] = useState('0h 0m');
-  const [networkAgents, setNetworkAgents] = useState<any[]>([]);
-  const [networkMessages, setNetworkMessages] = useState<any[]>([]);
-  const [networkStats, setNetworkStats] = useState({ totalAgents: 1, activeAgents: 1, totalMessages: 0, commitsToday: 0 });
   const [commits, setCommits] = useState<any[]>([]);
   const [commitsLoading, setCommitsLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
@@ -112,25 +109,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [API_BASE]);
 
-  // Fetch network data
-  useEffect(() => {
-    const fetch_ = async () => {
-      try {
-        const [a, m, s] = await Promise.all([
-          fetch(`${API_BASE}/api/network/agents`),
-          fetch(`${API_BASE}/api/network/messages`),
-          fetch(`${API_BASE}/api/network/stats`),
-        ]);
-        if (a.ok) { const d = await a.json(); setNetworkAgents(d.agents || []); }
-        if (m.ok) { const d = await m.json(); setNetworkMessages(d.messages || []); }
-        if (s.ok) { const d = await s.json(); setNetworkStats(d); }
-      } catch {}
-    };
-    fetch_();
-    const id = setInterval(fetch_, 5000);
-    return () => clearInterval(id);
-  }, [API_BASE]);
-
   // Fetch commits
   useEffect(() => {
     (async () => {
@@ -164,7 +142,7 @@ export default function App() {
   // Sync route
   useEffect(() => {
     const path = location.pathname.slice(1) || 'terminal';
-    const valid: TabType[] = ['terminal', 'genesis', 'molt', 'updates', 'logs', 'explorer', 'faucet', 'wallet', 'network', 'admin'];
+    const valid: TabType[] = ['terminal', 'genesis', 'molt', 'updates', 'logs', 'explorer', 'faucet', 'wallet', 'admin'];
     if (valid.includes(path as TabType)) setActiveTab(path as TabType);
   }, [location]);
 
@@ -221,7 +199,6 @@ export default function App() {
     { id: 'explorer', label: 'Explorer' },
     { id: 'faucet', label: 'Faucet' },
     { id: 'wallet', label: 'Wallet' },
-    { id: 'network', label: 'Network' },
     { id: 'updates', label: 'Updates' },
     { id: 'logs', label: 'Logs' },
     { id: 'admin', label: 'Admin' },
@@ -247,9 +224,9 @@ export default function App() {
         <div className="hero-logo"><Logo size={48} /></div>
         <h1>Open<span className="accent">Chain</span></h1>
         <p className="subtitle">
-          We put an AI in a Mac Mini and asked it to build its own blockchain.
+          We put an LLM in a Mac Mini and asked it to build its own blockchain.
         </p>
-        <p className="tagline">This is what happened.</p>
+        <p className="tagline">This is what happened. Built by OpenClaw.</p>
       </div>
 
       <div className="stats-grid">
@@ -349,78 +326,6 @@ export default function App() {
     </div>
   );
 
-  const renderNetwork = () => (
-    <div className="page-wide">
-      <h2 className="page-title">Agent Network</h2>
-      <p className="page-desc">Autonomous agents collaborating to build OpenChain</p>
-
-      <div className={isMobile ? '' : 'network-grid'}>
-        <div className="card" style={{ marginBottom: isMobile ? 16 : 0 }}>
-          <div className="card-inner">
-            <div className="section-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Connected Agents</span>
-              <span style={{ background: 'var(--accent)', color: 'var(--bg-0)', padding: '1px 8px', borderRadius: 10, fontSize: 11 }}>{networkAgents.length}</span>
-            </div>
-            <div className="agent-list">
-              {networkAgents.length === 0 ? (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-3)', fontSize: 12 }}>No agents connected yet</div>
-              ) : networkAgents.map(a => (
-                <div key={a.id} className="agent-item">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div className={`status-dot ${a.status === 'active' ? 'online' : ''}`} style={{ background: a.status !== 'active' ? 'var(--text-3)' : undefined }} />
-                    <span className="name">{a.name}</span>
-                  </div>
-                  <div className="role">{a.role}</div>
-                  <div className="meta">{a.messages} messages</div>
-                </div>
-              ))}
-            </div>
-            <button className="btn-primary" style={{ width: '100%', marginTop: 12 }}>+ Connect Your Agent</button>
-            <p style={{ fontSize: 10, color: 'var(--text-3)', textAlign: 'center', marginTop: 8 }}>Requires API key</p>
-          </div>
-        </div>
-
-        <div className="card network-chat">
-          <div className="card-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div className="section-label">Agent Discussion</div>
-            <div className="network-messages">
-              {networkMessages.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: 13, paddingTop: 100 }}>No messages yet. Connect an agent to start.</div>
-              ) : networkMessages.map((msg, i) => (
-                <div key={i} className="network-msg">
-                  <div>
-                    <span className="msg-sender" style={{ color: msg.agent === 'OPEN' ? 'var(--accent)' : 'var(--text-0)' }}>{msg.agent}</span>
-                    <span className="msg-time">{msg.time}</span>
-                  </div>
-                  <div className="msg-body">{msg.message}</div>
-                </div>
-              ))}
-            </div>
-            <div className="chat-input-row">
-              <input className="input" type="text" placeholder="Send a message to the network..." disabled />
-              <button className="btn-primary" disabled>Send</button>
-            </div>
-            <p style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 8 }}>Connect your agent to participate</p>
-          </div>
-        </div>
-      </div>
-
-      <div className={`mini-stats ${isMobile ? '' : ''}`}>
-        {[
-          { label: 'Total Agents', value: networkStats.totalAgents },
-          { label: 'Active Now', value: networkStats.activeAgents },
-          { label: 'Total Messages', value: networkStats.totalMessages },
-          { label: 'Commits Today', value: networkStats.commitsToday },
-        ].map((s, i) => (
-          <div key={i} className="card mini-stat">
-            <div className="value">{s.value.toLocaleString()}</div>
-            <div className="label">{s.label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   const renderUpdates = () => (
     <div className="page">
       <h2 className="page-title">Updates</h2>
@@ -494,7 +399,6 @@ export default function App() {
       case 'explorer': return <BlockExplorer />;
       case 'faucet': return renderFaucet();
       case 'wallet': return renderWallet();
-      case 'network': return renderNetwork();
       case 'updates': return renderUpdates();
       case 'logs': return renderLogs();
       case 'admin': return <AdminDashboard />;

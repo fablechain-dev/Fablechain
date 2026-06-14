@@ -13,6 +13,7 @@ dotenv.config();
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_FAST_MODEL = process.env.ANTHROPIC_FAST_MODEL || 'claude-haiku-4-5-20251001';
 
 // Event emitter for broadcasting to SSE clients
 export const agentEvents = new EventEmitter();
@@ -234,7 +235,7 @@ ${goalsSummary ? `## Your Goals\n${goalsSummary}\n` : ''}
 Keep responses focused, around 500-800 words. People are watching you work - show them how an autonomous AI thinks.`;
 
     const body = {
-      model: 'claude-3-haiku-20240307', // Use Haiku for cost-effective continuous streaming
+      model: ANTHROPIC_FAST_MODEL, // Use Haiku for cost-effective continuous streaming
       max_tokens: 1500,
       temperature: 0.8,
       stream: true,
@@ -371,7 +372,7 @@ People are watching you work. Show them autonomous AI development in action.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'claude-3-haiku-20240307',
+            model: ANTHROPIC_FAST_MODEL,
             max_tokens: 2000,
             temperature: 0.7,
             system: systemPrompt,
@@ -871,7 +872,7 @@ Ready for council review.`,
         const gitResult = await gitIntegration.autoCommitAndPush(commitMessage, task.id);
         console.log(`[AGENT] Git result:`, JSON.stringify(gitResult));
         
-        if (gitResult.success && gitResult.commit) {
+        if (gitResult.success && gitResult.commit && !gitResult.error) {
           console.log(`[AGENT] ✓ Changes deployed: ${gitResult.commit}`);
           this.broadcast('git_deploy', {
             taskId: task.id,
@@ -879,6 +880,8 @@ Ready for council review.`,
             message: commitMessage,
             branch: gitResult.branch
           });
+        } else if (gitResult.commit && gitResult.error) {
+          console.error(`[AGENT] Commit created but not pushed: ${gitResult.error}`);
         } else if (gitResult.error) {
           console.error(`[AGENT] ✗ Git failed: ${gitResult.error}`);
         } else {

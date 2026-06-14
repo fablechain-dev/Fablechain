@@ -325,7 +325,7 @@ export const VALIDATORS: ValidatorState[] = [
 // ============================================================================
 
 const anthropic = new Anthropic();
-const MODEL = 'molt-sonnet-4-20250514';
+const MODEL = process.env.ANTHROPIC_REASONING_MODEL || 'claude-sonnet-4-6';
 
 function cleanJsonResponse(text: string): string {
   // Remove ```json and ``` markers

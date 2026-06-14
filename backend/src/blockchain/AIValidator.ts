@@ -3,6 +3,7 @@ import { stateManager } from './StateManager';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_FAST_MODEL = process.env.ANTHROPIC_FAST_MODEL || 'claude-haiku-4-5-20251001';
 
 // AI validation result
 export interface AIValidationResult {
@@ -126,7 +127,7 @@ Respond with a JSON object (no markdown):
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: ANTHROPIC_FAST_MODEL,
         max_tokens: 500,
         temperature: 0.1,
         messages: [{ role: 'user', content: prompt }]

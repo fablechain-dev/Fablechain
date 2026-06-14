@@ -10,6 +10,15 @@ const GIT_USER_EMAIL = process.env.GIT_USER_EMAIL || 'openchain@users.noreply.gi
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO || 'OPENchain/openchain';
 
+function getAuthenticatedRemoteUrl(): string | undefined {
+  if (!GITHUB_TOKEN || !GITHUB_REPO) return undefined;
+  return `https://x-access-token:${encodeURIComponent(GITHUB_TOKEN)}@github.com/${GITHUB_REPO}.git`;
+}
+
+function redactGitSecrets(value: string): string {
+  return value.replace(/https:\/\/[^@\s]+@github\.com/g, 'https://***@github.com');
+}
+
 // Git operation result
 export interface GitOperationResult {
   success: boolean;
@@ -76,17 +85,17 @@ export class GitIntegration {
   private setupGitConfig(): void {
     try {
       const gitDir = path.join(this.projectRoot, '.git');
+      const remoteUrl = getAuthenticatedRemoteUrl();
       
       // If no .git and we have credentials, clone the repo
-      if (!fs.existsSync(gitDir) && GITHUB_TOKEN && GITHUB_REPO) {
+      if (!fs.existsSync(gitDir) && remoteUrl && GITHUB_REPO) {
         console.log('[GIT] No .git directory found, cloning repo...');
-        const remoteUrl = `https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git`;
         
         try {
           // Clone into a temp location then move .git
           const tempDir = '/tmp/openchain-clone';
           execSync(`rm -rf ${tempDir}`, { encoding: 'utf-8', stdio: 'pipe' });
-          execSync(`git clone --depth 1 ${remoteUrl} ${tempDir}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 60000 });
+          execSync(`git clone --depth 1 "${remoteUrl}" ${tempDir}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 60000 });
           
           // Copy .git directory to project root
           execSync(`cp -r ${tempDir}/.git ${this.projectRoot}/`, { encoding: 'utf-8', stdio: 'pipe' });
@@ -94,7 +103,7 @@ export class GitIntegration {
           
           console.log('[GIT] Successfully cloned repo');
         } catch (cloneErr: any) {
-          console.error('[GIT] Clone failed, initializing fresh:', cloneErr.message);
+          console.error('[GIT] Clone failed, initializing fresh:', redactGitSecrets(cloneErr.message));
           execSync('git init', { cwd: this.projectRoot, encoding: 'utf-8', stdio: 'pipe' });
         }
       } else if (!fs.existsSync(gitDir)) {
@@ -115,8 +124,7 @@ export class GitIntegration {
       });
 
       // Configure remote with token if available
-      if (GITHUB_TOKEN && GITHUB_REPO) {
-        const remoteUrl = `https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git`;
+      if (remoteUrl && GITHUB_REPO) {
         try {
           // Remove existing origin if it exists
           execSync('git remote remove origin', { cwd: this.projectRoot, encoding: 'utf-8', stdio: 'pipe' });
@@ -124,7 +132,7 @@ export class GitIntegration {
           // Origin might not exist, that's fine
         }
         try {
-          execSync(`git remote add origin ${remoteUrl}`, {
+          execSync(`git remote add origin "${remoteUrl}"`, {
             cwd: this.projectRoot,
             encoding: 'utf-8',
             stdio: 'pipe'
@@ -232,15 +240,25 @@ export class GitIntegration {
           try {
             this.execGit(`push -u origin ${branch}`, true);
           } catch (e: any) {
-            // If push fails due to non-fast-forward, try to pull and merge first
-            console.log('[GIT] Normal push failed, trying pull then push...');
+            const pushFailure = redactGitSecrets(e.message);
+            const canRebase = /non-fast-forward|fetch first|updates were rejected|rejected/i.test(pushFailure);
+            console.log(`[GIT] Normal push failed: ${pushFailure}`);
+            if (!canRebase) {
+              throw e;
+            }
+            console.log('[GIT] Trying pull then push...');
+            let stashed = false;
             try {
+              stashed = this.stashUncommittedChanges('openchain-auto-push-rebase');
               this.execGit('pull origin main --rebase --allow-unrelated-histories', true);
               this.execGit(`push -u origin ${branch}`, true);
             } catch (pullError) {
-              // If pull fails too, force push as last resort (new files only)
-              console.log('[GIT] Pull failed, force pushing...');
-              this.execGit(`push -u origin ${branch} --force`, true);
+              console.log('[GIT] Pull failed; leaving commit local instead of force pushing.');
+              throw pullError;
+            } finally {
+              if (stashed) {
+                this.restoreStashedChanges();
+              }
             }
           }
           console.log(`[GIT] Successfully pushed to origin/${branch}`);
@@ -260,21 +278,22 @@ export class GitIntegration {
             branch
           };
         } catch (pushError: any) {
-          console.error('[GIT] Push failed:', pushError.message);
+          const pushErrorMessage = redactGitSecrets(pushError.message);
+          console.error('[GIT] Push failed:', pushErrorMessage);
           
           eventBus.emit('git_action', {
             type: 'commit',
             message: fullMessage,
             commit: commitHash,
             pushed: false,
-            error: pushError.message
+            error: pushErrorMessage
           });
 
           return {
             success: true,
             output: `Committed (push failed): ${commitHash}`,
             commit: commitHash,
-            error: `Push failed: ${pushError.message}`
+            error: `Push failed: ${pushErrorMessage}`
           };
         }
       } else {
@@ -292,11 +311,12 @@ export class GitIntegration {
         };
       }
     } catch (error: any) {
-      console.error('[GIT] Auto-commit failed:', error.message);
+      const errorMessage = redactGitSecrets(error.message);
+      console.error('[GIT] Auto-commit failed:', errorMessage);
       return {
         success: false,
         output: '',
-        error: error.message
+        error: errorMessage
       };
     }
   }
@@ -313,9 +333,39 @@ export class GitIntegration {
       return result.trim();
     } catch (error: any) {
       if (error.stderr) {
-        throw new Error(error.stderr.toString().trim());
+        throw new Error(redactGitSecrets(error.stderr.toString().trim()));
       }
       throw error;
+    }
+  }
+
+  private hasUncommittedChanges(): boolean {
+    return this.execGit('status --porcelain', true).trim().length > 0;
+  }
+
+  private stashUncommittedChanges(reason: string): boolean {
+    if (!this.hasUncommittedChanges()) {
+      return false;
+    }
+
+    const safeReason = reason.replace(/"/g, '\\"');
+    const output = this.execGit(`stash push --include-untracked -m "${safeReason}"`, true);
+    const stashed = !/No local changes to save/i.test(output);
+
+    if (stashed) {
+      console.log('[GIT] Stashed uncommitted changes before rebase.');
+    }
+
+    return stashed;
+  }
+
+  private restoreStashedChanges(): void {
+    try {
+      this.execGit('stash pop', true);
+      console.log('[GIT] Restored stashed changes after rebase.');
+    } catch (error: any) {
+      const errorMessage = redactGitSecrets(error.message || String(error));
+      console.error('[GIT] Failed to restore stashed changes:', errorMessage);
     }
   }
 
