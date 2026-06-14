@@ -895,10 +895,10 @@ Ready for council review.`,
         this.state.currentTask = null;
         this.state.currentDecision = null;
 
-        // Pause between tasks (15-45 seconds for autonomous mode)
-        const pauseDuration = this.state.brainActive 
-          ? 15000 + Math.random() * 30000  // Longer pause when thinking
-          : 10000 + Math.random() * 20000;
+        // Pause between tasks (~20 minutes between commits)
+        const pauseDuration = this.state.brainActive
+          ? 1100000 + Math.random() * 200000  // 18-22 minutes when thinking
+          : 1000000 + Math.random() * 400000; // 17-23 minutes otherwise
           
         console.log(`[AGENT] Pausing for ${Math.round(pauseDuration / 1000)}s before next task...`);
         this.broadcast('status', { 
