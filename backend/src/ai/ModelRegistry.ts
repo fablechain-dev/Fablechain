@@ -1,249 +1,255 @@
 ```typescript
-import { Contract, ethers } from 'ethers';
-import { createHash } from 'crypto';
+import {
+  Contract,
+  ContractInterface,
+  EventFilter,
+  Signer,
+  BigNumberish,
+  ethers,
+} from "ethers";
+import { Logger } from "../utils/Logger";
+import { CacheManager } from "../utils/CacheManager";
 
-interface ModelMetadata {
+export interface ModelMetadata {
   name: string;
   version: string;
   description: string;
   capabilities: string[];
-  modelHash: string;
-  ipfsHash?: string;
-  owner: string;
-  createdAt: number;
-  updatedAt: number;
+  inputSchema: Record<string, unknown>;
+  outputSchema: Record<string, unknown>;
+  minGasRequired: BigNumberish;
+  author: string;
+  timestamp: number;
   deprecated: boolean;
-  compatibilityVersion: string;
 }
 
-interface ModelRegistryEntry {
-  id: string;
-  metadata: ModelMetadata;
-  versionHistory: ModelVersion[];
-  accessControl: AccessControl;
-}
-
-interface ModelVersion {
-  version: string;
+export interface RegisteredModel {
   modelHash: string;
+  metadata: ModelMetadata;
+  registeredAt: number;
+  registeredBy: string;
+  isActive: boolean;
+  versionHistory: VersionRecord[];
+}
+
+export interface VersionRecord {
+  version: string;
+  hash: string;
   timestamp: number;
-  changelog: string;
+  changes: string;
 }
 
-interface AccessControl {
-  isPublic: boolean;
-  allowedAddresses: Set<string>;
-  requiredRole?: string;
-}
-
-interface QueryFilter {
-  capabilities?: string[];
-  owner?: string;
-  deprecated?: boolean;
-  compatibilityVersion?: string;
+export interface ModelQueryFilter {
+  capability?: string;
+  author?: string;
+  minVersion?: string;
+  activeOnly?: boolean;
   limit?: number;
-  offset?: number;
 }
 
-interface RegistryEvent {
-  type: 'register' | 'update' | 'deprecate' | 'access';
-  modelId: string;
-  timestamp: number;
-  actor: string;
-  details: Record<string, unknown>;
-}
+const MODEL_REGISTRY_ABI = [
+  {
+    name: "registerModel",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "_modelHash", type: "bytes32" },
+      { name: "_name", type: "string" },
+      { name: "_version", type: "string" },
+      { name: "_description", type: "string" },
+      { name: "_capabilities", type: "string[]" },
+      { name: "_inputSchema", type: "string" },
+      { name: "_outputSchema", type: "string" },
+      { name: "_minGasRequired", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "updateModelVersion",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "_modelHash", type: "bytes32" },
+      { name: "_newVersion", type: "string" },
+      { name: "_changes", type: "string" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "deprecateModel",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "_modelHash", type: "bytes32" }],
+    outputs: [],
+  },
+  {
+    name: "getModel",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "_modelHash", type: "bytes32" }],
+    outputs: [{ name: "", type: "tuple", components: [] }],
+  },
+  {
+    name: "getModelsByCapability",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "_capability", type: "string" }],
+    outputs: [{ name: "", type: "bytes32[]" }],
+  },
+  {
+    name: "getAllModels",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32[]" }],
+  },
+  {
+    name: "ModelRegistered",
+    type: "event",
+    inputs: [
+      { name: "modelHash", type: "bytes32", indexed: true },
+      { name: "author", type: "address", indexed: true },
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+    ],
+  },
+  {
+    name: "ModelUpdated",
+    type: "event",
+    inputs: [
+      { name: "modelHash", type: "bytes32", indexed: true },
+      { name: "newVersion", type: "string" },
+      { name: "timestamp", type: "uint256" },
+    ],
+  },
+  {
+    name: "ModelDeprecated",
+    type: "event",
+    inputs: [
+      { name: "modelHash", type: "bytes32", indexed: true },
+      { name: "deprecatedAt", type: "uint256" },
+    ],
+  },
+];
 
 export class ModelRegistry {
-  private registry: Map<string, ModelRegistryEntry>;
-  private modelsByCapability: Map<string, Set<string>>;
-  private modelsByOwner: Map<string, Set<string>>;
-  private eventLog: RegistryEvent[];
-  private contractAddress?: string;
-  private contract?: Contract;
-  private signer?: ethers.Signer;
-  private maxVersionHistory: number = 50;
+  private contract: Contract;
+  private signer: Signer;
+  private logger: Logger;
+  private cache: CacheManager;
+  private registryAddress: string;
+  private localRegistry: Map<string, RegisteredModel>;
 
-  constructor() {
-    this.registry = new Map();
-    this.modelsByCapability = new Map();
-    this.modelsByOwner = new Map();
-    this.eventLog = [];
+  constructor(
+    registryAddress: string,
+    signer: Signer,
+    logger: Logger,
+    cacheManager: CacheManager
+  ) {
+    this.registryAddress = registryAddress;
+    this.signer = signer;
+    this.logger = logger;
+    this.cache = cacheManager;
+    this.localRegistry = new Map();
+
+    this.contract = new Contract(
+      registryAddress,
+      MODEL_REGISTRY_ABI,
+      signer
+    );
+
+    this.setupEventListeners();
   }
 
-  async initialize(contractAddress: string, signer: ethers.Signer): Promise<void> {
-    this.contractAddress = contractAddress;
-    this.signer = signer;
-    const abi = this.getContractABI();
-    this.contract = new Contract(contractAddress, abi, signer);
-    await this.syncFromChain();
+  private setupEventListeners(): void {
+    const modelRegisteredFilter = this.contract.filters.ModelRegistered?.() as EventFilter;
+    const modelUpdatedFilter = this.contract.filters.ModelUpdated?.() as EventFilter;
+    const modelDeprecatedFilter = this.contract.filters.ModelDeprecated?.() as EventFilter;
+
+    if (modelRegisteredFilter) {
+      this.contract.on(modelRegisteredFilter, (modelHash, author, name, version) => {
+        this.logger.info(`Model registered: ${name} v${version}`);
+        this.cache.invalidate(`model:${modelHash}`);
+      });
+    }
+
+    if (modelUpdatedFilter) {
+      this.contract.on(modelUpdatedFilter, (modelHash, newVersion) => {
+        this.logger.info(`Model updated: ${modelHash} to v${newVersion}`);
+        this.cache.invalidate(`model:${modelHash}`);
+      });
+    }
+
+    if (modelDeprecatedFilter) {
+      this.contract.on(modelDeprecatedFilter, (modelHash) => {
+        this.logger.info(`Model deprecated: ${modelHash}`);
+        this.cache.invalidate(`model:${modelHash}`);
+      });
+    }
   }
 
   async registerModel(metadata: ModelMetadata): Promise<string> {
-    const modelId = this.generateModelId(metadata.modelHash);
+    try {
+      const modelHash = this.computeModelHash(metadata);
 
-    if (this.registry.has(modelId)) {
-      throw new Error(`Model with ID ${modelId} already registered`);
-    }
-
-    if (!this.validateMetadata(metadata)) {
-      throw new Error('Invalid model metadata');
-    }
-
-    const entry: ModelRegistryEntry = {
-      id: modelId,
-      metadata,
-      versionHistory: [
-        {
-          version: metadata.version,
-          modelHash: metadata.modelHash,
-          timestamp: Date.now(),
-          changelog: 'Initial registration',
-        },
-      ],
-      accessControl: {
-        isPublic: true,
-        allowedAddresses: new Set([metadata.owner]),
-      },
-    };
-
-    this.registry.set(modelId, entry);
-
-    for (const capability of metadata.capabilities) {
-      if (!this.modelsByCapability.has(capability)) {
-        this.modelsByCapability.set(capability, new Set());
-      }
-      this.modelsByCapability.get(capability)!.add(modelId);
-    }
-
-    if (!this.modelsByOwner.has(metadata.owner)) {
-      this.modelsByOwner.set(metadata.owner, new Set());
-    }
-    this.modelsByOwner.get(metadata.owner)!.add(modelId);
-
-    this.logEvent({
-      type: 'register',
-      modelId,
-      timestamp: Date.now(),
-      actor: metadata.owner,
-      details: { metadata },
-    });
-
-    if (this.contract && this.signer) {
-      await this.publishToChain(modelId, metadata);
-    }
-
-    return modelId;
-  }
-
-  async updateModel(modelId: string, updates: Partial<ModelMetadata>): Promise<void> {
-    const entry = this.registry.get(modelId);
-    if (!entry) {
-      throw new Error(`Model ${modelId} not found`);
-    }
-
-    const previousMetadata = { ...entry.metadata };
-    const updatedMetadata = { ...entry.metadata, ...updates };
-
-    if (!this.validateMetadata(updatedMetadata)) {
-      throw new Error('Invalid updated metadata');
-    }
-
-    entry.metadata = updatedMetadata;
-
-    if (updates.version && updates.version !== previousMetadata.version) {
-      entry.versionHistory.push({
-        version: updates.version,
-        modelHash: updates.modelHash || previousMetadata.modelHash,
-        timestamp: Date.now(),
-        changelog: updates.description || 'Version update',
-      });
-
-      if (entry.versionHistory.length > this.maxVersionHistory) {
-        entry.versionHistory.shift();
-      }
-    }
-
-    if (updates.capabilities) {
-      for (const oldCap of previousMetadata.capabilities) {
-        this.modelsByCapability.get(oldCap)?.delete(modelId);
+      const existingModel = this.localRegistry.get(modelHash);
+      if (existingModel) {
+        throw new Error(`Model already registered: ${modelHash}`);
       }
 
-      for (const newCap of updates.capabilities) {
-        if (!this.modelsByCapability.has(newCap)) {
-          this.modelsByCapability.set(newCap, new Set());
-        }
-        this.modelsByCapability.get(newCap)!.add(modelId);
-      }
-    }
+      const inputSchemaJson = JSON.stringify(metadata.inputSchema);
+      const outputSchemaJson = JSON.stringify(metadata.outputSchema);
 
-    this.logEvent({
-      type: 'update',
-      modelId,
-      timestamp: Date.now(),
-      actor: updatedMetadata.owner,
-      details: { previousMetadata, updates },
-    });
-
-    if (this.contract && this.signer) {
-      await this.publishToChain(modelId, updatedMetadata);
-    }
-  }
-
-  deprecateModel(modelId: string, reason?: string): void {
-    const entry = this.registry.get(modelId);
-    if (!entry) {
-      throw new Error(`Model ${modelId} not found`);
-    }
-
-    entry.metadata.deprecated = true;
-    entry.metadata.updatedAt = Date.now();
-
-    this.logEvent({
-      type: 'deprecate',
-      modelId,
-      timestamp: Date.now(),
-      actor: entry.metadata.owner,
-      details: { reason: reason || 'No reason provided' },
-    });
-  }
-
-  lookupByCapability(capability: string): ModelMetadata[] {
-    const modelIds = this.modelsByCapability.get(capability);
-    if (!modelIds) {
-      return [];
-    }
-
-    return Array.from(modelIds)
-      .map((id) => this.registry.get(id)?.metadata)
-      .filter((metadata): metadata is ModelMetadata => metadata !== undefined && !metadata.deprecated);
-  }
-
-  lookupByCapabilities(capabilities: string[], matchAll: boolean = false): ModelMetadata[] {
-    const results = capabilities.map((cap) => this.lookupByCapability(cap));
-
-    if (matchAll) {
-      const modelIdSets = results.map((models) => new Set(models.map((m) => m.modelHash)));
-      const intersection = Array.from(modelIdSets[0] || []).filter((id) =>
-        modelIdSets.every((set) => set.has(id))
+      const tx = await this.contract.registerModel(
+        modelHash,
+        metadata.name,
+        metadata.version,
+        metadata.description,
+        metadata.capabilities,
+        inputSchemaJson,
+        outputSchemaJson,
+        metadata.minGasRequired
       );
-      return Array.from(intersection)
-        .map((hash) => Array.from(this.registry.values()).find((e) => e.metadata.modelHash === hash)?.metadata)
-        .filter((metadata): metadata is ModelMetadata => metadata !== undefined);
-    }
 
-    const combined = new Map<string, ModelMetadata>();
-    for (const models of results) {
-      for (const model of models) {
-        combined.set(model.modelHash, model);
-      }
+      const receipt = await tx.wait();
+
+      const signerAddress = await this.signer.getAddress();
+
+      const registeredModel: RegisteredModel = {
+        modelHash,
+        metadata,
+        registeredAt: Math.floor(Date.now() / 1000),
+        registeredBy: signerAddress,
+        isActive: true,
+        versionHistory: [
+          {
+            version: metadata.version,
+            hash: modelHash,
+            timestamp: Math.floor(Date.now() / 1000),
+            changes: "Initial registration",
+          },
+        ],
+      };
+
+      this.localRegistry.set(modelHash, registeredModel);
+      this.cache.set(`model:${modelHash}`, registeredModel, 3600);
+
+      this.logger.info(
+        `Model registered successfully: ${metadata.name} (${modelHash})`
+      );
+
+      return modelHash;
+    } catch (error) {
+      this.logger.error(`Failed to register model: ${error}`);
+      throw error;
     }
-    return Array.from(combined.values());
   }
 
-  lookupById(modelId: string): ModelMetadata | null {
-    return this.registry.get(modelId)?.metadata || null;
-  }
-
-  lookupByHash(modelHash: string): ModelMetadata | null {
-    for (const entry of this.registry.values()) {
-      if (entry
+  async updateModelVersion(
+    modelHash: string,
+    newVersion: string,
+    changes: string
+  ): Promise<void> {
+    try {
+      const model = this.localRegistry.get(modelHash);
+      if (!model)
