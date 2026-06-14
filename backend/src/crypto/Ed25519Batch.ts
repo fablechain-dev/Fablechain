@@ -1,252 +1,259 @@
 ```typescript
-import { Ed25519Signature, Ed25519PublicKey } from '@noble/ed25519';
-import crypto from 'crypto';
-import { Buffer } from 'buffer';
+import * as sodium from 'libsodium.js';
+import { Logger } from '../utils/Logger';
 
-export interface SignatureVerificationInput {
-  message: Buffer;
+export interface SignatureData {
   signature: Buffer;
   publicKey: Buffer;
-  index: number;
+  message: Buffer;
 }
 
 export interface BatchVerificationResult {
-  valid: boolean;
+  isValid: boolean;
   failedIndices: number[];
-  totalVerified: number;
-  processingTimeMs: number;
+  errorMessage?: string;
+  verificationTimeMs: number;
 }
 
 export interface BatchVerificationOptions {
-  maxParallelism?: number;
-  timeoutMs?: number;
-  throwOnFirstFailure?: boolean;
+  throwOnFailure?: boolean;
+  maxConcurrency?: number;
+  timeout?: number;
 }
 
-const DEFAULT_MAX_PARALLELISM = 16;
-const DEFAULT_TIMEOUT_MS = 30000;
-const ED25519_PUBLIC_KEY_LENGTH = 32;
-const ED25519_SIGNATURE_LENGTH = 64;
+const DEFAULT_MAX_CONCURRENCY = 8;
+const DEFAULT_TIMEOUT = 30000;
 
 export class Ed25519Batch {
-  private maxParallelism: number;
-  private timeoutMs: number;
+  private readonly logger: Logger;
+  private readonly libsodium: typeof sodium;
+  private isInitialized: boolean = false;
 
-  constructor(options?: BatchVerificationOptions) {
-    this.maxParallelism = options?.maxParallelism ?? DEFAULT_MAX_PARALLELISM;
-    this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  constructor(logger?: Logger) {
+    this.logger = logger || new Logger('Ed25519Batch');
+    this.libsodium = sodium;
+  }
 
-    if (this.maxParallelism < 1 || this.maxParallelism > 256) {
-      throw new Error('maxParallelism must be between 1 and 256');
+  async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      return;
     }
 
-    if (this.timeoutMs < 1000) {
-      throw new Error('timeoutMs must be at least 1000');
+    try {
+      await this.libsodium.ready;
+      this.isInitialized = true;
+      this.logger.debug('Ed25519Batch initialized successfully');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to initialize Ed25519Batch: ${errorMessage}`);
+      throw new Error(`Ed25519Batch initialization failed: ${errorMessage}`);
     }
   }
 
   async verifyBatch(
-    inputs: SignatureVerificationInput[],
-    options?: BatchVerificationOptions
+    signatures: SignatureData[],
+    options: BatchVerificationOptions = {}
   ): Promise<BatchVerificationResult> {
     const startTime = Date.now();
-    const effectiveOptions = {
-      maxParallelism: options?.maxParallelism ?? this.maxParallelism,
-      timeoutMs: options?.timeoutMs ?? this.timeoutMs,
-      throwOnFirstFailure: options?.throwOnFirstFailure ?? false,
-    };
+    const {
+      throwOnFailure = true,
+      maxConcurrency = DEFAULT_MAX_CONCURRENCY,
+      timeout = DEFAULT_TIMEOUT,
+    } = options;
 
-    if (inputs.length === 0) {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    if (!Array.isArray(signatures) || signatures.length === 0) {
       return {
-        valid: true,
+        isValid: false,
         failedIndices: [],
-        totalVerified: 0,
-        processingTimeMs: 0,
+        errorMessage: 'Invalid or empty signatures array',
+        verificationTimeMs: Date.now() - startTime,
       };
     }
 
-    this.validateInputs(inputs);
+    try {
+      const failedIndices = await this.performBatchVerification(
+        signatures,
+        maxConcurrency,
+        timeout
+      );
 
+      const isValid = failedIndices.length === 0;
+
+      if (!isValid && throwOnFailure) {
+        const errorMessage = `Batch verification failed at indices: ${failedIndices.join(', ')}`;
+        this.logger.warn(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      const result: BatchVerificationResult = {
+        isValid,
+        failedIndices,
+        verificationTimeMs: Date.now() - startTime,
+      };
+
+      this.logger.debug(
+        `Batch verification completed: ${signatures.length} signatures, ` +
+        `${failedIndices.length} failed, ${result.verificationTimeMs}ms`
+      );
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Batch verification error: ${errorMessage}`);
+
+      return {
+        isValid: false,
+        failedIndices: Array.from({ length: signatures.length }, (_, i) => i),
+        errorMessage: `Verification error: ${errorMessage}`,
+        verificationTimeMs: Date.now() - startTime,
+      };
+    }
+  }
+
+  private async performBatchVerification(
+    signatures: SignatureData[],
+    maxConcurrency: number,
+    timeout: number
+  ): Promise<number[]> {
     const failedIndices: number[] = [];
-    const chunks = this.chunkArray(inputs, effectiveOptions.maxParallelism);
+    const verificationPromises: Promise<{ index: number; isValid: boolean }[]>[] = [];
+
+    for (let i = 0; i < signatures.length; i += maxConcurrency) {
+      const batch = signatures.slice(i, i + maxConcurrency);
+      const batchStartIndex = i;
+
+      const batchPromise = Promise.race([
+        this.verifyBatchSegment(batch, batchStartIndex),
+        this.createTimeoutPromise(timeout),
+      ]);
+
+      verificationPromises.push(batchPromise as Promise<{ index: number; isValid: boolean }[]>);
+    }
 
     try {
-      for (const chunk of chunks) {
-        const verificationPromises = chunk.map((input) =>
-          this.verifySingleWithTimeout(input, effectiveOptions.timeoutMs)
+      const results = await Promise.all(verificationPromises);
+
+      for (const batchResults of results) {
+        for (const result of batchResults) {
+          if (!result.isValid) {
+            failedIndices.push(result.index);
+          }
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('timeout')) {
+        throw new Error(`Batch verification timeout after ${timeout}ms`);
+      }
+      throw error;
+    }
+
+    return failedIndices.sort((a, b) => a - b);
+  }
+
+  private async verifyBatchSegment(
+    batch: SignatureData[],
+    startIndex: number
+  ): Promise<{ index: number; isValid: boolean }[]> {
+    const results: { index: number; isValid: boolean }[] = [];
+
+    for (let i = 0; i < batch.length; i++) {
+      const sig = batch[i];
+      const globalIndex = startIndex + i;
+
+      try {
+        this.validateSignatureData(sig);
+
+        const isValid = this.libsodium.crypto_sign_open(
+          sig.message,
+          sig.signature,
+          sig.publicKey
         );
 
-        const results = await Promise.all(verificationPromises);
-
-        results.forEach((result, chunkIndex) => {
-          if (!result.valid) {
-            const globalIndex = inputs.indexOf(chunk[chunkIndex]);
-            failedIndices.push(globalIndex);
-
-            if (effectiveOptions.throwOnFirstFailure) {
-              throw new BatchVerificationError(
-                `Signature verification failed at index ${globalIndex}`,
-                globalIndex,
-                failedIndices
-              );
-            }
-          }
+        results.push({
+          index: globalIndex,
+          isValid: isValid !== null && isValid !== undefined,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Signature verification failed at index ${globalIndex}: ` +
+          `${error instanceof Error ? error.message : String(error)}`
+        );
+        results.push({
+          index: globalIndex,
+          isValid: false,
         });
       }
+    }
 
-      const processingTimeMs = Date.now() - startTime;
+    return results;
+  }
 
-      return {
-        valid: failedIndices.length === 0,
-        failedIndices,
-        totalVerified: inputs.length,
-        processingTimeMs,
-      };
-    } catch (error) {
-      const processingTimeMs = Date.now() - startTime;
+  private validateSignatureData(data: SignatureData): void {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid signature data structure');
+    }
 
-      if (error instanceof BatchVerificationError) {
-        throw error;
-      }
+    if (!Buffer.isBuffer(data.signature)) {
+      throw new Error('Signature must be a Buffer');
+    }
 
-      throw new BatchVerificationError(
-        `Batch verification failed: ${error instanceof Error ? error.message : String(error)}`,
-        -1,
-        failedIndices,
-        processingTimeMs
+    if (!Buffer.isBuffer(data.publicKey)) {
+      throw new Error('Public key must be a Buffer');
+    }
+
+    if (!Buffer.isBuffer(data.message)) {
+      throw new Error('Message must be a Buffer');
+    }
+
+    const expectedSigLength = this.libsodium.crypto_sign_BYTES;
+    const expectedPkLength = this.libsodium.crypto_sign_PUBLICKEYBYTES;
+
+    if (data.signature.length !== expectedSigLength) {
+      throw new Error(
+        `Invalid signature length: expected ${expectedSigLength}, got ${data.signature.length}`
       );
+    }
+
+    if (data.publicKey.length !== expectedPkLength) {
+      throw new Error(
+        `Invalid public key length: expected ${expectedPkLength}, got ${data.publicKey.length}`
+      );
+    }
+
+    if (data.message.length === 0) {
+      throw new Error('Message cannot be empty');
     }
   }
 
-  private async verifySingleWithTimeout(
-    input: SignatureVerificationInput,
-    timeoutMs: number
-  ): Promise<{ valid: boolean; index: number }> {
-    const timeoutPromise = new Promise<{ valid: boolean; index: number }>(
-      (_, reject) =>
-        setTimeout(
-          () =>
-            reject(
-              new Error(
-                `Signature verification timeout for index ${input.index}`
-              )
-            ),
-          timeoutMs
-        )
-    );
-
-    const verificationPromise = this.verifySingle(input);
-
-    return Promise.race([verificationPromise, timeoutPromise]);
+  private createTimeoutPromise(timeout: number): Promise<never> {
+    return new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`timeout`));
+      }, timeout);
+    });
   }
 
-  private async verifySingle(
-    input: SignatureVerificationInput
-  ): Promise<{ valid: boolean; index: number }> {
-    try {
-      const isValid = await this.ed25519Verify(
-        input.signature,
-        input.message,
-        input.publicKey
-      );
-
-      return {
-        valid: isValid,
-        index: input.index,
-      };
-    } catch (error) {
-      return {
-        valid: false,
-        index: input.index,
-      };
-    }
-  }
-
-  private async ed25519Verify(
+  verifySingle(
     signature: Buffer,
-    message: Buffer,
-    publicKey: Buffer
-  ): Promise<boolean> {
+    publicKey: Buffer,
+    message: Buffer
+  ): boolean {
+    if (!this.isInitialized) {
+      throw new Error('Ed25519Batch not initialized. Call initialize() first.');
+    }
+
     try {
-      // Using Ed25519 verification from crypto module
-      // In production, integrate with @noble/ed25519 or similar
-      const verifier = crypto.createVerify('ed25519');
-      verifier.update(message);
+      this.validateSignatureData({ signature, publicKey, message });
 
-      return verifier.verify(publicKey, signature);
-    } catch (error) {
-      return false;
-    }
-  }
+      const result = this.libsodium.crypto_sign_open(
+        message,
+        signature,
+        publicKey
+      );
 
-  private validateInputs(inputs: SignatureVerificationInput[]): void {
-    for (let i = 0; i < inputs.length; i++) {
-      const input = inputs[i];
-
-      if (!input.message || !Buffer.isBuffer(input.message)) {
-        throw new Error(`Input ${i}: message must be a Buffer`);
-      }
-
-      if (!input.signature || !Buffer.isBuffer(input.signature)) {
-        throw new Error(`Input ${i}: signature must be a Buffer`);
-      }
-
-      if (input.signature.length !== ED25519_SIGNATURE_LENGTH) {
-        throw new Error(
-          `Input ${i}: signature must be exactly ${ED25519_SIGNATURE_LENGTH} bytes, got ${input.signature.length}`
-        );
-      }
-
-      if (!input.publicKey || !Buffer.isBuffer(input.publicKey)) {
-        throw new Error(`Input ${i}: publicKey must be a Buffer`);
-      }
-
-      if (input.publicKey.length !== ED25519_PUBLIC_KEY_LENGTH) {
-        throw new Error(
-          `Input ${i}: publicKey must be exactly ${ED25519_PUBLIC_KEY_LENGTH} bytes, got ${input.publicKey.length}`
-        );
-      }
-
-      if (!Number.isInteger(input.index) || input.index < 0) {
-        throw new Error(`Input ${i}: index must be a non-negative integer`);
-      }
-    }
-  }
-
-  private chunkArray<T>(array: T[], chunkSize: number): T[][] {
-    const chunks: T[][] = [];
-
-    for (let i = 0; i < array.length; i += chunkSize) {
-      chunks.push(array.slice(i, i + chunkSize));
-    }
-
-    return chunks;
-  }
-
-  setMaxParallelism(maxParallelism: number): void {
-    if (maxParallelism < 1 || maxParallelism > 256) {
-      throw new Error('maxParallelism must be between 1 and 256');
-    }
-
-    this.maxParallelism = maxParallelism;
-  }
-
-  setTimeoutMs(timeoutMs: number): void {
-    if (timeoutMs < 1000) {
-      throw new Error('timeoutMs must be at least 1000');
-    }
-
-    this.timeoutMs = timeoutMs;
-  }
-}
-
-export class BatchVerificationError extends Error {
-  constructor(
-    message: string,
-    public failedIndex: number,
-    public failedIndices: number[],
-    public processingTimeMs?: number
-  ) {
-    super(message);
-    this.name = 'BatchVerificationError';
-    Object.setPrototypeOf(this, BatchVerificationError
+      return result !== null && result
