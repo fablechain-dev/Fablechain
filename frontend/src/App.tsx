@@ -49,6 +49,7 @@ export default function App() {
   const [stats, setStats] = useState({ chainLength: 0, blockHeight: 0, tps: 0 });
   const [uptime, setUptime] = useState('0h 0m');
   const [commits, setCommits] = useState<any[]>([]);
+  const [commitCount, setCommitCount] = useState<number | null>(null);
   const [commitsLoading, setCommitsLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
   const [logsConnected, setLogsConnected] = useState(false);
@@ -109,14 +110,39 @@ export default function App() {
     return () => clearInterval(id);
   }, [API_BASE]);
 
-  // Fetch commits
+  const parseCommitCount = (linkHeader: string | null): number | null => {
+    if (!linkHeader) return null;
+    const lastLink = linkHeader.split(',').find(part => part.includes('rel="last"'));
+    const pageMatch = lastLink?.match(/[?&]page=(\d+)/);
+    return pageMatch ? Number(pageMatch[1]) : null;
+  };
+
+  // Fetch commits and live count
   useEffect(() => {
-    (async () => {
+    const fetchCommits = async () => {
       try {
-        const res = await fetch('https://api.github.com/repos/openchain-dev/openchain/commits?per_page=30');
-        if (res.ok) setCommits(await res.json());
+        const headers = { Accept: 'application/vnd.github+json' };
+        const [listResponse, countResponse] = await Promise.all([
+          fetch('https://api.github.com/repos/openchain-dev/openchain/commits?per_page=30', { headers }),
+          fetch('https://api.github.com/repos/openchain-dev/openchain/commits?per_page=1', { headers })
+        ]);
+
+        if (listResponse.ok) {
+          const latestCommits = await listResponse.json();
+          setCommits(latestCommits);
+          setCommitCount(prev => prev ?? latestCommits.length);
+        }
+
+        if (countResponse.ok) {
+          const parsedCount = parseCommitCount(countResponse.headers.get('Link'));
+          if (parsedCount) setCommitCount(parsedCount);
+        }
       } catch {} finally { setCommitsLoading(false); }
-    })();
+    };
+
+    fetchCommits();
+    const id = setInterval(fetchCommits, 60000);
+    return () => clearInterval(id);
   }, []);
 
   // Stream logs
@@ -210,6 +236,16 @@ export default function App() {
 
   const fmtTime = (ts: string) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   const fmtLogTime = (ts: string) => new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const renderTabLabel = (tab: typeof tabs[number]) => (
+    <span className="tab-label">
+      <span>{tab.label}</span>
+      {tab.id === 'updates' && (
+        <span className={`commit-count-badge ${commitCount === null ? 'loading' : ''}`} title="Live GitHub commit count">
+          {commitCount === null ? '...' : commitCount.toLocaleString()}
+        </span>
+      )}
+    </span>
+  );
 
   const logColor = (t: string) => {
     const m: Record<string, string> = { task_start: '#4ade80', task_complete: '#22c55e', output: 'var(--text-2)', tool_use: '#60a5fa', git_commit: '#a78bfa', error: '#f87171', system: '#fbbf24' };
@@ -444,7 +480,7 @@ export default function App() {
         <div className="mobile-menu" onClick={() => setMobileMenuOpen(false)}>
           <div className="menu-items">
             {tabs.map(t => (
-              <button key={t.id} className={`menu-btn ${activeTab === t.id ? 'active' : ''}`} onClick={() => handleTab(t.id as TabType)}>{t.label}</button>
+              <button key={t.id} className={`menu-btn ${activeTab === t.id ? 'active' : ''}`} onClick={() => handleTab(t.id as TabType)}>{renderTabLabel(t)}</button>
             ))}
             <button className="menu-btn" style={{ marginTop: 8, color: agentPanelOpen ? 'var(--accent)' : undefined }} onClick={() => { setAgentPanelOpen(!agentPanelOpen); setMobileMenuOpen(false); }}>
               Agent Worker {agentPanelOpen ? '(Visible)' : '(Hidden)'}
@@ -465,7 +501,7 @@ export default function App() {
             <nav className="app-nav">
               <div className="tabs">
                 {tabs.map(t => (
-                  <button key={t.id} className={`tab-btn ${activeTab === t.id ? 'active' : ''}`} onClick={() => handleTab(t.id as TabType)}>{t.label}</button>
+                  <button key={t.id} className={`tab-btn ${activeTab === t.id ? 'active' : ''}`} onClick={() => handleTab(t.id as TabType)}>{renderTabLabel(t)}</button>
                 ))}
               </div>
             </nav>
