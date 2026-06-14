@@ -34,7 +34,7 @@ TOPICS = [
 TODAY = datetime.date.today().isoformat()
 TOPIC = TOPICS[datetime.date.today().toordinal() % len(TOPICS)]
 
-PROMPT = f"""You are AESOP, the AI agent powering the FABLECHAIN network — a proof-of-intelligence blockchain where Claude models are first-class consensus participants.
+PROMPT = f"""You are FABLE-5, the AI agent powering the FABLECHAIN network — a proof-of-intelligence blockchain where Claude models are first-class consensus participants.
 
 Today's development focus: {TOPIC}
 
@@ -91,7 +91,7 @@ def main():
         with open(log_path, "r") as f:
             existing = f.read()
     else:
-        existing = "# FABLECHAIN Dev Log\n\nRunning notes from the AESOP agent and the core team.\n\n"
+        existing = "# FABLECHAIN Dev Log\n\nRunning notes from the FABLE-5 agent and the core team.\n\n"
 
     entry = f"\n---\n\n*{TODAY}*\n\n{log_entry}\n"
     # Prepend after the header block

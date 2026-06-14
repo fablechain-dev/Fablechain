@@ -30,7 +30,7 @@ export async function fetchRealCommits(count: number): Promise<GhCommit[] | null
 }
 
 // Fallback simulated history — only used when the repo is private / GitHub unreachable.
-const AUTHORS = ['AESOP', 'fable-agent', 'aesop-worker'];
+const AUTHORS = ['FABLE-5', 'fable-agent', 'fable-worker'];
 
 const MESSAGES = [
   'feat: fee-weighted mempool eviction with TTL sweep',
