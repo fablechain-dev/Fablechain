@@ -1,6 +1,6 @@
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -8,162 +8,169 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 /// @title FableStaking
-/// @notice A staking contract for FABLE tokens with 14-day unbonding period and reward distribution
-/// @dev Implements stake, unstake, claim rewards, and slash functionality
+/// @notice Staking contract for FABLE token with 14-day unbonding period
+/// @dev Implements stake, unstake, slash, and reward claiming mechanisms
 contract FableStaking is ReentrancyGuard, Ownable, Pausable {
-    
     IERC20 public fableToken;
-    
+
     uint256 public constant UNBONDING_PERIOD = 14 days;
-    uint256 public constant MAX_SLASH_PERCENTAGE = 10000; // 100.00%
-    uint256 public rewardRate = 100; // 1% per year (10000 = 100%)
+    uint256 public constant SLASH_DENOMINATOR = 10000;
+
     uint256 public totalStaked;
-    uint256 public totalRewardsPool;
-    
-    struct StakePosition {
-        uint256 amount;
-        uint256 stakedAt;
-        uint256 lastRewardClaim;
-        uint256 accumulatedRewards;
-    }
-    
-    struct UnbondingPosition {
-        uint256 amount;
-        uint256 unbondingStartTime;
-    }
-    
-    mapping(address => StakePosition) public stakes;
-    mapping(address => UnbondingPosition[]) public unbondings;
+    uint256 public rewardsPerSecond;
+    uint256 public lastRewardTime;
+    uint256 public accumulatedRewardsPerShare;
+
+    mapping(address => uint256) public stakedBalance;
+    mapping(address => uint256) public rewardDebt;
+    mapping(address => UnbondingRequest[]) public unbondingRequests;
     mapping(address => bool) public slashers;
-    
-    event Staked(address indexed staker, uint256 amount, uint256 timestamp);
-    event UnstakeInitiated(address indexed staker, uint256 amount, uint256 unbondingTime);
-    event Unstaked(address indexed staker, uint256 amount, uint256 timestamp);
-    event RewardsClaimed(address indexed staker, uint256 rewardAmount, uint256 timestamp);
-    event RewardsDeposited(address indexed depositor, uint256 amount, uint256 timestamp);
-    event Slashed(address indexed slashedStaker, uint256 slashAmount, uint256 slashPercentage, address indexed slasher);
-    event RewardRateUpdated(uint256 newRate, uint256 timestamp);
-    event SlasherAdded(address indexed slasher, uint256 timestamp);
-    event SlasherRemoved(address indexed slasher, uint256 timestamp);
-    
+
+    struct UnbondingRequest {
+        uint256 amount;
+        uint256 unlockTime;
+    }
+
+    event Staked(address indexed user, uint256 amount);
+    event UnstakeInitiated(address indexed user, uint256 amount, uint256 unlockTime);
+    event Unstaked(address indexed user, uint256 amount);
+    event RewardsClaimed(address indexed user, uint256 amount);
+    event Slashed(address indexed user, uint256 amount, uint256 percentage);
+    event RewardsPerSecondUpdated(uint256 newRate);
+    event SlasherAdded(address indexed slasher);
+    event SlasherRemoved(address indexed slasher);
+
     modifier onlySlasher() {
-        require(slashers[msg.sender], "FableStaking: caller is not a slasher");
+        require(slashers[msg.sender] || msg.sender == owner(), "Not authorized to slash");
         _;
     }
-    
-    constructor(address _fableToken) {
-        require(_fableToken != address(0), "FableStaking: invalid token address");
+
+    constructor(address _fableToken, uint256 _rewardsPerSecond) {
+        require(_fableToken != address(0), "Invalid token address");
         fableToken = IERC20(_fableToken);
-        slashers[msg.sender] = true;
+        rewardsPerSecond = _rewardsPerSecond;
+        lastRewardTime = block.timestamp;
+        accumulatedRewardsPerShare = 0;
     }
-    
+
     /// @notice Stake FABLE tokens
-    /// @param _amount The amount of tokens to stake
+    /// @param _amount Amount of FABLE tokens to stake
     function stake(uint256 _amount) external nonReentrant whenNotPaused {
-        require(_amount > 0, "FableStaking: stake amount must be greater than 0");
+        require(_amount > 0, "Stake amount must be greater than zero");
         require(
             fableToken.transferFrom(msg.sender, address(this), _amount),
-            "FableStaking: transfer failed"
+            "Token transfer failed"
         );
-        
-        // Claim pending rewards if staker has existing position
-        if (stakes[msg.sender].amount > 0) {
-            _claimRewards();
+
+        updateRewards();
+
+        if (stakedBalance[msg.sender] > 0) {
+            uint256 pending = (stakedBalance[msg.sender] * accumulatedRewardsPerShare) / 1e18 - rewardDebt[msg.sender];
+            if (pending > 0) {
+                rewardDebt[msg.sender] += pending;
+            }
         }
-        
-        stakes[msg.sender].amount += _amount;
-        stakes[msg.sender].stakedAt = block.timestamp;
-        if (stakes[msg.sender].lastRewardClaim == 0) {
-            stakes[msg.sender].lastRewardClaim = block.timestamp;
-        }
-        
+
+        stakedBalance[msg.sender] += _amount;
         totalStaked += _amount;
-        
-        emit Staked(msg.sender, _amount, block.timestamp);
+        rewardDebt[msg.sender] = (stakedBalance[msg.sender] * accumulatedRewardsPerShare) / 1e18;
+
+        emit Staked(msg.sender, _amount);
     }
-    
-    /// @notice Initiate unstaking process with 14-day unbonding period
-    /// @param _amount The amount of tokens to unstake
-    function unstakeInitiate(uint256 _amount) external nonReentrant {
-        require(_amount > 0, "FableStaking: unstake amount must be greater than 0");
-        require(stakes[msg.sender].amount >= _amount, "FableStaking: insufficient staked balance");
-        
-        // Claim pending rewards before unstaking
-        _claimRewards();
-        
-        stakes[msg.sender].amount -= _amount;
-        totalStaked -= _amount;
-        
-        unbondings[msg.sender].push(UnbondingPosition({
-            amount: _amount,
-            unbondingStartTime: block.timestamp
-        }));
-        
-        emit UnstakeInitiated(msg.sender, _amount, block.timestamp + UNBONDING_PERIOD);
-    }
-    
-    /// @notice Complete unstaking after unbonding period has passed
-    /// @param _unbondingIndex The index of the unbonding position to complete
-    function unstakeComplete(uint256 _unbondingIndex) external nonReentrant {
-        require(_unbondingIndex < unbondings[msg.sender].length, "FableStaking: invalid unbonding index");
-        
-        UnbondingPosition storage unbonding = unbondings[msg.sender][_unbondingIndex];
-        require(
-            block.timestamp >= unbonding.unbondingStartTime + UNBONDING_PERIOD,
-            "FableStaking: unbonding period not complete"
-        );
-        
-        uint256 amount = unbonding.amount;
-        
-        // Remove the unbonding position
-        unbondings[msg.sender][_unbondingIndex] = unbondings[msg.sender][unbondings[msg.sender].length - 1];
-        unbondings[msg.sender].pop();
-        
-        require(fableToken.transfer(msg.sender, amount), "FableStaking: transfer failed");
-        
-        emit Unstaked(msg.sender, amount, block.timestamp);
-    }
-    
-    /// @notice Calculate pending rewards for a staker
-    /// @param _staker The address to calculate rewards for
-    /// @return The amount of pending rewards
-    function getPendingRewards(address _staker) public view returns (uint256) {
-        StakePosition memory position = stakes[_staker];
-        if (position.amount == 0) {
-            return position.accumulatedRewards;
+
+    /// @notice Initiate unstaking with 14-day unbonding period
+    /// @param _amount Amount of FABLE tokens to unstake
+    function initiateUnstake(uint256 _amount) external nonReentrant {
+        require(_amount > 0, "Unstake amount must be greater than zero");
+        require(stakedBalance[msg.sender] >= _amount, "Insufficient staked balance");
+
+        updateRewards();
+
+        uint256 pending = (stakedBalance[msg.sender] * accumulatedRewardsPerShare) / 1e18 - rewardDebt[msg.sender];
+        if (pending > 0) {
+            rewardDebt[msg.sender] += pending;
         }
-        
-        uint256 timeSinceLastClaim = block.timestamp - position.lastRewardClaim;
-        uint256 rewardAmount = (position.amount * rewardRate * timeSinceLastClaim) / (365 days * 10000);
-        
-        return position.accumulatedRewards + rewardAmount;
+
+        stakedBalance[msg.sender] -= _amount;
+        totalStaked -= _amount;
+        rewardDebt[msg.sender] = (stakedBalance[msg.sender] * accumulatedRewardsPerShare) / 1e18;
+
+        uint256 unlockTime = block.timestamp + UNBONDING_PERIOD;
+        unbondingRequests[msg.sender].push(
+            UnbondingRequest({amount: _amount, unlockTime: unlockTime})
+        );
+
+        emit UnstakeInitiated(msg.sender, _amount, unlockTime);
     }
-    
+
+    /// @notice Complete unstaking after unbonding period
+    function completeUnstake() external nonReentrant {
+        UnbondingRequest[] storage requests = unbondingRequests[msg.sender];
+        require(requests.length > 0, "No unstaking requests");
+
+        uint256 totalUnstaked = 0;
+        uint256 requestsToRemove = 0;
+
+        for (uint256 i = 0; i < requests.length; i++) {
+            if (block.timestamp >= requests[i].unlockTime) {
+                totalUnstaked += requests[i].amount;
+                requestsToRemove++;
+            } else {
+                break;
+            }
+        }
+
+        require(totalUnstaked > 0, "No requests ready to unstake");
+
+        for (uint256 i = 0; i < requestsToRemove; i++) {
+            requests.pop();
+        }
+
+        require(fableToken.transfer(msg.sender, totalUnstaked), "Token transfer failed");
+
+        emit Unstaked(msg.sender, totalUnstaked);
+    }
+
     /// @notice Claim accumulated rewards
     function claimRewards() external nonReentrant whenNotPaused {
-        _claimRewards();
+        updateRewards();
+
+        uint256 pending = (stakedBalance[msg.sender] * accumulatedRewardsPerShare) / 1e18 - rewardDebt[msg.sender];
+        require(pending > 0, "No rewards to claim");
+
+        rewardDebt[msg.sender] = (stakedBalance[msg.sender] * accumulatedRewardsPerShare) / 1e18;
+
+        require(fableToken.transfer(msg.sender, pending), "Reward transfer failed");
+
+        emit RewardsClaimed(msg.sender, pending);
     }
-    
-    /// @dev Internal function to claim rewards
-    function _claimRewards() internal {
-        require(stakes[msg.sender].amount > 0, "FableStaking: no stake found");
-        
-        uint256 rewards = getPendingRewards(msg.sender);
-        require(rewards > 0, "FableStaking: no rewards to claim");
-        require(rewards <= totalRewardsPool, "FableStaking: insufficient reward pool");
-        
-        stakes[msg.sender].accumulatedRewards = 0;
-        stakes[msg.sender].lastRewardClaim = block.timestamp;
-        totalRewardsPool -= rewards;
-        
-        require(fableToken.transfer(msg.sender, rewards), "FableStaking: reward transfer failed");
-        
-        emit RewardsClaimed(msg.sender, rewards, block.timestamp);
+
+    /// @notice Slash a staker's balance
+    /// @param _user Address of the user to slash
+    /// @param _slashPercentage Percentage to slash (in basis points, e.g., 1000 = 10%)
+    function slash(address _user, uint256 _slashPercentage) external onlySlasher nonReentrant {
+        require(_user != address(0), "Invalid user address");
+        require(_slashPercentage > 0 && _slashPercentage <= SLASH_DENOMINATOR, "Invalid slash percentage");
+        require(stakedBalance[_user] > 0, "User has no staked balance");
+
+        updateRewards();
+
+        uint256 slashAmount = (stakedBalance[_user] * _slashPercentage) / SLASH_DENOMINATOR;
+        require(slashAmount > 0, "Slash amount must be greater than zero");
+
+        stakedBalance[_user] -= slashAmount;
+        totalStaked -= slashAmount;
+
+        uint256 rewardDebtReduction = (slashAmount * accumulatedRewardsPerShare) / 1e18;
+        if (rewardDebt[_user] > rewardDebtReduction) {
+            rewardDebt[_user] -= rewardDebtReduction;
+        } else {
+            rewardDebt[_user] = 0;
+        }
+
+        emit Slashed(_user, slashAmount, _slashPercentage);
     }
-    
-    /// @notice Deposit tokens into the reward pool
-    /// @param _amount The amount of tokens to deposit as rewards
-    function depositRewards(uint256 _amount) external nonReentrant {
-        require(_amount > 0, "FableStaking: deposit amount must be greater than 0");
-        require(
-            fableToken.transferFrom(msg.sender, address(this), _amount),
+
+    /// @notice Update rewards accumulation
+    function updateRewards() public {
+        if (block.timestamp
