@@ -248,7 +248,7 @@ const CIPSystem: React.FC = () => {
                   borderBottom: '2px solid #ff6600',
                   paddingBottom: '5px'
                 }}>
-                  🔥 LIVE DEBATE ({debatingCIPs.length})
+                  LIVE DEBATE ({debatingCIPs.length})
                 </div>
                 {debatingCIPs.map((cip) => (
                   <div key={cip.id} style={{ 
@@ -291,7 +291,7 @@ const CIPSystem: React.FC = () => {
                       <span>BY: {cip.author.toUpperCase()}</span>
                       <span>CATEGORY: {cip.category.toUpperCase()}</span>
                       <span style={{ color: '#ff6600', fontWeight: 'bold' }}>
-                        🔥 {cip.debateThread?.length || 0} MESSAGES LIVE
+                        {cip.debateThread?.length || 0} MESSAGES LIVE
                       </span>
                     </div>
                   </div>
@@ -358,7 +358,7 @@ const CIPSystem: React.FC = () => {
                   borderBottom: '2px solid #00ffff',
                   paddingBottom: '5px'
                 }}>
-                  📋 PROPOSED/PENDING ({draftCIPs.length})
+                  PROPOSED/PENDING ({draftCIPs.length})
                 </div>
                 {draftCIPs.map((cip) => (
                   <div key={cip.id} style={{ 

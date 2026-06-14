@@ -154,10 +154,6 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const getWalletIcon = (type: 'ethereum' | 'solana') => {
-    return type === 'ethereum' ? '🦊' : '👻';
-  };
-
   const getWalletName = (type: 'ethereum' | 'solana') => {
     return type === 'ethereum' ? 'MetaMask' : 'Phantom';
   };
@@ -165,7 +161,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
   return (
     <div className="wallet-connect-container">
       <h4 className="wallet-connect-header">
-        🔗 CONNECT TO OPENCHAIN
+        CONNECT TO OPENCHAIN
       </h4>
       
       {error && (
@@ -179,7 +175,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
           <div className="wallet-connected">
             <div className="wallet-status-indicator"></div>
             <span className="wallet-address">
-              Connected to OpenChain via {getWalletIcon(connectedWalletType!)} {getWalletName(connectedWalletType!)}: {formatAddress(connectedAddress)}
+              Connected to OpenChain via {getWalletName(connectedWalletType!)}: {formatAddress(connectedAddress)}
             </span>
           </div>
           
@@ -207,7 +203,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
                 borderColor: ethereumProvider ? '#00ff00' : '#333'
               }}
             >
-              🦊 CONNECT METAMASK
+              CONNECT METAMASK
             </button>
             
             <button
@@ -220,7 +216,7 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
                 borderColor: phantomProvider ? '#00ff00' : '#333'
               }}
             >
-              👻 CONNECT PHANTOM
+              CONNECT PHANTOM
             </button>
           </div>
           
@@ -233,4 +229,4 @@ const MultiWalletConnect: React.FC<MultiWalletConnectProps> = ({
   );
 };
 
-export default MultiWalletConnect; 
+export default MultiWalletConnect;

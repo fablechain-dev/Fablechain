@@ -89,7 +89,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
   return (
     <div className="wallet-connect-container">
       <h4 className="wallet-connect-header">
-        👻 CONNECT PHANTOM TO OPENCHAIN
+        CONNECT PHANTOM TO OPENCHAIN
       </h4>
       
       {error && (
@@ -130,7 +130,7 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
               borderColor: phantomProvider ? '#00ff00' : '#333'
             }}
           >
-            {isConnecting ? 'CONNECTING TO PHANTOM...' : '👻 CONNECT PHANTOM'}
+            {isConnecting ? 'CONNECTING TO PHANTOM...' : 'CONNECT PHANTOM'}
           </button>
           
           <div className="wallet-support-info">
@@ -142,4 +142,4 @@ const PhantomWalletConnect: React.FC<PhantomWalletConnectProps> = ({
   );
 };
 
-export default PhantomWalletConnect; 
+export default PhantomWalletConnect;

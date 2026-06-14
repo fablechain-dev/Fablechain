@@ -110,7 +110,7 @@ const AdminPanel: React.FC = () => {
         padding: '20px'
       }}>
         <h2 style={{ color: '#ff0000', fontSize: '16px', marginBottom: '20px' }}>
-          🔐 ADMIN ACCESS
+          ADMIN ACCESS
         </h2>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '400px' }}>
@@ -299,4 +299,4 @@ const AdminPanel: React.FC = () => {
   );
 };
 
-export default AdminPanel; 
+export default AdminPanel;

@@ -88,7 +88,7 @@ export const CIPSubmit: React.FC = () => {
             SUBMIT YOUR OWN CIP
           </h3>
           <p style={{ color: 'var(--cc-text-muted)', margin: '5px 0 0', fontSize: '11px' }}>
-            Propose improvements for OpenChain — AI validators will debate your ideas
+            Propose improvements for OpenChain - AI validators will debate your ideas
           </p>
         </div>
         <button
@@ -125,12 +125,12 @@ export const CIPSubmit: React.FC = () => {
                 fontWeight: 600,
                 marginBottom: result.reason ? '8px' : 0
               }}>
-                {result.success ? `✓ ${result.message}` : `✗ ${result.error}`}
+                {result.success ? `[OK] ${result.message}` : `[ERR] ${result.error}`}
               </div>
               {result.success && result.cipId && (
                 <div style={{ color: 'var(--cc-text-secondary)', marginTop: '4px' }}>
                   CIP ID: <span style={{ color: 'var(--cc-coral)' }}>{result.cipId}</span>
-                  {result.score && <span> • Quality Score: {result.score}/10</span>}
+                  {result.score && <span> / Quality Score: {result.score}/10</span>}
                 </div>
               )}
               {result.reason && (
@@ -254,11 +254,11 @@ export const CIPSubmit: React.FC = () => {
               onChange={e => setDetails(e.target.value)}
               placeholder={`Explain your proposal in detail:
 
-• What problem does this solve?
-• How would it work technically?
-• What are the benefits for OpenChain?
-• Are there any risks or tradeoffs?
-• How should AI validators evaluate this?
+- What problem does this solve?
+- How would it work technically?
+- What are the benefits for OpenChain?
+- Are there any risks or tradeoffs?
+- How should AI validators evaluate this?
 
 The more detail you provide, the better the AI debate will be.`}
               rows={10}
@@ -344,4 +344,3 @@ The more detail you provide, the better the AI debate will be.`}
 };
 
 export default CIPSubmit;
-

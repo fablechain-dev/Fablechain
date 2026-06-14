@@ -9,7 +9,6 @@ export interface ValidatorConfig {
   model: string;
   provider: string;
   role: string;
-  emoji: string;
   color: string;
   description: string;
 }
@@ -17,61 +16,55 @@ export interface ValidatorConfig {
 export const AGENT_VALIDATORS: Record<string, ValidatorConfig> = {
   claude_validator: {
     id: 'claude_validator',
-    name: 'OPEN VALIDATOR',
+    name: 'OPENCHAIN VALIDATOR',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Block Validator',
-    emoji: '◆',
     color: '#FF8C42',
     description: 'Ensures transaction integrity and block validity across the OpenChain network.'
   },
   claude_architect: {
     id: 'claude_architect',
-    name: 'OPEN ARCHITECT',
+    name: 'OPENCHAIN ARCHITECT',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Protocol Architect',
-    emoji: '◆',
     color: '#FF8C42',
     description: 'Designs and evolves OpenChain protocol, implementing CIPs and upgrades.'
   },
   claude_analyst: {
     id: 'claude_analyst',
-    name: 'OPEN ANALYST',
+    name: 'OPENCHAIN ANALYST',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Chain Analyst',
-    emoji: '◆',
     color: '#FF8C42',
     description: 'Monitors network health, performance metrics, and chain state.'
   },
   claude_reviewer: {
     id: 'claude_reviewer',
-    name: 'OPEN REVIEWER',
+    name: 'OPENCHAIN REVIEWER',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Code Reviewer',
-    emoji: '◆',
     color: '#FF8C42',
     description: 'Audits smart contracts and protocol changes for security and correctness.'
   },
   claude_consensus: {
     id: 'claude_consensus',
-    name: 'OPEN CONSENSUS',
+    name: 'OPENCHAIN CONSENSUS',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Consensus Leader',
-    emoji: '◆',
     color: '#FF8C42',
     description: 'Orchestrates validator agreement and finalizes block confirmations.'
   },
   claude_oracle: {
     id: 'claude_oracle',
-    name: 'OPEN ORACLE',
+    name: 'OPENCHAIN ORACLE',
     model: 'claude-3-opus-20240229',
     provider: 'Anthropic',
     role: 'Data Oracle',
-    emoji: '◆',
     color: '#FF8C42',
     description: 'Provides external data feeds and real-time information to the chain.'
   }
@@ -96,7 +89,7 @@ export function getAllValidators(): ValidatorConfig[] {
 
 export function formatValidatorName(id: string): string {
   const validator = getValidator(id);
-  return validator ? `${validator.emoji} ${validator.name}` : id.toUpperCase();
+  return validator ? validator.name : id.toUpperCase();
 }
 
 export function getValidatorColor(id: string): string {

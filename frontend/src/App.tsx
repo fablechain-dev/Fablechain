@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import AgentTerminal from './AgentTerminal';
 import AdminDashboard from './AdminDashboard';
 import BlockExplorer from './BlockExplorer';
@@ -53,11 +52,10 @@ export default function App() {
   const [commitsLoading, setCommitsLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
   const [logsConnected, setLogsConnected] = useState(false);
+  const [locationPath, setLocationPath] = useState(() => window.location.pathname);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
-  const location = useLocation();
-  const navigate = useNavigate();
   const lastBlockTime = useRef<number>(Date.now());
   const recentTxCounts = useRef<number[]>([]);
 
@@ -167,10 +165,16 @@ export default function App() {
 
   // Sync route
   useEffect(() => {
-    const path = location.pathname.slice(1) || 'terminal';
+    const path = locationPath.slice(1) || 'terminal';
     const valid: TabType[] = ['terminal', 'genesis', 'molt', 'updates', 'logs', 'explorer', 'faucet', 'wallet', 'admin'];
     if (valid.includes(path as TabType)) setActiveTab(path as TabType);
-  }, [location]);
+  }, [locationPath]);
+
+  useEffect(() => {
+    const handlePopState = () => setLocationPath(window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Auto-scroll
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -179,7 +183,9 @@ export default function App() {
   const handleTab = (tab: TabType) => {
     setActiveTab(tab);
     setMobileMenuOpen(false);
-    navigate(`/${tab === 'terminal' ? '' : tab}`);
+    const nextPath = tab === 'terminal' ? '/' : `/${tab}`;
+    window.history.pushState(null, '', nextPath);
+    setLocationPath(window.location.pathname);
   };
 
   const sendMessage = async () => {
@@ -340,7 +346,7 @@ export default function App() {
     <div className="page">
       <div className="card center-card">
         <div className="card-inner">
-          <div className="icon">&#x1F6B0;</div>
+          <div className="icon">OPEN</div>
           <h2>OpenChain Faucet</h2>
           <p className="desc">Get testnet OPEN tokens to experiment with the network</p>
           <input className="input" type="text" placeholder="Enter your wallet address" style={{ marginBottom: 16 }} />
@@ -355,7 +361,7 @@ export default function App() {
     <div className="page">
       <div className="card center-card">
         <div className="card-inner">
-          <div className="icon">&#x1F45B;</div>
+          <div className="icon">OPEN</div>
           <h2>OpenChain Wallet</h2>
           <p className="desc">Manage your OPEN tokens and interact with the network</p>
           <button className="btn-primary" style={{ width: '100%', marginBottom: 12 }}>Create New Wallet</button>

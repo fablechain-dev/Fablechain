@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import NetworkApp from './NetworkApp';
 import './index.css';
@@ -13,9 +12,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     {isNetworkSubdomain ? (
       <NetworkApp />
     ) : (
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <App />
     )}
   </React.StrictMode>
 );

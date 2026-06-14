@@ -441,10 +441,11 @@ const AgentTerminal: React.FC = () => {
       }
       
       // List items
-      if (line.startsWith('- ') || line.startsWith('• ')) {
+      const bullet = String.fromCharCode(8226);
+      if (line.startsWith('- ') || line.startsWith(`${bullet} `)) {
         return (
           <div key={i} style={{ paddingLeft: 16 }}>
-            <span style={{ color: 'var(--coral)' }}>•</span> {line.slice(2)}
+            <span style={{ color: 'var(--coral)' }}>-</span> {line.slice(2)}
           </div>
         );
       }

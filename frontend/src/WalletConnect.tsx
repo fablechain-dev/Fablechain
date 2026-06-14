@@ -96,7 +96,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({
   return (
     <div className="wallet-connect-container">
       <h4 className="wallet-connect-header">
-        🔗 CONNECT TO OPENCHAIN
+        CONNECT TO OPENCHAIN
       </h4>
       
       {error && (

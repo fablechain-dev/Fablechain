@@ -164,7 +164,7 @@ const OpenChat: React.FC = () => {
             fontSize: '16px',
             fontWeight: 600
         }}>
-            🦞 OpenChain Terminal
+            OpenChain Terminal
         </h2>
         </div>
         
@@ -200,7 +200,7 @@ const OpenChat: React.FC = () => {
               }} 
             />
             <div style={{ marginTop: '16px' }}>
-              Your autonomous LLM validator is ready 🦞
+              Your autonomous LLM validator is ready
             </div>
             <div style={{ 
               marginTop: '12px', 
@@ -241,7 +241,7 @@ const OpenChat: React.FC = () => {
               }}>
                   {message.role === 'claude' ? (
                     <>
-                      <span>◆</span>
+                      <span>OC</span>
                       <span>OPENCHAIN</span>
                       {message.model && (
                         <span style={{ 
@@ -408,7 +408,7 @@ const OpenChat: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: 'var(--cc-coral)' }}>◆</span>
+              <span style={{ color: 'var(--cc-coral)', fontWeight: 700 }}>OC</span>
               <span>Model:</span>
               <span style={{ color: 'var(--cc-coral)', fontWeight: 600 }}>
                 {OPEN_MODELS.find(m => m.id === selectedModel)?.name || selectedModel}
@@ -417,7 +417,7 @@ const OpenChat: React.FC = () => {
             <span style={{ 
               transform: showModelSelector ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.2s'
-            }}>▼</span>
+            }}>v</span>
           </button>
 
           {showModelSelector && (
@@ -498,7 +498,7 @@ const OpenChat: React.FC = () => {
                       fontSize: '11px',
                       fontWeight: selectedModel === model.id ? 600 : 400
                     }}>
-                      {selectedModel === model.id && '◆ '}
+                      {selectedModel === model.id && '[ACTIVE] '}
                       {model.name}
                     </span>
                     <span style={{
@@ -539,7 +539,7 @@ const OpenChat: React.FC = () => {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <span>Press Enter to send • Shift+Enter for new line</span>
+          <span>Press Enter to send / Shift+Enter for new line</span>
           <span style={{ color: 'var(--cc-coral)' }}>
             Powered by Anthropic
           </span>

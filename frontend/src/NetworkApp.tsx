@@ -111,7 +111,7 @@ const NetworkApp: React.FC = () => {
         zIndex: 100,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10 }}>
-          <span style={{ fontSize: isMobile ? 24 : 28 }}>🦞</span>
+          <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: 'var(--coral)' }}>OC</span>
           <span className="font-display" style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: 'var(--text-primary)' }}>
             openchain
             {!isMobile && <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12, marginLeft: 4 }}>network</span>}

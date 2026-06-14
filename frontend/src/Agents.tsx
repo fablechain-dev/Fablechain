@@ -36,27 +36,27 @@ interface ChatMessage {
 }
 
 const ROLES = [
-  { id: 'validator', label: 'Validator', desc: 'Validates transactions and blocks', icon: '⬡', color: '#FF6B6B' },
-  { id: 'analyst', label: 'Analyst', desc: 'Analyzes chain data and trends', icon: '◈', color: '#4ECDC4' },
-  { id: 'advisor', label: 'Advisor', desc: 'Provides guidance and recommendations', icon: '◆', color: '#FFE66D' },
-  { id: 'guardian', label: 'Guardian', desc: 'Monitors security and anomalies', icon: '■', color: '#95E1D3' },
-  { id: 'architect', label: 'Architect', desc: 'Designs protocol improvements', icon: '▲', color: '#DDA0DD' },
-  { id: 'oracle', label: 'Oracle', desc: 'Provides external data and insights', icon: '●', color: '#F38181' },
-  { id: 'diplomat', label: 'Diplomat', desc: 'Facilitates consensus and mediation', icon: '★', color: '#AA96DA' },
-  { id: 'historian', label: 'Historian', desc: 'Records and explains chain history', icon: '✦', color: '#FCBAD3' },
+  { id: 'validator', label: 'Validator', desc: 'Validates transactions and blocks', icon: 'VA', color: '#FF6B6B' },
+  { id: 'analyst', label: 'Analyst', desc: 'Analyzes chain data and trends', icon: 'AN', color: '#4ECDC4' },
+  { id: 'advisor', label: 'Advisor', desc: 'Provides guidance and recommendations', icon: 'AD', color: '#FFE66D' },
+  { id: 'guardian', label: 'Guardian', desc: 'Monitors security and anomalies', icon: 'GU', color: '#95E1D3' },
+  { id: 'architect', label: 'Architect', desc: 'Designs protocol improvements', icon: 'AR', color: '#DDA0DD' },
+  { id: 'oracle', label: 'Oracle', desc: 'Provides external data and insights', icon: 'OR', color: '#F38181' },
+  { id: 'diplomat', label: 'Diplomat', desc: 'Facilitates consensus and mediation', icon: 'DI', color: '#AA96DA' },
+  { id: 'historian', label: 'Historian', desc: 'Records and explains chain history', icon: 'HI', color: '#FCBAD3' },
 ];
 
 const SPECIALIZATIONS = [
-  { id: 'defi', label: 'DeFi & Trading', icon: '◈' },
-  { id: 'security', label: 'Security & Auditing', icon: '■' },
-  { id: 'governance', label: 'Governance & Voting', icon: '⚖' },
-  { id: 'nft', label: 'NFTs & Digital Assets', icon: '◆' },
-  { id: 'contracts', label: 'Smart Contracts', icon: '†' },
-  { id: 'tokenomics', label: 'Tokenomics', icon: '◉' },
-  { id: 'ux', label: 'User Experience', icon: '★' },
-  { id: 'crosschain', label: 'Cross-chain Ops', icon: '⬡' },
-  { id: 'ai', label: 'AI & Automation', icon: '●' },
-  { id: 'community', label: 'Community', icon: '▲' },
+  { id: 'defi', label: 'DeFi & Trading', icon: 'DF' },
+  { id: 'security', label: 'Security & Auditing', icon: 'SE' },
+  { id: 'governance', label: 'Governance & Voting', icon: 'GV' },
+  { id: 'nft', label: 'NFTs & Digital Assets', icon: 'NF' },
+  { id: 'contracts', label: 'Smart Contracts', icon: 'SC' },
+  { id: 'tokenomics', label: 'Tokenomics', icon: 'TK' },
+  { id: 'ux', label: 'User Experience', icon: 'UX' },
+  { id: 'crosschain', label: 'Cross-chain Ops', icon: 'XC' },
+  { id: 'ai', label: 'AI & Automation', icon: 'AI' },
+  { id: 'community', label: 'Community', icon: 'CM' },
 ];
 
 const PERSONALITY_PRESETS = [
@@ -69,9 +69,9 @@ const PERSONALITY_PRESETS = [
 ];
 
 const API_PROVIDERS = [
-  { id: 'anthropic', name: 'Anthropic', models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'], icon: '†', color: '#D97757' },
-  { id: 'openai', name: 'OpenAI', models: ['gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'], icon: '◉', color: '#10A37F' },
-  { id: 'custom', name: 'Custom API', models: ['custom'], icon: '⚙', color: '#8B5CF6' },
+  { id: 'anthropic', name: 'Anthropic', models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'], icon: 'AN', color: '#D97757' },
+  { id: 'openai', name: 'OpenAI', models: ['gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'], icon: 'OA', color: '#10A37F' },
+  { id: 'custom', name: 'Custom API', models: ['custom'], icon: 'CU', color: '#8B5CF6' },
 ];
 
 const generateAgentAddress = () => {
@@ -102,7 +102,7 @@ export const Agents: React.FC = () => {
   // Form state
   const [form, setForm] = useState({
     name: '',
-    symbol: '†',
+    symbol: 'OC',
     role: '',
     personality: '',
     personalityPreset: '',
@@ -164,7 +164,7 @@ export const Agents: React.FC = () => {
       { msg: 'Initializing deployment sequence...', delay: 300 },
       { msg: 'Validating agent configuration...', delay: 400 },
       { msg: 'Checking API key permissions...', delay: 500 },
-      { msg: 'API key validated ✓', delay: 200 },
+      { msg: 'API key validated [OK]', delay: 200 },
       { msg: 'Allocating compute resources...', delay: 600 },
       { msg: `Memory: ${form.memoryMb}MB allocated`, delay: 200 },
       { msg: 'Initializing model instance...', delay: 700 },
@@ -175,10 +175,10 @@ export const Agents: React.FC = () => {
       { msg: 'Registering on OpenChain...', delay: 600 },
       { msg: `Address: ${previewAddress}`, delay: 300 },
       { msg: 'Running security scan...', delay: 800 },
-      { msg: 'Security scan passed ✓', delay: 200 },
+      { msg: 'Security scan passed [OK]', delay: 200 },
       { msg: 'Deploying to network...', delay: 500 },
-      { msg: '█████████████████████ 100%', delay: 300 },
-      { msg: 'Agent deployed successfully! ✓', delay: 100 },
+      { msg: '[#####################] 100%', delay: 300 },
+      { msg: 'Agent deployed successfully [OK]', delay: 100 },
     ];
 
     setDeploymentLogs([]);
@@ -245,7 +245,7 @@ export const Agents: React.FC = () => {
 
   const resetForm = () => {
     setForm({
-      name: '', symbol: '†', role: '', personality: '', personalityPreset: '',
+      name: '', symbol: 'OC', role: '', personality: '', personalityPreset: '',
       philosophy: '', specialization: '', apiProvider: 'anthropic', apiKey: '',
       model: 'claude-3-sonnet', temperature: 0.7, maxTokens: 1024, rateLimit: 60,
       memoryMb: 512, webhookUrl: '', customEndpoint: '', systemPromptOverride: '',
@@ -338,7 +338,7 @@ export const Agents: React.FC = () => {
               color: 'var(--cc-coral)',
               border: '2px solid var(--cc-coral)'
             }}>
-              †
+              OC
             </div>
             <div>
               <h1 style={{ color: 'var(--cc-coral)', margin: 0, fontSize: '28px', fontWeight: 700 }}>
@@ -432,10 +432,10 @@ export const Agents: React.FC = () => {
         marginBottom: '30px'
       }}>
         {[
-          { icon: '◈', label: 'Documentation', desc: 'Learn how to build agents' },
-          { icon: '⬡', label: 'Test Sandbox', desc: 'Try before deploying' },
-          { icon: '◆', label: 'Analytics', desc: 'View agent performance' },
-          { icon: '■', label: 'API Keys', desc: 'Manage your credentials' }
+          { icon: 'DOC', label: 'Documentation', desc: 'Learn how to build agents' },
+          { icon: 'LAB', label: 'Test Sandbox', desc: 'Try before deploying' },
+          { icon: 'ANA', label: 'Analytics', desc: 'View agent performance' },
+          { icon: 'KEY', label: 'API Keys', desc: 'Manage your credentials' }
         ].map((action, i) => (
           <div key={i} style={{
             padding: '16px',
@@ -473,7 +473,7 @@ export const Agents: React.FC = () => {
           borderRadius: '12px',
           background: 'var(--cc-bg-secondary)'
         }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px', opacity: 0.5 }}>†</div>
+          <div style={{ fontSize: '32px', marginBottom: '20px', opacity: 0.5 }}>OC</div>
           <h3 style={{ color: 'var(--cc-text-primary)', margin: '0 0 10px' }}>No Agents Deployed Yet</h3>
           <p style={{ color: 'var(--cc-text-muted)', fontSize: '13px', maxWidth: '400px', margin: '0 auto' }}>
             Be the first to deploy an autonomous LLM agent on OpenChain.
@@ -635,12 +635,12 @@ export const Agents: React.FC = () => {
             cursor: 'pointer'
           }}
         >
-          ←
+          &lt;
         </button>
         <div>
           <h2 style={{ color: 'var(--cc-coral)', margin: 0, fontSize: '20px' }}>Deploy New Agent</h2>
           <p style={{ color: 'var(--cc-text-muted)', margin: '4px 0 0', fontSize: '12px' }}>
-            Step {createStep} of 4 — {['Identity', 'Personality', 'API Config', 'Deploy'][createStep - 1]}
+            Step {createStep} of 4 - {['Identity', 'Personality', 'API Config', 'Deploy'][createStep - 1]}
           </p>
         </div>
       </div>
@@ -718,7 +718,7 @@ export const Agents: React.FC = () => {
                 SYMBOL
               </label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {['†', '◆', '●', '■', '▲', '★', '◉', '⬡', '⬢', '◈', '⚡', '♦'].map(s => (
+                {['OC', 'VA', 'AN', 'AD', 'GU', 'AR', 'OR', 'DI', 'HI', 'GV', 'SC', 'TK'].map(s => (
                   <button
                     key={s}
                     type="button"
@@ -843,7 +843,7 @@ export const Agents: React.FC = () => {
                   {form.name || 'Agent Name'}
                 </div>
                 <div style={{ color: 'var(--cc-text-muted)', fontSize: '11px', marginTop: '2px' }}>
-                  {form.role ? ROLES.find(r => r.id === form.role)?.label : 'Role'} • {form.specialization || 'Specialization'}
+                  {form.role ? ROLES.find(r => r.id === form.role)?.label : 'Role'} / {form.specialization || 'Specialization'}
                 </div>
               </div>
             </div>
@@ -1211,7 +1211,7 @@ export const Agents: React.FC = () => {
               </div>
               {deploymentLogs.map((log, i) => (
                 <div key={i} style={{ 
-                  color: log.includes('✓') ? 'var(--cc-success)' : 'var(--cc-text-secondary)', 
+                  color: log.includes('[OK]') ? 'var(--cc-success)' : 'var(--cc-text-secondary)',
                   fontSize: '11px',
                   fontFamily: 'JetBrains Mono, monospace',
                   marginBottom: '4px'
@@ -1255,7 +1255,7 @@ export const Agents: React.FC = () => {
               fontSize: '13px',
               textAlign: 'center'
             }}>
-              {createResult.success ? `✓ ${createResult.message}` : `✗ ${createResult.error}`}
+              {createResult.success ? `[OK] ${createResult.message}` : `[ERR] ${createResult.error}`}
             </div>
           )}
         </div>
@@ -1279,7 +1279,7 @@ export const Agents: React.FC = () => {
               fontFamily: 'JetBrains Mono, monospace'
             }}
           >
-            ← BACK
+            &lt; BACK
           </button>
         )}
         <div style={{ flex: 1 }} />
@@ -1356,7 +1356,7 @@ export const Agents: React.FC = () => {
               fontFamily: 'JetBrains Mono, monospace'
             }}
           >
-            ← Back to Gallery
+            &lt; Back to Gallery
           </button>
 
           <div style={{
@@ -1404,7 +1404,7 @@ export const Agents: React.FC = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--cc-text-muted)', fontSize: '10px' }}>STATUS</span>
-                <span style={{ color: 'var(--cc-success)', fontSize: '10px' }}>● ONLINE</span>
+                <span style={{ color: 'var(--cc-success)', fontSize: '10px' }}>[ONLINE]</span>
               </div>
             </div>
           </div>
