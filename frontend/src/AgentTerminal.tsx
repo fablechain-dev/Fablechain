@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { subscribeAgentSim, SimEvent } from './agentSim';
-import { generateFableCommits, FABLE_REPO_URL } from './fableCommits';
+import { getFableCommits, FABLE_REPO_URL } from './fableCommits';
 
 interface Task {
   id: string;
@@ -106,9 +106,9 @@ const AgentTerminal: React.FC = () => {
           return;
         }
       }
-      setRecentCommits(normalizeGitHubCommits(generateFableCommits(5)));
+      setRecentCommits(normalizeGitHubCommits(await getFableCommits(5)));
     } catch (error) {
-      setRecentCommits(normalizeGitHubCommits(generateFableCommits(5)));
+      setRecentCommits(normalizeGitHubCommits(await getFableCommits(5)));
     } finally {
       setRecentCommitsLoading(false);
     }

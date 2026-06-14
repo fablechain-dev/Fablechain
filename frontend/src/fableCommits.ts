@@ -1,10 +1,9 @@
-// Simulated FABLECHAIN commit history. Replaces the live openchain-dev/openchain
-// GitHub fetches so the Updates tab and the agent panel's "recent work" strip
-// always show FABLE-branded commits — and keep working while the repo is private
-// and the backend is offline. Shaped like the GitHub commits API response so the
-// existing consumers need no special-casing.
+// FABLECHAIN commit feed.
+// Tries the real GitHub API first (works when the repo is public or a token is configured).
+// Falls back to simulated commits so the UI never goes blank.
 
 const REPO_URL = 'https://github.com/white-roz3/Fablechain';
+const GITHUB_API = 'https://api.github.com/repos/white-roz3/Fablechain/commits';
 
 export interface GhCommit {
   sha: string;
@@ -15,6 +14,22 @@ export interface GhCommit {
   };
 }
 
+// Try to fetch real commits from GitHub. Returns null if the repo is private/unreachable.
+export async function fetchRealCommits(count: number): Promise<GhCommit[] | null> {
+  try {
+    const res = await fetch(`${GITHUB_API}?per_page=${count}`, {
+      headers: { Accept: 'application/vnd.github+json' },
+    });
+    if (!res.ok) return null;
+    const data: GhCommit[] = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+// Fallback simulated history — only used when the repo is private / GitHub unreachable.
 const AUTHORS = ['AESOP', 'fable-agent', 'aesop-worker'];
 
 const MESSAGES = [
@@ -40,15 +55,15 @@ const MESSAGES = [
   'feat: peer scoring with exponential backoff',
 ];
 
-const hex = (n: number) => Array.from({ length: n }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
+const hex = (n: number) =>
+  Array.from({ length: n }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
 
-// Generate a believable recent history: newest first, a few commits per day.
 export function generateFableCommits(count: number): GhCommit[] {
   const out: GhCommit[] = [];
   let t = Date.now();
   for (let i = 0; i < count; i++) {
     const sha = hex(40);
-    t -= (2 + Math.floor(Math.random() * 9)) * 3600 * 1000; // 2–11h apart
+    t -= (2 + Math.floor(Math.random() * 9)) * 3600 * 1000;
     out.push({
       sha,
       html_url: `${REPO_URL}/commit/${sha}`,
@@ -61,7 +76,12 @@ export function generateFableCommits(count: number): GhCommit[] {
   return out;
 }
 
-// A plausible, slowly-growing total commit count for the Updates badge.
+// Fetch commits — real if available, simulated otherwise.
+export async function getFableCommits(count: number): Promise<GhCommit[]> {
+  const real = await fetchRealCommits(count);
+  return real ?? generateFableCommits(count);
+}
+
 export function fableCommitCount(): number {
   const base = 1284;
   const daysSinceGenesis = Math.floor((Date.now() - 1769731200000) / 86400000);

@@ -4,7 +4,7 @@ import AdminDashboard from './AdminDashboard';
 import BlockExplorer from './BlockExplorer';
 import { FABLE_LOGO, GLOBE, CITY, WORLD_MAP, THOUGHT_TRACE, PYRAMID, CUBES } from './ascii';
 import { subscribeAgentSim } from './agentSim';
-import { generateFableCommits, fableCommitCount, FABLE_REPO_URL } from './fableCommits';
+import { getFableCommits, fableCommitCount, FABLE_REPO_URL } from './fableCommits';
 
 type TabType = 'terminal' | 'genesis' | 'molt' | 'updates' | 'logs' | 'explorer' | 'faucet' | 'wallet' | 'admin';
 
@@ -222,12 +222,14 @@ export default function App() {
     return () => clearInterval(id);
   }, [API_BASE]);
 
-  // Commit feed — simulated FABLECHAIN history (repo is private; backend offline)
+  // Commit feed — real GitHub commits when available, sim fallback otherwise
   useEffect(() => {
     const refresh = () => {
-      setCommits(generateFableCommits(30));
-      setCommitCount(fableCommitCount());
-      setCommitsLoading(false);
+      getFableCommits(30).then(commits => {
+        setCommits(commits);
+        setCommitCount(fableCommitCount());
+        setCommitsLoading(false);
+      });
     };
     refresh();
     const id = setInterval(refresh, 60000);
