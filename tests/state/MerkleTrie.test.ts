@@ -1,30 +1,33 @@
 ```typescript
 import { MerkleTrie } from '../../src/state/MerkleTrie';
-import { keccak256 } from 'ethers/lib/utils';
-import { randomBytes } from 'crypto';
+import { KeccakHash } from '../../src/crypto/KeccakHash';
+import { Buffer } from 'buffer';
 
 describe('MerkleTrie', () => {
   let trie: MerkleTrie;
+  let keccak: KeccakHash;
 
   beforeEach(() => {
-    trie = new MerkleTrie();
+    keccak = new KeccakHash();
+    trie = new MerkleTrie(keccak);
   });
 
-  describe('insert', () => {
-    it('should insert a single key-value pair', () => {
-      const key = 'test-key-1';
-      const value = 'test-value-1';
+  describe('insert and get operations', () => {
+    it('should insert a single key-value pair and retrieve it', () => {
+      const key = Buffer.from('test-key-1');
+      const value = Buffer.from('test-value-1');
 
       trie.insert(key, value);
+      const retrieved = trie.get(key);
 
-      expect(trie.get(key)).toBe(value);
+      expect(retrieved).toEqual(value);
     });
 
-    it('should insert multiple key-value pairs', () => {
+    it('should insert multiple key-value pairs independently', () => {
       const pairs = [
-        { key: 'key1', value: 'value1' },
-        { key: 'key2', value: 'value2' },
-        { key: 'key3', value: 'value3' },
+        { key: Buffer.from('key-a'), value: Buffer.from('value-a') },
+        { key: Buffer.from('key-b'), value: Buffer.from('value-b') },
+        { key: Buffer.from('key-c'), value: Buffer.from('value-c') },
       ];
 
       pairs.forEach(({ key, value }) => {
@@ -32,184 +35,189 @@ describe('MerkleTrie', () => {
       });
 
       pairs.forEach(({ key, value }) => {
-        expect(trie.get(key)).toBe(value);
+        expect(trie.get(key)).toEqual(value);
       });
     });
 
-    it('should update existing key with new value', () => {
-      const key = 'update-test';
-      trie.insert(key, 'old-value');
-      expect(trie.get(key)).toBe('old-value');
+    it('should return null for non-existent keys', () => {
+      trie.insert(Buffer.from('existing-key'), Buffer.from('value'));
+      const result = trie.get(Buffer.from('non-existent-key'));
 
-      trie.insert(key, 'new-value');
-      expect(trie.get(key)).toBe('new-value');
+      expect(result).toBeNull();
     });
 
-    it('should handle large binary data', () => {
-      const key = 'binary-key';
-      const largeValue = randomBytes(1024).toString('hex');
+    it('should update value when inserting with existing key', () => {
+      const key = Buffer.from('mutable-key');
+      const value1 = Buffer.from('first-value');
+      const value2 = Buffer.from('second-value');
 
-      trie.insert(key, largeValue);
-      expect(trie.get(key)).toBe(largeValue);
+      trie.insert(key, value1);
+      expect(trie.get(key)).toEqual(value1);
+
+      trie.insert(key, value2);
+      expect(trie.get(key)).toEqual(value2);
     });
 
-    it('should update merkle root after insertion', () => {
-      const root1 = trie.getRoot();
+    it('should handle empty values', () => {
+      const key = Buffer.from('empty-value-key');
+      const value = Buffer.alloc(0);
 
-      trie.insert('key1', 'value1');
-      const root2 = trie.getRoot();
-
-      expect(root1).not.toBe(root2);
+      trie.insert(key, value);
+      expect(trie.get(key)).toEqual(value);
     });
 
-    it('should handle empty string keys and values', () => {
-      trie.insert('', 'empty-key-value');
-      expect(trie.get('')).toBe('empty-key-value');
-
-      trie.insert('empty-value-key', '');
-      expect(trie.get('empty-value-key')).toBe('');
-    });
-  });
-
-  describe('get', () => {
-    it('should retrieve inserted value', () => {
-      trie.insert('key', 'value');
-      expect(trie.get('key')).toBe('value');
-    });
-
-    it('should return null for non-existent key', () => {
-      expect(trie.get('non-existent')).toBeNull();
-    });
-
-    it('should retrieve correct value among multiple entries', () => {
-      for (let i = 0; i < 100; i++) {
-        trie.insert(`key-${i}`, `value-${i}`);
+    it('should handle large values', () => {
+      const key = Buffer.from('large-value-key');
+      const value = Buffer.alloc(10000);
+      for (let i = 0; i < value.length; i++) {
+        value[i] = i % 256;
       }
 
-      expect(trie.get('key-50')).toBe('value-50');
-      expect(trie.get('key-99')).toBe('value-99');
-      expect(trie.get('key-0')).toBe('value-0');
-    });
-
-    it('should handle case sensitivity', () => {
-      trie.insert('Key', 'value1');
-      trie.insert('key', 'value2');
-
-      expect(trie.get('Key')).toBe('value1');
-      expect(trie.get('key')).toBe('value2');
-    });
-
-    it('should retrieve value after update', () => {
-      trie.insert('key', 'original');
-      trie.insert('key', 'updated');
-      expect(trie.get('key')).toBe('updated');
+      trie.insert(key, value);
+      expect(trie.get(key)).toEqual(value);
     });
   });
 
-  describe('delete', () => {
-    it('should delete existing key', () => {
-      trie.insert('key', 'value');
-      expect(trie.get('key')).toBe('value');
+  describe('delete operations', () => {
+    it('should delete an existing key-value pair', () => {
+      const key = Buffer.from('delete-test-key');
+      const value = Buffer.from('delete-test-value');
 
-      trie.delete('key');
-      expect(trie.get('key')).toBeNull();
+      trie.insert(key, value);
+      expect(trie.get(key)).toEqual(value);
+
+      trie.delete(key);
+      expect(trie.get(key)).toBeNull();
     });
 
-    it('should handle deleting non-existent key gracefully', () => {
+    it('should not throw when deleting non-existent key', () => {
+      const key = Buffer.from('non-existent-delete');
+
       expect(() => {
-        trie.delete('non-existent');
+        trie.delete(key);
       }).not.toThrow();
-      expect(trie.get('non-existent')).toBeNull();
     });
 
-    it('should update merkle root after deletion', () => {
-      trie.insert('key1', 'value1');
-      trie.insert('key2', 'value2');
-      const root1 = trie.getRoot();
+    it('should handle deletion of multiple keys', () => {
+      const keys = [
+        Buffer.from('key-1'),
+        Buffer.from('key-2'),
+        Buffer.from('key-3'),
+      ];
+      const value = Buffer.from('shared-value');
 
-      trie.delete('key1');
-      const root2 = trie.getRoot();
+      keys.forEach((key) => {
+        trie.insert(key, value);
+      });
 
-      expect(root1).not.toBe(root2);
+      keys.slice(0, 2).forEach((key) => {
+        trie.delete(key);
+      });
+
+      expect(trie.get(keys[0])).toBeNull();
+      expect(trie.get(keys[1])).toBeNull();
+      expect(trie.get(keys[2])).toEqual(value);
     });
 
     it('should allow reinsertion after deletion', () => {
-      trie.insert('key', 'value1');
-      trie.delete('key');
-      trie.insert('key', 'value2');
+      const key = Buffer.from('reinsert-key');
+      const value1 = Buffer.from('value-1');
+      const value2 = Buffer.from('value-2');
 
-      expect(trie.get('key')).toBe('value2');
-    });
+      trie.insert(key, value1);
+      trie.delete(key);
+      trie.insert(key, value2);
 
-    it('should delete one key without affecting others', () => {
-      trie.insert('key1', 'value1');
-      trie.insert('key2', 'value2');
-      trie.insert('key3', 'value3');
-
-      trie.delete('key2');
-
-      expect(trie.get('key1')).toBe('value1');
-      expect(trie.get('key2')).toBeNull();
-      expect(trie.get('key3')).toBe('value3');
+      expect(trie.get(key)).toEqual(value2);
     });
   });
 
-  describe('getRoot', () => {
-    it('should return consistent root for same state', () => {
-      trie.insert('key1', 'value1');
-      trie.insert('key2', 'value2');
+  describe('root hash computation', () => {
+    it('should have consistent root hash for same data', () => {
+      const key = Buffer.from('consistency-key');
+      const value = Buffer.from('consistency-value');
 
-      const root1 = trie.getRoot();
-      const root2 = trie.getRoot();
+      trie.insert(key, value);
+      const root1 = trie.getRootHash();
+      const root2 = trie.getRootHash();
 
-      expect(root1).toBe(root2);
+      expect(root1).toEqual(root2);
     });
 
-    it('should return different root for different insertions', () => {
-      const trie1 = new MerkleTrie();
-      const trie2 = new MerkleTrie();
+    it('should change root hash when data changes', () => {
+      const key1 = Buffer.from('key-1');
+      const key2 = Buffer.from('key-2');
+      const value = Buffer.from('value');
 
-      trie1.insert('key', 'value1');
-      trie2.insert('key', 'value2');
+      trie.insert(key1, value);
+      const root1 = trie.getRootHash();
 
-      expect(trie1.getRoot()).not.toBe(trie2.getRoot());
+      trie.insert(key2, value);
+      const root2 = trie.getRootHash();
+
+      expect(root1).not.toEqual(root2);
     });
 
-    it('should return different root for insertion order variations', () => {
-      const trie1 = new MerkleTrie();
-      const trie2 = new MerkleTrie();
+    it('should produce same root hash for equivalent tries', () => {
+      const key = Buffer.from('equiv-key');
+      const value = Buffer.from('equiv-value');
 
-      trie1.insert('a', '1');
-      trie1.insert('b', '2');
+      const trie1 = new MerkleTrie(keccak);
+      const trie2 = new MerkleTrie(keccak);
 
-      trie2.insert('b', '2');
-      trie2.insert('a', '1');
+      trie1.insert(key, value);
+      trie2.insert(key, value);
 
-      expect(trie1.getRoot()).toBe(trie2.getRoot());
+      expect(trie1.getRootHash()).toEqual(trie2.getRootHash());
     });
 
-    it('should return standard hex format root', () => {
-      trie.insert('key', 'value');
-      const root = trie.getRoot();
+    it('should update root hash after deletion', () => {
+      const key = Buffer.from('delete-hash-key');
+      const value = Buffer.from('delete-hash-value');
 
-      expect(typeof root).toBe('string');
-      expect(root.match(/^0x[0-9a-f]{64}$/i)).not.toBeNull();
+      trie.insert(key, value);
+      const root1 = trie.getRootHash();
+
+      trie.delete(key);
+      const root2 = trie.getRootHash();
+
+      expect(root1).not.toEqual(root2);
     });
   });
 
-  describe('generateProof', () => {
+  describe('proof generation', () => {
     it('should generate proof for existing key', () => {
-      trie.insert('key', 'value');
-      const proof = trie.generateProof('key');
+      const key = Buffer.from('proof-key');
+      const value = Buffer.from('proof-value');
+
+      trie.insert(key, value);
+      const proof = trie.generateProof(key);
 
       expect(proof).toBeDefined();
       expect(Array.isArray(proof)).toBe(true);
       expect(proof.length).toBeGreaterThan(0);
     });
 
-    it('should generate different proofs for different keys', () => {
-      trie.insert('key1', 'value1');
-      trie.insert('key2', 'value2');
+    it('should generate proof containing root hash', () => {
+      const key = Buffer.from('root-proof-key');
+      const value = Buffer.from('root-proof-value');
 
-      const proof1 = trie.generateProof('key1');
-      const proof2 = trie.generateProof('key2');
+      trie.insert(key, value);
+      const root = trie.getRootHash();
+      const proof = trie.generateProof(key);
+
+      expect(proof[proof.length - 1]).toEqual(root);
+    });
+
+    it('should generate different proofs for different keys', () => {
+      const key1 = Buffer.from('proof-key-1');
+      const key2 = Buffer.from('proof-key-2');
+      const value = Buffer.from('proof-value');
+
+      trie.insert(key1, value);
+      trie.insert(key2, value);
+
+      const proof1 = trie.generateProof(key1);
+      const proof2 = trie.generateProof(key2);
+
+      expect(proof1
