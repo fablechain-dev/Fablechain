@@ -1,183 +1,218 @@
 ```typescript
 import { EventEmitter } from 'events';
-import { Logger } from '../utils/Logger';
+import * as crypto from 'crypto';
 
-export interface PeerMetrics {
+interface PeerMetrics {
   peerId: string;
-  responseTimes: number[];
-  blockReputations: Map<string, number>;
-  attestationSpeed: number[];
+  responseLatencyMs: number[];
+  successfulResponses: number;
+  failedResponses: number;
+  badBlocksDetected: number;
+  fastAttestations: number;
   lastSeen: number;
-  totalRequests: number;
-  failedRequests: number;
-  penaltyScore: number;
+  score: number;
   isBanned: boolean;
   banReason?: string;
-  banUntil?: number;
+  bannedUntil?: number;
 }
 
-export interface ScoringConfig {
-  maxResponseTimeMs: number;
-  minResponseTimeMs: number;
-  responseTimeWindow: number;
-  attestationRewardThresholdMs: number;
+interface ScoringConfig {
+  maxLatencyMs: number;
+  minScoreThreshold: number;
+  banThreshold: number;
+  latencyWindowSize: number;
+  decayRate: number;
   badBlockPenalty: number;
   fastAttestationReward: number;
-  failureThreshold: number;
-  banThreshold: number;
-  banDurationMs: number;
-  metricsDecayRate: number;
-  maxMetricsWindow: number;
+  tempBanDurationMs: number;
+  permanentBanThreshold: number;
 }
 
-export interface PeerScore {
+interface BanListEntry {
   peerId: string;
-  score: number;
-  latency: number;
-  reliability: number;
-  isBanned: boolean;
-  blockReputation: number;
+  reason: string;
+  timestamp: number;
+  permanent: boolean;
+  expiresAt?: number;
 }
 
 const DEFAULT_CONFIG: ScoringConfig = {
-  maxResponseTimeMs: 5000,
-  minResponseTimeMs: 10,
-  responseTimeWindow: 100,
-  attestationRewardThresholdMs: 500,
-  badBlockPenalty: 50,
+  maxLatencyMs: 5000,
+  minScoreThreshold: -100,
+  banThreshold: -500,
+  latencyWindowSize: 100,
+  decayRate: 0.95,
+  badBlockPenalty: -50,
   fastAttestationReward: 10,
-  failureThreshold: 0.3,
-  banThreshold: 200,
-  banDurationMs: 86400000,
-  metricsDecayRate: 0.95,
-  maxMetricsWindow: 1000,
+  tempBanDurationMs: 3600000,
+  permanentBanThreshold: 5,
 };
 
 export class PeerScoring extends EventEmitter {
-  private peers: Map<string, PeerMetrics>;
-  private banList: Set<string>;
+  private peers: Map<string, PeerMetrics> = new Map();
+  private banList: Map<string, BanListEntry> = new Map();
   private config: ScoringConfig;
-  private logger: Logger;
-  private decayInterval: NodeJS.Timeout | null;
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private scoreDecayInterval: NodeJS.Timeout | null = null;
 
-  constructor(config: Partial<ScoringConfig> = {}, logger?: Logger) {
+  constructor(config: Partial<ScoringConfig> = {}) {
     super();
-    this.peers = new Map();
-    this.banList = new Set();
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.logger = logger || new Logger('PeerScoring');
-    this.decayInterval = null;
-    this.startMetricsDecay();
+    this.startBackgroundTasks();
   }
 
-  recordResponseTime(peerId: string, latencyMs: number): void {
-    const metrics = this.getOrCreateMetrics(peerId);
+  private startBackgroundTasks(): void {
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupExpiredBans();
+      this.pruneOldMetrics();
+    }, 60000);
 
-    if (latencyMs > this.config.maxResponseTimeMs) {
-      metrics.penaltyScore += 5;
-      this.logger.warn(`Peer ${peerId} exceeded max response time: ${latencyMs}ms`);
-    }
-
-    if (latencyMs < this.config.minResponseTimeMs) {
-      this.logger.warn(`Peer ${peerId} reported suspiciously fast response: ${latencyMs}ms`);
-      metrics.penaltyScore += 2;
-    }
-
-    metrics.responseTimes.push(latencyMs);
-    if (metrics.responseTimes.length > this.config.responseTimeWindow) {
-      metrics.responseTimes.shift();
-    }
-
-    metrics.lastSeen = Date.now();
-    metrics.totalRequests++;
-
-    this.checkBanStatus(peerId);
+    this.scoreDecayInterval = setInterval(() => {
+      this.applyScoreDecay();
+    }, 5000);
   }
 
-  recordFailedRequest(peerId: string): void {
-    const metrics = this.getOrCreateMetrics(peerId);
-    metrics.failedRequests++;
-    metrics.penaltyScore += 3;
-
-    const failureRate = metrics.failedRequests / metrics.totalRequests;
-    if (failureRate > this.config.failureThreshold) {
-      metrics.penaltyScore += 10;
-      this.logger.warn(`Peer ${peerId} failure rate critical: ${failureRate.toFixed(2)}`);
+  private initializePeer(peerId: string): PeerMetrics {
+    if (!this.peers.has(peerId)) {
+      this.peers.set(peerId, {
+        peerId,
+        responseLatencyMs: [],
+        successfulResponses: 0,
+        failedResponses: 0,
+        badBlocksDetected: 0,
+        fastAttestations: 0,
+        lastSeen: Date.now(),
+        score: 0,
+        isBanned: false,
+      });
     }
-
-    this.checkBanStatus(peerId);
+    return this.peers.get(peerId)!;
   }
 
-  recordBadBlock(peerId: string, blockHash: string, severity: number = 1): void {
-    const metrics = this.getOrCreateMetrics(peerId);
+  recordResponseLatency(peerId: string, latencyMs: number): void {
+    const peer = this.initializePeer(peerId);
+    peer.lastSeen = Date.now();
 
-    const currentReputation = metrics.blockReputations.get(blockHash) || 0;
-    metrics.blockReputations.set(blockHash, currentReputation - this.config.badBlockPenalty * severity);
-
-    metrics.penaltyScore += this.config.badBlockPenalty * severity;
-
-    this.logger.error(`Peer ${peerId} propagated bad block ${blockHash.slice(0, 8)}... (severity: ${severity})`);
-    this.emit('badBlockDetected', { peerId, blockHash, severity });
-
-    this.checkBanStatus(peerId);
-  }
-
-  recordFastAttestation(peerId: string, attestationHash: string, timeMs: number): void {
-    if (timeMs > this.config.attestationRewardThresholdMs) {
+    if (latencyMs > this.config.maxLatencyMs) {
+      peer.failedResponses++;
+      peer.score -= 5;
+      this.emit('latency:slow', { peerId, latencyMs });
       return;
     }
 
-    const metrics = this.getOrCreateMetrics(peerId);
-    metrics.attestationSpeed.push(timeMs);
-
-    if (metrics.attestationSpeed.length > this.config.maxMetricsWindow) {
-      metrics.attestationSpeed.shift();
+    peer.responseLatencyMs.push(latencyMs);
+    if (peer.responseLatencyMs.length > this.config.latencyWindowSize) {
+      peer.responseLatencyMs.shift();
     }
 
-    metrics.penaltyScore = Math.max(0, metrics.penaltyScore - this.config.fastAttestationReward);
-    metrics.lastSeen = Date.now();
+    peer.successfulResponses++;
+    const reward = Math.max(0, 10 - Math.floor(latencyMs / 500));
+    peer.score += reward;
 
-    this.logger.debug(`Peer ${peerId} fast attestation: ${timeMs}ms for ${attestationHash.slice(0, 8)}...`);
+    this.checkAndUpdateScore(peerId);
   }
 
-  banPeer(peerId: string, reason: string, durationMs: number = this.config.banDurationMs): void {
-    const metrics = this.getOrCreateMetrics(peerId);
-    metrics.isBanned = true;
-    metrics.banReason = reason;
-    metrics.banUntil = Date.now() + durationMs;
-
-    this.banList.add(peerId);
-
-    this.logger.warn(`Peer ${peerId} banned: ${reason} (until ${new Date(metrics.banUntil).toISOString()})`);
-    this.emit('peerBanned', { peerId, reason, until: metrics.banUntil });
-  }
-
-  unbanPeer(peerId: string): void {
-    const metrics = this.peers.get(peerId);
-    if (!metrics) {
+  recordBadBlock(peerId: string, blockHash: string): void {
+    if (this.isBanned(peerId)) {
       return;
     }
 
-    metrics.isBanned = false;
-    metrics.banReason = undefined;
-    metrics.banUntil = undefined;
+    const peer = this.initializePeer(peerId);
+    peer.badBlocksDetected++;
+    peer.score += this.config.badBlockPenalty;
+
+    this.emit('block:bad', { peerId, blockHash, score: peer.score });
+
+    if (peer.badBlocksDetected >= 3) {
+      this.banPeer(peerId, `Too many bad blocks: ${peer.badBlocksDetected}`, false);
+    }
+
+    this.checkAndUpdateScore(peerId);
+  }
+
+  recordFastAttestation(peerId: string): void {
+    if (this.isBanned(peerId)) {
+      return;
+    }
+
+    const peer = this.initializePeer(peerId);
+    peer.fastAttestations++;
+    peer.score += this.config.fastAttestationReward;
+
+    this.emit('attestation:fast', { peerId, score: peer.score });
+    this.checkAndUpdateScore(peerId);
+  }
+
+  recordFailedResponse(peerId: string, reason: string): void {
+    const peer = this.initializePeer(peerId);
+    peer.failedResponses++;
+    peer.score -= 10;
+
+    this.emit('response:failed', { peerId, reason });
+    this.checkAndUpdateScore(peerId);
+  }
+
+  private checkAndUpdateScore(peerId: string): void {
+    const peer = this.peers.get(peerId);
+    if (!peer) return;
+
+    if (peer.score <= this.config.banThreshold && !peer.isBanned) {
+      this.banPeer(peerId, 'Score threshold exceeded', false);
+    } else if (peer.score < this.config.minScoreThreshold && !peer.isBanned) {
+      this.emit('peer:unreliable', { peerId, score: peer.score });
+    }
+  }
+
+  banPeer(peerId: string, reason: string, permanent: boolean = false): void {
+    const peer = this.initializePeer(peerId);
+    peer.isBanned = true;
+    peer.banReason = reason;
+
+    const banEntry: BanListEntry = {
+      peerId,
+      reason,
+      timestamp: Date.now(),
+      permanent,
+      expiresAt: permanent ? undefined : Date.now() + this.config.tempBanDurationMs,
+    };
+
+    this.banList.set(peerId, banEntry);
+    this.emit('peer:banned', banEntry);
+
+    if (this.peers.has(peerId)) {
+      peer.banReason = reason;
+      peer.bannedUntil = banEntry.expiresAt;
+    }
+  }
+
+  unbanPeer(peerId: string): boolean {
+    if (!this.banList.has(peerId)) {
+      return false;
+    }
+
+    const banEntry = this.banList.get(peerId);
+    if (banEntry?.permanent) {
+      return false;
+    }
+
     this.banList.delete(peerId);
+    const peer = this.peers.get(peerId);
+    if (peer) {
+      peer.isBanned = false;
+      peer.banReason = undefined;
+      peer.bannedUntil = undefined;
+    }
 
-    this.logger.info(`Peer ${peerId} unbanned`);
-    this.emit('peerUnbanned', { peerId });
+    this.emit('peer:unbanned', { peerId });
+    return true;
   }
 
   isBanned(peerId: string): boolean {
-    const metrics = this.peers.get(peerId);
-    if (!metrics) {
-      return false;
-    }
+    const banEntry = this.banList.get(peerId);
+    if (!banEntry) return false;
 
-    if (!metrics.isBanned) {
-      return false;
-    }
-
-    if (metrics.banUntil && Date.now() > metrics.banUntil) {
+    if (banEntry.permanent) return true;
+    if (banEntry.expiresAt && Date.now() >= banEntry.expiresAt) {
       this.unbanPeer(peerId);
       return false;
     }
@@ -185,33 +220,14 @@ export class PeerScoring extends EventEmitter {
     return true;
   }
 
-  getScore(peerId: string): PeerScore {
-    const metrics = this.peers.get(peerId);
+  getPeerScore(peerId: string): number {
+    const peer = this.peers.get(peerId);
+    return peer ? peer.score : 0;
+  }
 
-    if (!metrics) {
-      return {
-        peerId,
-        score: 100,
-        latency: 0,
-        reliability: 1,
-        isBanned: false,
-        blockReputation: 0,
-      };
-    }
+  getPeerMetrics(peerId: string): PeerMetrics | null {
+    return this.peers.get(peerId) || null;
+  }
 
-    const avgLatency = this.calculateAverageLatency(metrics);
-    const reliability = this.calculateReliability(metrics);
-    const blockReputation = this.calculateBlockReputation(metrics);
-
-    let baseScore = 100;
-    baseScore -= metrics.penaltyScore;
-    baseScore -= (avgLatency / this.config.maxResponseTimeMs) * 20;
-    baseScore -= (1 - reliability) * 30;
-    baseScore = Math.max(0, Math.min(100, baseScore));
-
-    return {
-      peerId,
-      score: baseScore,
-      latency: avgLatency,
-      reliability,
-      isBanned: metrics.isBanned
+  getAverageLatency(peerId: string): number {
+    const peer = this.peers.get(peerId
