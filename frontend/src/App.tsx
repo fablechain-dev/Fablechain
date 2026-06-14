@@ -158,7 +158,7 @@ export default function App() {
     peers: 73,
     gas: 0.00042,
     mempool: 256,
-    uptimeSec: 12 * 86400 + 7 * 3600 + 42 * 60 + 11,
+    uptimeSec: 35 * 3600 + 23 * 60 + 16,
     nextBlockIn: 9,
     feed: INITIAL_FEED,
     txs: INITIAL_TXS,
