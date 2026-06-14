@@ -2,214 +2,187 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 
-/// @title FABLE Token Contract
-/// @notice ERC-20 token with minting, burning, staking locks, and governance delegation
-/// @dev Combines multiple ERC20 extensions for a complete governance token
-contract FableToken is
-    ERC20,
-    ERC20Burnable,
-    ERC20Snapshot,
-    Ownable,
-    Pausable,
-    ERC20Votes,
-    ERC20Permit
-{
-    /// @notice Maximum supply cap for the token
-    uint256 public constant MAX_SUPPLY = 1_000_000_000 * 10 ** 18;
+/// @title FableToken
+/// @notice ERC-20 token with staking, voting delegation, and burn functionality for Fablechain
+/// @dev Combines ERC20, voting rights, permit functionality, and staking mechanics
+contract FableToken is ERC20, ERC20Burnable, ERC20Votes, ERC20Permit, Ownable {
+    /// @notice Maximum supply cap of FABLE tokens (1 billion with 18 decimals)
+    uint256 public constant MAX_SUPPLY = 1_000_000_000e18;
 
-    /// @notice Minting role flag
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    /// @notice Minimum staking duration in seconds (30 days)
+    uint256 public constant MIN_STAKE_DURATION = 30 days;
 
-    /// @notice Staking lock structure for governance participation
-    struct StakeLock {
+    /// @notice Maximum staking duration in seconds (4 years)
+    uint256 public constant MAX_STAKE_DURATION = 4 * 365 days;
+
+    /// @notice Base staking reward rate (in basis points, 1% = 100)
+    uint256 public baseRewardRate = 500; // 5% annually
+
+    /// @notice Governance timelock delay for critical operations
+    uint256 public governanceDelay = 2 days;
+
+    /// @notice Staking structure for individual stake records
+    struct Stake {
         uint256 amount;
+        uint256 lockTime;
         uint256 unlockTime;
-        bool active;
+        uint256 rewardDebt;
+        bool claimed;
     }
 
-    /// @notice Maps user address to their staking locks
-    mapping(address => StakeLock[]) public stakeLocks;
+    /// @notice Mapping of staker address to their stakes
+    mapping(address => Stake[]) public stakes;
 
-    /// @notice Maps address to minting permissions
-    mapping(address => bool) public minters;
+    /// @notice Total amount of tokens currently staked
+    uint256 public totalStaked;
 
-    /// @notice Total locked tokens across all accounts
-    uint256 public totalLockedTokens;
+    /// @notice Accumulated reward pool
+    uint256 public rewardPool;
 
-    /// @notice Minimum lock duration in seconds
-    uint256 public constant MIN_LOCK_DURATION = 7 days;
+    /// @notice Pending governance actions
+    mapping(bytes32 => uint256) public pendingActions;
 
-    /// @notice Maximum lock duration in seconds
-    uint256 public constant MAX_LOCK_DURATION = 4 * 365 days;
+    /// @notice Events
+    event Staked(address indexed staker, uint256 amount, uint256 unlockTime);
+    event Unstaked(address indexed staker, uint256 stakeIndex, uint256 amount, uint256 reward);
+    event RewardClaimed(address indexed staker, uint256 reward);
+    event RewardRateUpdated(uint256 oldRate, uint256 newRate);
+    event RewardPoolFunded(address indexed funder, uint256 amount);
+    event GovernanceActionScheduled(bytes32 indexed actionHash, uint256 executionTime);
+    event GovernanceActionExecuted(bytes32 indexed actionHash);
 
-    /// @notice Emitted when tokens are locked for staking
-    event TokensLocked(
-        indexed user,
-        uint256 amount,
-        uint256 unlockTime,
-        uint256 lockIndex
-    );
+    /// @notice Custom errors for gas-efficient reverts
+    error ExceedsMaxSupply();
+    error InvalidStakeDuration();
+    error NoStakesFound();
+    error StakeStillLocked();
+    error InvalidRewardRate();
+    error InsufficientRewardPool();
+    error GovernanceActionPending();
+    error GovernanceActionNotReady();
 
-    /// @notice Emitted when staked tokens are unlocked
-    event TokensUnlocked(indexed user, uint256 amount, uint256 lockIndex);
-
-    /// @notice Emitted when minter role is granted
-    event MinterGranted(indexed account);
-
-    /// @notice Emitted when minter role is revoked
-    event MinterRevoked(indexed account);
-
-    /// @notice Emitted when snapshot is taken
-    event Snapshot(uint256 indexed snapshotId);
-
-    /// @notice Only allows accounts with minter role to call function
-    modifier onlyMinter() {
-        require(minters[msg.sender], "FableToken: caller is not a minter");
-        _;
+    constructor() ERC20("Fable", "FABLE") ERC20Permit("Fable") Ownable(msg.sender) {
+        _mint(msg.sender, 100_000_000e18);
+        rewardPool = 50_000_000e18;
     }
 
-    /// @notice Constructor initializes the token with initial supply
-    /// @param initialSupply The initial token supply to mint to deployer
-    constructor(uint256 initialSupply)
-        ERC20("Fable", "FABLE")
-        ERC20Permit("Fable")
-    {
-        require(
-            initialSupply <= MAX_SUPPLY,
-            "FableToken: initial supply exceeds max supply"
-        );
-        _mint(msg.sender, initialSupply);
-        minters[msg.sender] = true;
-    }
-
-    /// @notice Grants minter role to an account
-    /// @param account The account to grant minter role
-    function grantMinter(address account) external onlyOwner {
-        require(account != address(0), "FableToken: invalid address");
-        require(!minters[account], "FableToken: account already has minter role");
-        minters[account] = true;
-        emit MinterGranted(account);
-    }
-
-    /// @notice Revokes minter role from an account
-    /// @param account The account to revoke minter role from
-    function revokeMinter(address account) external onlyOwner {
-        require(minters[account], "FableToken: account does not have minter role");
-        minters[account] = false;
-        emit MinterRevoked(account);
-    }
-
-    /// @notice Mints new tokens to a specified account
-    /// @param to The recipient address
-    /// @param amount The amount of tokens to mint
-    function mint(address to, uint256 amount) external onlyMinter {
-        require(to != address(0), "FableToken: mint to zero address");
-        require(
-            totalSupply() + amount <= MAX_SUPPLY,
-            "FableToken: minting would exceed max supply"
-        );
+    /// @notice Mint new FABLE tokens (only owner, respects max supply)
+    /// @param to Recipient address
+    /// @param amount Amount to mint in wei
+    function mint(address to, uint256 amount) public onlyOwner {
+        if (totalSupply() + amount > MAX_SUPPLY) {
+            revert ExceedsMaxSupply();
+        }
         _mint(to, amount);
     }
 
-    /// @notice Locks tokens for staking and governance participation
-    /// @param amount The amount of tokens to lock
-    /// @param lockDuration The duration to lock tokens in seconds
-    /// @return lockIndex The index of the created lock
-    function lockTokens(uint256 amount, uint256 lockDuration)
-        external
-        returns (uint256 lockIndex)
-    {
-        require(amount > 0, "FableToken: lock amount must be greater than zero");
-        require(
-            lockDuration >= MIN_LOCK_DURATION,
-            "FableToken: lock duration too short"
-        );
-        require(
-            lockDuration <= MAX_LOCK_DURATION,
-            "FableToken: lock duration too long"
-        );
-        require(
-            balanceOf(msg.sender) >= amount,
-            "FableToken: insufficient balance for locking"
-        );
+    /// @notice Stake tokens for a specified duration
+    /// @param amount Amount of tokens to stake
+    /// @param duration Lock duration in seconds (must be between MIN and MAX)
+    function stake(uint256 amount, uint256 duration) external {
+        if (duration < MIN_STAKE_DURATION || duration > MAX_STAKE_DURATION) {
+            revert InvalidStakeDuration();
+        }
 
-        uint256 unlockTime = block.timestamp + lockDuration;
-        lockIndex = stakeLocks[msg.sender].length;
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+        require(amount > 0, "Stake amount must be greater than 0");
 
-        stakeLocks[msg.sender].push(
-            StakeLock({amount: amount, unlockTime: unlockTime, active: true})
-        );
+        uint256 unlockTime = block.timestamp + duration;
+        uint256 reward = _calculateReward(amount, duration);
 
-        totalLockedTokens += amount;
+        if (rewardPool < reward) {
+            revert InsufficientRewardPool();
+        }
 
         _transfer(msg.sender, address(this), amount);
+        totalStaked += amount;
+        rewardPool -= reward;
 
-        emit TokensLocked(msg.sender, amount, unlockTime, lockIndex);
+        stakes[msg.sender].push(Stake({
+            amount: amount,
+            lockTime: block.timestamp,
+            unlockTime: unlockTime,
+            rewardDebt: reward,
+            claimed: false
+        }));
+
+        emit Staked(msg.sender, amount, unlockTime);
     }
 
-    /// @notice Unlocks previously locked tokens
-    /// @param lockIndex The index of the lock to unlock
-    function unlockTokens(uint256 lockIndex) external {
-        require(
-            lockIndex < stakeLocks[msg.sender].length,
-            "FableToken: invalid lock index"
-        );
+    /// @notice Unstake tokens and claim rewards
+    /// @param stakeIndex Index of the stake to unstake
+    function unstake(uint256 stakeIndex) external {
+        require(stakeIndex < stakes[msg.sender].length, "Invalid stake index");
 
-        StakeLock storage lock = stakeLocks[msg.sender][lockIndex];
-        require(lock.active, "FableToken: lock is already inactive");
-        require(
-            block.timestamp >= lock.unlockTime,
-            "FableToken: tokens are still locked"
-        );
+        Stake storage userStake = stakes[msg.sender][stakeIndex];
 
-        uint256 amount = lock.amount;
-        lock.active = false;
-        totalLockedTokens -= amount;
+        if (block.timestamp < userStake.unlockTime) {
+            revert StakeStillLocked();
+        }
+
+        require(!userStake.claimed, "Stake already claimed");
+
+        uint256 amount = userStake.amount;
+        uint256 reward = userStake.rewardDebt;
+
+        userStake.claimed = true;
+        totalStaked -= amount;
 
         _transfer(address(this), msg.sender, amount);
 
-        emit TokensUnlocked(msg.sender, amount, lockIndex);
-    }
-
-    /// @notice Gets all stake locks for a user
-    /// @param user The user address to query
-    /// @return Array of StakeLock structures
-    function getStakeLocks(address user)
-        external
-        view
-        returns (StakeLock[] memory)
-    {
-        return stakeLocks[user];
-    }
-
-    /// @notice Gets the number of locks for a user
-    /// @param user The user address to query
-    /// @return The count of locks
-    function getStakeLockCount(address user) external view returns (uint256) {
-        return stakeLocks[user].length;
-    }
-
-    /// @notice Gets total locked tokens for a user
-    /// @param user The user address to query
-    /// @return The total amount of locked tokens
-    function getLockedBalance(address user)
-        external
-        view
-        returns (uint256)
-    {
-        uint256 locked = 0;
-        for (uint256 i = 0; i < stakeLocks[user].length; i++) {
-            if (stakeLocks[user][i].active) {
-                locked += stakeLocks[user][i].amount;
+        if (reward > 0) {
+            if (totalSupply() + reward > MAX_SUPPLY) {
+                _transfer(address(this), msg.sender, reward);
+            } else {
+                _mint(msg.sender, reward);
             }
         }
-        return locked;
+
+        emit Unstaked(msg.sender, stakeIndex, amount, reward);
     }
+
+    /// @notice Get all stakes for an address
+    /// @param staker Address to query
+    /// @return Array of stakes for the given staker
+    function getStakes(address staker) external view returns (Stake[] memory) {
+        return stakes[staker];
+    }
+
+    /// @notice Get number of stakes for an address
+    /// @param staker Address to query
+    /// @return Count of stakes
+    function getStakeCount(address staker) external view returns (uint256) {
+        return stakes[staker].length;
+    }
+
+    /// @notice Calculate staking reward based on amount and duration
+    /// @param amount Token amount being staked
+    /// @param duration Lock duration in seconds
+    /// @return Calculated reward amount
+    function _calculateReward(uint256 amount, uint256 duration) internal view returns (uint256) {
+        uint256 annualReward = (amount * baseRewardRate) / 10000;
+        return (annualReward * duration) / 365 days;
+    }
+
+    /// @notice Update base reward rate (governance protected)
+    /// @param newRate New reward rate in basis points
+    function scheduleRewardRateUpdate(uint256 newRate) external onlyOwner {
+        if (newRate > 2000) {
+            revert InvalidRewardRate();
+        }
+
+        bytes32 actionHash = keccak256(abi.encodePacked("updateRewardRate", newRate));
+        pendingActions[actionHash] = block.timestamp + governanceDelay;
+
+        emit GovernanceActionScheduled(actionHash, block.timestamp + governanceDelay);
+    }
+
+    /// @notice Execute scheduled reward rate update
+    /// @param newRate New reward rate in basis points
