@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/governance/Governor.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
@@ -10,13 +9,36 @@ import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFractio
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-interface IFableToken is IERC20 {
-    function delegate(address delegatee) external;
+interface IFableToken {
+    function getPastVotes(address account, uint256 blockNumber) external view returns (uint256);
+    function delegates(address account) external view returns (address);
+}
+
+interface ITimelockController {
+    function schedule(
+        address target,
+        uint256 value,
+        bytes calldata data,
+        bytes32 predecessor,
+        bytes32 salt,
+        uint256 delay
+    ) external;
+
+    function execute(
+        address target,
+        uint256 value,
+        bytes calldata data,
+        bytes32 predecessor,
+        bytes32 salt
+    ) external payable;
+
+    function cancel(bytes32 id) external;
+    function isOperationReady(bytes32 id) external view returns (bool);
 }
 
 /// @title FableGovernance
-/// @notice Governance contract for the Fablechain project with proposal voting and timelock execution
-/// @dev Implements OpenZeppelin Governor pattern with voting power delegation, quorum requirements, and timelock delays
+/// @notice Governance contract for the Fablechain ecosystem
+/// @dev Implements Governor pattern with timelock control for secure execution
 contract FableGovernance is
     Governor,
     GovernorSettings,
@@ -26,203 +48,151 @@ contract FableGovernance is
     GovernorTimelockControl,
     Ownable
 {
-    enum ProposalType {
-        PARAMETER_CHANGE,
-        CONTRACT_UPGRADE,
-        TREASURY_OPERATION,
-        EMERGENCY_ACTION
-    }
+    // Events
+    event ProposalThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+    event VotingDelayUpdated(uint256 oldDelay, uint256 newDelay);
+    event VotingPeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
+    event QuorumUpdated(uint256 oldQuorum, uint256 newQuorum);
 
-    struct ProposalMetadata {
-        ProposalType proposalType;
-        string ipfsHash;
-        uint256 createdAt;
-        address proposer;
-        bool executed;
-    }
+    // State variables
+    uint256 private _proposalThreshold;
+    ITimelockController public timelockController;
 
-    /// @notice Minimum token balance required to create a proposal
-    uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18;
+    // Proposal metadata storage
+    mapping(uint256 => string) public proposalDescriptions;
+    mapping(uint256 => uint256) public proposalCreationTime;
 
-    /// @notice Maps proposal IDs to their metadata
-    mapping(uint256 => ProposalMetadata) public proposalMetadata;
-
-    /// @notice Emitted when a proposal is created with metadata
-    event ProposalCreatedWithMetadata(
-        uint256 indexed proposalId,
-        ProposalType indexed proposalType,
-        string ipfsHash,
-        address indexed proposer
-    );
-
-    /// @notice Emitted when a proposal is executed
-    event ProposalExecutedWithMetadata(
-        uint256 indexed proposalId,
-        address indexed executor
-    );
-
-    /// @notice Emitted when voting parameters are updated
-    event VotingParametersUpdated(
-        uint256 votingDelay,
-        uint256 votingPeriod,
-        uint256 proposalThreshold,
-        uint256 quorumNumerator
-    );
-
-    /// @notice Raised when caller lacks sufficient voting power for proposals
-    error InsufficientVotingPower();
-
-    /// @notice Raised when proposal type is invalid
-    error InvalidProposalType();
-
-    /// @notice Raised when IPFS hash is empty
-    error InvalidIPFSHash();
-
-    /// @notice Raised when timelock delay period has not elapsed
-    error TimelockNotReady();
-
+    /// @notice Initialize the governance contract
+    /// @param _token Address of FABLE token with voting power
+    /// @param _timelock Address of timelock controller
+    /// @param initialVotingDelay Delay before voting starts (in blocks)
+    /// @param initialVotingPeriod Duration of voting period (in blocks)
+    /// @param initialQuorumNumerator Quorum as percentage (1-100)
+    /// @param initialProposalThreshold Minimum tokens needed to propose
     constructor(
         IVotes _token,
-        TimelockController _timelock,
-        uint256 _votingDelay,
-        uint256 _votingPeriod,
-        uint256 _proposalThreshold,
-        uint256 _quorumNumerator
+        ITimelockController _timelock,
+        uint48 initialVotingDelay,
+        uint32 initialVotingPeriod,
+        uint8 initialQuorumNumerator,
+        uint256 initialProposalThreshold
     )
         Governor("FableGovernance")
-        GovernorSettings(
-            _votingDelay,
-            _votingPeriod,
-            _proposalThreshold
-        )
+        GovernorSettings(initialVotingDelay, initialVotingPeriod, initialProposalThreshold)
         GovernorVotes(_token)
-        GovernorVotesQuorumFraction(_quorumNumerator)
+        GovernorVotesQuorumFraction(initialQuorumNumerator)
         GovernorTimelockControl(_timelock)
-    {}
+    {
+        timelockController = _timelock;
+        _proposalThreshold = initialProposalThreshold;
+    }
 
-    /// @notice Create a governance proposal with metadata
+    /// @notice Update the proposal threshold
+    /// @param newThreshold New threshold in FABLE tokens
+    /// @dev Only callable by owner
+    function updateProposalThreshold(uint256 newThreshold) external onlyOwner {
+        require(newThreshold > 0, "FableGovernance: threshold must be greater than 0");
+        uint256 oldThreshold = _proposalThreshold;
+        _proposalThreshold = newThreshold;
+        emit ProposalThresholdUpdated(oldThreshold, newThreshold);
+    }
+
+    /// @notice Get the current proposal threshold
+    /// @return The minimum voting power required to create a proposal
+    function proposalThreshold() public view override returns (uint256) {
+        return _proposalThreshold;
+    }
+
+    /// @notice Create a governance proposal
     /// @param targets Array of target addresses for proposal actions
-    /// @param values Array of ETH values to send with each action
+    /// @param values Array of ETH values to be sent with calls
     /// @param calldatas Array of encoded function calls
-    /// @param description Human-readable description of the proposal
-    /// @param proposalType Type of proposal being created
-    /// @param ipfsHash IPFS hash containing detailed proposal documentation
-    /// @return proposalId The ID of the created proposal
-    function proposeWithMetadata(
+    /// @param description Proposal description containing title and motivation
+    /// @return proposalId Unique identifier for the created proposal
+    function propose(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
-        string memory description,
-        ProposalType proposalType,
-        string memory ipfsHash
-    ) public returns (uint256) {
-        if (ipfsHash[0] == 0) {
-            revert InvalidIPFSHash();
-        }
-
-        if (uint256(proposalType) > 3) {
-            revert InvalidProposalType();
-        }
-
-        uint256 voterWeight = getVotes(msg.sender, block.number - 1);
-        if (voterWeight < proposalThreshold()) {
-            revert InsufficientVotingPower();
-        }
-
-        uint256 proposalId = propose(
-            targets,
-            values,
-            calldatas,
-            description
+        string memory description
+    ) public override returns (uint256) {
+        require(
+            getVotes(msg.sender, block.number - 1) >= proposalThreshold(),
+            "FableGovernance: proposer votes below proposal threshold"
         );
 
-        proposalMetadata[proposalId] = ProposalMetadata({
-            proposalType: proposalType,
-            ipfsHash: ipfsHash,
-            createdAt: block.timestamp,
-            proposer: msg.sender,
-            executed: false
-        });
-
-        emit ProposalCreatedWithMetadata(
-            proposalId,
-            proposalType,
-            ipfsHash,
-            msg.sender
-        );
+        uint256 proposalId = super.propose(targets, values, calldatas, description);
+        proposalDescriptions[proposalId] = description;
+        proposalCreationTime[proposalId] = block.timestamp;
 
         return proposalId;
     }
 
-    /// @notice Execute a proposal that has passed voting and met timelock requirements
-    /// @param targets Array of target addresses for proposal actions
-    /// @param values Array of ETH values to send with each action
-    /// @param calldatas Array of encoded function calls
-    /// @param descriptionHash Hash of the proposal description
-    /// @param proposalId The ID of the proposal being executed
-    function executeProposal(
+    /// @notice Cast a vote on a proposal
+    /// @param proposalId ID of the proposal to vote on
+    /// @param support Vote direction (0=Against, 1=For, 2=Abstain)
+    /// @return weight The voting weight of the sender
+    function castVote(uint256 proposalId, uint8 support)
+        public
+        override
+        returns (uint256)
+    {
+        return super.castVote(proposalId, support);
+    }
+
+    /// @notice Cast a vote with a custom reason
+    /// @param proposalId ID of the proposal
+    /// @param support Vote direction
+    /// @param reason Explanation for the vote
+    /// @return weight Voting weight applied
+    function castVoteWithReason(
+        uint256 proposalId,
+        uint8 support,
+        string calldata reason
+    ) public override returns (uint256) {
+        return super.castVoteWithReason(proposalId, support, reason);
+    }
+
+    /// @notice Execute a proposal that has passed voting and exceeded timelock delay
+    /// @param targets Array of target addresses
+    /// @param values Array of ETH values
+    /// @param calldatas Array of function calldata
+    /// @param descriptionHash Hash of proposal description
+    function execute(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
-        bytes32 descriptionHash,
-        uint256 proposalId
-    ) public payable {
-        ProposalState state = state(proposalId);
-        require(
-            state == ProposalState.Succeeded || state == ProposalState.Queued,
-            "Proposal must be succeeded or queued"
-        );
-
-        if (state == ProposalState.Succeeded) {
-            queue(targets, values, calldatas, descriptionHash);
-        }
-
-        uint256 eta = proposalEta(proposalId);
-        require(block.timestamp >= eta, "Timelock delay not satisfied");
-
-        _execute(targets, values, calldatas, descriptionHash, msg.sender);
-
-        if (proposalMetadata[proposalId].proposer != address(0)) {
-            proposalMetadata[proposalId].executed = true;
-        }
-
-        emit ProposalExecutedWithMetadata(proposalId, msg.sender);
+        bytes32 descriptionHash
+    ) public payable override(Governor, GovernorTimelockControl) returns (uint256) {
+        return super.execute(targets, values, calldatas, descriptionHash);
     }
 
-    /// @notice Get proposal metadata
-    /// @param proposalId The ID of the proposal
-    /// @return Tuple containing (proposalType, ipfsHash, createdAt, proposer, executed)
-    function getProposalMetadata(uint256 proposalId)
-        public
-        view
-        returns (
-            ProposalType,
-            string memory,
-            uint256,
-            address,
-            bool
-        )
-    {
-        ProposalMetadata memory meta = proposalMetadata[proposalId];
-        return (
-            meta.proposalType,
-            meta.ipfsHash,
-            meta.createdAt,
-            meta.proposer,
-            meta.executed
-        );
+    /// @notice Queue a proposal for execution through timelock
+    /// @param targets Array of target addresses
+    /// @param values Array of ETH values
+    /// @param calldatas Array of function calldata
+    /// @param descriptionHash Hash of proposal description
+    function queue(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public override(Governor, GovernorTimelockControl) returns (uint48) {
+        return super.queue(targets, values, calldatas, descriptionHash);
     }
 
-    /// @notice Check if a proposal has been executed
-    /// @param proposalId The ID of the proposal
-    /// @return true if proposal has been executed
-    function hasExecuted(uint256 proposalId) public view returns (bool) {
-        return proposalMetadata[proposalId].executed;
+    /// @notice Cancel a pending proposal in timelock
+    /// @param targets Array of target addresses
+    /// @param values Array of ETH values
+    /// @param calldatas Array of function calldata
+    /// @param descriptionHash Hash of proposal description
+    function cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public override(Governor, GovernorTimelockControl) returns (uint48) {
+        return super.cancel(targets, values, calldatas, descriptionHash);
     }
 
-    /// @notice Update governance voting parameters (owner only)
-    /// @param newVotingDelay New voting delay in blocks
-    /// @param newVotingPeriod New voting period in blocks
-    /// @param newProposalThreshold New proposal threshold in tokens
-    /// @param newQuorumNumerator New quorum as percentage (1-100)
-    function updateVot
+    /// @notice Get the voting delay in blocks
+    /// @return delay Blocks until voting begins after proposal creation
