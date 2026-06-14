@@ -1334,7 +1334,7 @@ button {
 .util-bar .contract {
   font-family: var(--font-mono);
   font-size: 10.5px;
-  color: var(--text-3);
+  color: var(--cyan);
   cursor: pointer;
   transition: color 0.15s;
   white-space: nowrap;
