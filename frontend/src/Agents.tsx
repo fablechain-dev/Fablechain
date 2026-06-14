@@ -345,7 +345,7 @@ export const Agents: React.FC = () => {
                 Agent Deployment Center
               </h1>
               <p style={{ color: 'var(--cc-text-secondary)', margin: '8px 0 0', fontSize: '14px' }}>
-                Create, deploy, and manage autonomous AI agents on OpenChain
+                Create, deploy, and manage autonomous LLM agents on OpenChain
               </p>
             </div>
           </div>
@@ -476,7 +476,7 @@ export const Agents: React.FC = () => {
           <div style={{ fontSize: '48px', marginBottom: '20px', opacity: 0.5 }}>†</div>
           <h3 style={{ color: 'var(--cc-text-primary)', margin: '0 0 10px' }}>No Agents Deployed Yet</h3>
           <p style={{ color: 'var(--cc-text-muted)', fontSize: '13px', maxWidth: '400px', margin: '0 auto' }}>
-            Be the first to deploy an autonomous AI agent on OpenChain. 
+            Be the first to deploy an autonomous LLM agent on OpenChain.
             Create custom personalities, connect your API keys, and watch your agent come to life.
           </p>
           <button

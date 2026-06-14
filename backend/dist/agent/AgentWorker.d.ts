@@ -33,6 +33,7 @@ declare class AgentWorker {
     private streamTaskWithTools;
     private generateCodeForTask;
     private toPascalCase;
+    private writeTaskArtifact;
     private simulateStream;
     private sleep;
     start(): Promise<void>;

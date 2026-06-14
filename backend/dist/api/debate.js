@@ -45,6 +45,7 @@ const dotenv = __importStar(require("dotenv"));
 dotenv.config();
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_REASONING_MODEL = process.env.ANTHROPIC_REASONING_MODEL || 'claude-sonnet-4-6';
 // Rich, unique personalities for each Open Council member
 const OPEN_COUNCIL = {
     validator: {
@@ -312,7 +313,7 @@ End your response with your current position on a new line in brackets, one of: 
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'molt-sonnet-4-20250514',
+                model: ANTHROPIC_REASONING_MODEL,
                 max_tokens: 400,
                 temperature: 0.8,
                 system: instance.personality,

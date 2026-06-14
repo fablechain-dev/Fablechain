@@ -230,7 +230,7 @@ exports.VALIDATORS = [
 // ANTHROPIC CLIENT
 // ============================================================================
 const anthropic = new sdk_1.default();
-const MODEL = 'molt-sonnet-4-20250514';
+const MODEL = process.env.ANTHROPIC_REASONING_MODEL || 'claude-sonnet-4-6';
 function cleanJsonResponse(text) {
     // Remove ```json and ``` markers
     let cleaned = text.trim();

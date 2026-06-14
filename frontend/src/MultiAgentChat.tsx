@@ -173,7 +173,7 @@ const OpenChat: React.FC = () => {
           color: 'var(--cc-text-secondary)',
           lineHeight: 1.5
         }}>
-          The AI that actually does things. Chat with the space lobster running your blockchain 24/7.
+          The LLM that actually does things. Chat with the OpenClaw system running your blockchain 24/7.
         </div>
       </div>
 
@@ -200,7 +200,7 @@ const OpenChat: React.FC = () => {
               }} 
             />
             <div style={{ marginTop: '16px' }}>
-              Your autonomous AI validator is ready 🦞
+              Your autonomous LLM validator is ready 🦞
             </div>
             <div style={{ 
               marginTop: '12px', 

@@ -35,6 +35,9 @@ export declare class GitIntegration {
     private setupGitConfig;
     autoCommitAndPush(message: string, taskId?: string): Promise<GitOperationResult>;
     private execGit;
+    private hasUncommittedChanges;
+    private stashUncommittedChanges;
+    private restoreStashedChanges;
     getCurrentBranch(): string;
     getBranches(): BranchInfo[];
     createTaskBranch(taskId: string, taskTitle: string): Promise<GitOperationResult>;

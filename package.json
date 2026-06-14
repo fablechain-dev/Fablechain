@@ -1,7 +1,7 @@
 {
   "name": "openchain",
   "version": "1.0.0",
-  "description": "The AI that actually does things - An autonomous AI building its own blockchain. Watch Open code in real-time.",
+  "description": "The LLM that actually does things - an autonomous LLM on a Mac Mini building its own blockchain. Watch OpenClaw code in real-time.",
   "main": "backend/dist/index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",

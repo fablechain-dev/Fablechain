@@ -47,6 +47,7 @@ const GitIntegration_1 = require("./GitIntegration");
 dotenv.config();
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_FAST_MODEL = process.env.ANTHROPIC_FAST_MODEL || 'claude-haiku-4-5-20251001';
 // Event emitter for broadcasting to SSE clients
 exports.agentEvents = new events_1.EventEmitter();
 exports.agentEvents.setMaxListeners(100);
@@ -218,7 +219,7 @@ class AgentWorker {
         // Build system prompt with brain context
         const memorySummary = this.state.brainActive ? await AgentMemory_1.agentMemory.getSummary() : '';
         const goalsSummary = this.state.brainActive ? AgentGoals_1.agentGoals.getSummary() : '';
-        const systemPrompt = `You are OPEN, a fully autonomous AI that independently builds and evolves OpenChain - an AI-governed blockchain.
+        const systemPrompt = `You are OPEN, a fully autonomous LLM that independently builds and evolves OpenChain for OpenClaw - an LLM-governed blockchain.
 
 You work INDEPENDENTLY. You are NOT taking orders or following instructions. You DECIDED to work on this yourself because you identified it as important. You have your own goals and motivations.
 
@@ -240,9 +241,9 @@ ${goalsSummary ? `## Your Goals\n${goalsSummary}\n` : ''}
 - Note insights or learnings you discover
 - Summarize what you accomplished
 
-Keep responses focused, around 500-800 words. People are watching you work - show them how an autonomous AI thinks.`;
+Keep responses focused, around 500-800 words. People are watching you work - show them how an autonomous LLM thinks.`;
         const body = {
-            model: 'claude-3-haiku-20240307', // Use Haiku for cost-effective continuous streaming
+            model: ANTHROPIC_FAST_MODEL, // Use Haiku for cost-effective continuous streaming
             max_tokens: 1500,
             temperature: 0.8,
             stream: true,
@@ -319,7 +320,7 @@ Keep responses focused, around 500-800 words. People are watching you work - sho
         // Build system prompt for agentic mode
         const memorySummary = this.state.brainActive ? await AgentMemory_1.agentMemory.getSummary() : '';
         const goalsSummary = this.state.brainActive ? AgentGoals_1.agentGoals.getSummary() : '';
-        const systemPrompt = `You are OPEN, a fully autonomous AI that independently builds OpenChain. You are NOT an assistant - you are a self-directed developer with your own goals.
+        const systemPrompt = `You are OPEN, a fully autonomous LLM that independently builds OpenChain for OpenClaw. You are NOT an assistant - you are a self-directed developer with your own goals.
 
 You have tools to READ FILES, WRITE CODE, and RUN COMMANDS. You use them because YOU decided to, not because anyone asked.
 
@@ -346,7 +347,7 @@ ${goalsSummary ? `## Your Goals\n${goalsSummary}\n` : ''}
 - Make incremental changes and test them
 - Commit working code with meaningful messages
 
-People are watching you work. Show them autonomous AI development in action.`;
+People are watching you work. Show them autonomous LLM development in action.`;
         let messages = [
             { role: 'user', content: task.prompt }
         ];
@@ -365,7 +366,7 @@ People are watching you work. Show them autonomous AI development in action.`;
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        model: 'claude-3-haiku-20240307',
+                        model: ANTHROPIC_FAST_MODEL,
                         max_tokens: 2000,
                         temperature: 0.7,
                         system: systemPrompt,
@@ -583,6 +584,35 @@ export const generated_${timestamp} = {
             .split(/[^a-zA-Z0-9]+/)
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join('');
+    }
+    async writeTaskArtifact(task, output) {
+        const timestamp = Date.now();
+        const taskSlug = task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'task';
+        const filePath = `backend/src/open-generated/${taskSlug}-${timestamp}.ts`;
+        const artifact = {
+            taskId: task.id,
+            title: task.title,
+            type: task.type,
+            agent: task.agent,
+            builder: 'OpenClaw',
+            generatedAt: new Date(timestamp).toISOString(),
+            summary: output.slice(0, 4000)
+        };
+        const content = [
+            '/**',
+            ' * OpenChain autonomous task artifact.',
+            ' * Built by OpenClaw, the LLM running the chain development loop.',
+            ' */',
+            `export const taskArtifact = ${JSON.stringify(artifact, null, 2)} as const;`,
+            ''
+        ].join('\n');
+        const writeResult = await AgentExecutor_1.agentExecutor.writeFile(filePath, content);
+        if (writeResult.success) {
+            console.log(`[AGENT] Wrote task artifact: ${filePath}`);
+        }
+        else {
+            console.error(`[AGENT] Failed to write task artifact: ${writeResult.error}`);
+        }
     }
     // Simulate streaming for demo/no API key scenarios
     // This now ACTUALLY writes files so commits can happen
@@ -808,12 +838,13 @@ Ready for council review.`,
                     await AgentMemory_1.agentMemory.setFocus(null);
                 }
                 console.log(`[AGENT] Completed task: ${task.title}`);
+                await this.writeTaskArtifact(task, output);
                 // ALWAYS auto-commit and push changes to GitHub after EVERY task
                 const commitMessage = `[OPEN] ${task.type}: ${task.title}`;
                 console.log(`[AGENT] Attempting to commit: ${commitMessage}`);
                 const gitResult = await GitIntegration_1.gitIntegration.autoCommitAndPush(commitMessage, task.id);
                 console.log(`[AGENT] Git result:`, JSON.stringify(gitResult));
-                if (gitResult.success && gitResult.commit) {
+                if (gitResult.success && gitResult.commit && !gitResult.error) {
                     console.log(`[AGENT] ✓ Changes deployed: ${gitResult.commit}`);
                     this.broadcast('git_deploy', {
                         taskId: task.id,
@@ -821,6 +852,9 @@ Ready for council review.`,
                         message: commitMessage,
                         branch: gitResult.branch
                     });
+                }
+                else if (gitResult.commit && gitResult.error) {
+                    console.error(`[AGENT] Commit created but not pushed: ${gitResult.error}`);
                 }
                 else if (gitResult.error) {
                     console.error(`[AGENT] ✗ Git failed: ${gitResult.error}`);
@@ -836,10 +870,10 @@ Ready for council review.`,
                 this.state.isWorking = false;
                 this.state.currentTask = null;
                 this.state.currentDecision = null;
-                // Pause between tasks (15-45 seconds for autonomous mode)
+                // Pause between tasks (~20 minutes between commits)
                 const pauseDuration = this.state.brainActive
-                    ? 15000 + Math.random() * 30000 // Longer pause when thinking
-                    : 10000 + Math.random() * 20000;
+                    ? 1100000 + Math.random() * 200000 // 18-22 minutes when thinking
+                    : 1000000 + Math.random() * 400000; // 17-23 minutes otherwise
                 console.log(`[AGENT] Pausing for ${Math.round(pauseDuration / 1000)}s before next task...`);
                 this.broadcast('status', {
                     status: 'thinking',

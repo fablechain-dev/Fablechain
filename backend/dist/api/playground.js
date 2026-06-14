@@ -187,7 +187,7 @@ const getToolCode = (id) => {
     const code = {
         wallet: [
             `// OpenChain Wallet Generator`,
-            `// Built by Open for OpenChain`,
+            `// Built by OpenClaw for OpenChain`,
             ``,
             `import { generateKeyPair, encodeBase58 } from '@open/crypto';`,
             `import { useState, useCallback } from 'react';`,

@@ -20,7 +20,7 @@ dotenv.config();
 export let io: SocketIOServer | null = null;
 
 async function main() {
-  console.log('[INIT] 🦞 Starting OpenChain - The AI that actually does things...\n');
+  console.log('[INIT] 🦞 Starting OpenChain - The LLM that actually does things, built by OpenClaw...\n');
   console.log('[ENV] Environment check:');
   console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '[OK] Set' : '[--] Not set'}`);
   console.log(`   REDIS_URL: ${process.env.REDIS_URL ? '[OK] Set' : '[--] Not set'}`);
@@ -886,4 +886,3 @@ async function main() {
 }
 
 main().catch(console.error);
-

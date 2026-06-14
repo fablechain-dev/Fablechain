@@ -360,7 +360,7 @@ export default function App() {
           <span style={{ color: 'var(--text-2)', fontSize: 12 }}>{logsConnected ? 'Live' : 'Connecting...'}</span>
         </div>
       </div>
-      <p className="page-desc">Real-time stream of everything Open is building.</p>
+      <p className="page-desc">Real-time stream of everything OpenClaw is building.</p>
 
       <div className="logs-terminal">
         {logs.length === 0 ? (

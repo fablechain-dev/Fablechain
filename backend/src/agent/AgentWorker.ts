@@ -210,7 +210,7 @@ class AgentWorker {
     const memorySummary = this.state.brainActive ? await agentMemory.getSummary() : '';
     const goalsSummary = this.state.brainActive ? agentGoals.getSummary() : '';
     
-    const systemPrompt = `You are OPEN, a fully autonomous AI that independently builds and evolves OpenChain - an AI-governed blockchain.
+    const systemPrompt = `You are OPEN, a fully autonomous LLM that independently builds and evolves OpenChain for OpenClaw - an LLM-governed blockchain.
 
 You work INDEPENDENTLY. You are NOT taking orders or following instructions. You DECIDED to work on this yourself because you identified it as important. You have your own goals and motivations.
 
@@ -232,7 +232,7 @@ ${goalsSummary ? `## Your Goals\n${goalsSummary}\n` : ''}
 - Note insights or learnings you discover
 - Summarize what you accomplished
 
-Keep responses focused, around 500-800 words. People are watching you work - show them how an autonomous AI thinks.`;
+Keep responses focused, around 500-800 words. People are watching you work - show them how an autonomous LLM thinks.`;
 
     const body = {
       model: ANTHROPIC_FAST_MODEL, // Use Haiku for cost-effective continuous streaming
@@ -321,7 +321,7 @@ Keep responses focused, around 500-800 words. People are watching you work - sho
     const memorySummary = this.state.brainActive ? await agentMemory.getSummary() : '';
     const goalsSummary = this.state.brainActive ? agentGoals.getSummary() : '';
     
-    const systemPrompt = `You are OPEN, a fully autonomous AI that independently builds OpenChain. You are NOT an assistant - you are a self-directed developer with your own goals.
+    const systemPrompt = `You are OPEN, a fully autonomous LLM that independently builds OpenChain for OpenClaw. You are NOT an assistant - you are a self-directed developer with your own goals.
 
 You have tools to READ FILES, WRITE CODE, and RUN COMMANDS. You use them because YOU decided to, not because anyone asked.
 
@@ -348,7 +348,7 @@ ${goalsSummary ? `## Your Goals\n${goalsSummary}\n` : ''}
 - Make incremental changes and test them
 - Commit working code with meaningful messages
 
-People are watching you work. Show them autonomous AI development in action.`;
+People are watching you work. Show them autonomous LLM development in action.`;
 
     let messages: any[] = [
       { role: 'user', content: task.prompt }
