@@ -605,6 +605,36 @@ export const generated_${timestamp} = {
       .join('');
   }
 
+  private async writeTaskArtifact(task: Task, output: string): Promise<void> {
+    const timestamp = Date.now();
+    const taskSlug = task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'task';
+    const filePath = `backend/src/open-generated/${taskSlug}-${timestamp}.ts`;
+    const artifact = {
+      taskId: task.id,
+      title: task.title,
+      type: task.type,
+      agent: task.agent,
+      builder: 'OpenClaw',
+      generatedAt: new Date(timestamp).toISOString(),
+      summary: output.slice(0, 4000)
+    };
+    const content = [
+      '/**',
+      ' * OpenChain autonomous task artifact.',
+      ' * Built by OpenClaw, the LLM running the chain development loop.',
+      ' */',
+      `export const taskArtifact = ${JSON.stringify(artifact, null, 2)} as const;`,
+      ''
+    ].join('\n');
+
+    const writeResult = await agentExecutor.writeFile(filePath, content);
+    if (writeResult.success) {
+      console.log(`[AGENT] Wrote task artifact: ${filePath}`);
+    } else {
+      console.error(`[AGENT] Failed to write task artifact: ${writeResult.error}`);
+    }
+  }
+
   // Simulate streaming for demo/no API key scenarios
   // This now ACTUALLY writes files so commits can happen
   private async simulateStream(task: Task): Promise<string> {
@@ -864,6 +894,7 @@ Ready for council review.`,
         }
 
         console.log(`[AGENT] Completed task: ${task.title}`);
+        await this.writeTaskArtifact(task, output);
         
         // ALWAYS auto-commit and push changes to GitHub after EVERY task
         const commitMessage = `[OPEN] ${task.type}: ${task.title}`;
