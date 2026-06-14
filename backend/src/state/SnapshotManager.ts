@@ -1,251 +1,250 @@
 ```typescript
 import { EventEmitter } from 'events';
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as zlib from 'zlib';
-import { createHash } from 'crypto';
-import { promisify } from 'util';
+import { createReadStream, createWriteStream } from 'fs';
+import { pipeline } from 'stream/promises';
+import * as crypto from 'crypto';
+import { Logger } from '../utils/Logger';
+import { WorldState } from './WorldState';
+import { Account } from './Account';
+import { Entity } from './Entity';
 
-const gzip = promisify(zlib.gzip);
-const gunzip = promisify(zlib.gunzip);
-const writeFile = promisify(fs.writeFile);
-const readFile = promisify(fs.readFile);
-const mkdir = promisify(fs.mkdir);
-
-interface WorldStateSnapshot {
+export interface SnapshotMetadata {
+  version: number;
   epoch: number;
   timestamp: number;
-  stateHash: string;
-  entities: Map<string, EntityState>;
-  systems: Map<string, SystemState>;
-  metadata: SnapshotMetadata;
+  stateRoot: string;
+  accountCount: number;
+  entityCount: number;
+  checksum: string;
+  compressionType: 'gzip' | 'none';
+  fableVersion: string;
 }
 
-interface EntityState {
-  id: string;
-  components: Map<string, unknown>;
-  version: number;
-  lastModified: number;
+export interface SnapshotHeader {
+  magic: number;
+  metadataLength: number;
 }
 
-interface SystemState {
-  id: string;
-  data: unknown;
-  version: number;
-}
-
-interface SnapshotMetadata {
-  chainId: number;
-  version: string;
-  blockHeight: number;
-  validator: string;
-  signature: string;
-  previousHash: string;
-}
-
-interface SnapshotManifest {
-  epoch: number;
-  hash: string;
-  size: number;
-  timestamp: number;
-  blockHeight: number;
-  checksums: Map<string, string>;
-}
-
-interface SyncPeerInfo {
-  peerId: string;
-  lastSnapshotEpoch: number;
-  availableSnapshots: number[];
-  latency: number;
-}
-
-interface ChunkMetadata {
-  chunkIndex: number;
+export interface SyncChunk {
+  chunkId: number;
   totalChunks: number;
-  hash: string;
-  snapshotHash: string;
-  size: number;
+  data: Buffer;
+  checksum: string;
+  isCompressed: boolean;
 }
 
-const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-const SNAPSHOT_VERSION = '1.0.0';
-const SNAPSHOT_RETENTION = 5; // Keep last 5 snapshots
+export interface SnapshotIndex {
+  epoch: number;
+  offset: number;
+  length: number;
+  checksum: string;
+}
+
+const SNAPSHOT_MAGIC = 0x46414254; // 'FABT'
+const SNAPSHOT_VERSION = 1;
+const FABLE_VERSION = '0.1.0';
+const CHUNK_SIZE = 1024 * 1024; // 1MB chunks for fast-sync
+const SNAPSHOT_DIR = 'snapshots';
 
 export class SnapshotManager extends EventEmitter {
+  private logger: Logger;
   private snapshotDir: string;
-  private currentSnapshot: WorldStateSnapshot | null = null;
-  private snapshots: Map<number, SnapshotManifest> = new Map();
-  private syncPeers: Map<string, SyncPeerInfo> = new Map();
-  private inProgressChunks: Map<string, Map<number, Buffer>> = new Map();
+  private currentEpoch: number = 0;
+  private snapshotIndex: Map<number, SnapshotIndex> = new Map();
+  private syncInProgress: boolean = false;
 
-  constructor(snapshotDir: string = './snapshots') {
+  constructor(logger: Logger, snapshotsBasePath: string = SNAPSHOT_DIR) {
     super();
-    this.snapshotDir = snapshotDir;
-    this.initializeDirectory();
+    this.logger = logger;
+    this.snapshotDir = snapshotsBasePath;
   }
 
-  private async initializeDirectory(): Promise<void> {
+  async initialize(): Promise<void> {
     try {
-      await mkdir(this.snapshotDir, { recursive: true });
-      await this.loadManifests();
+      await fs.mkdir(this.snapshotDir, { recursive: true });
+      await this.loadSnapshotIndex();
+      this.logger.info('SnapshotManager initialized', {
+        snapshotDir: this.snapshotDir,
+        indexedSnapshots: this.snapshotIndex.size,
+      });
     } catch (error) {
-      this.emit('error', new Error(`Failed to initialize snapshot directory: ${error}`));
+      this.logger.error('Failed to initialize SnapshotManager', { error });
+      throw error;
     }
   }
 
   async createSnapshot(
+    worldState: WorldState,
     epoch: number,
-    entities: Map<string, EntityState>,
-    systems: Map<string, SystemState>,
-    metadata: SnapshotMetadata
-  ): Promise<string> {
+  ): Promise<SnapshotMetadata> {
     try {
-      const snapshot: WorldStateSnapshot = {
+      this.logger.info('Creating snapshot', { epoch });
+
+      const startTime = Date.now();
+      const snapshotPath = this.getSnapshotPath(epoch);
+
+      // Serialize world state
+      const serialized = await this.serializeWorldState(worldState);
+      const stateRoot = this.calculateStateRoot(serialized);
+
+      // Create metadata
+      const metadata: SnapshotMetadata = {
+        version: SNAPSHOT_VERSION,
         epoch,
         timestamp: Date.now(),
-        stateHash: '',
-        entities,
-        systems,
-        metadata,
+        stateRoot,
+        accountCount: worldState.getAccountCount(),
+        entityCount: worldState.getEntityCount(),
+        checksum: '',
+        compressionType: 'gzip',
+        fableVersion: FABLE_VERSION,
       };
 
-      snapshot.stateHash = this.computeStateHash(snapshot);
-
-      const serialized = this.serializeSnapshot(snapshot);
-      const snapshotHash = createHash('sha256').update(serialized).digest('hex');
-
-      const filePath = path.join(this.snapshotDir, `snapshot-${epoch}.bin`);
-      const compressedData = await gzip(serialized);
-
-      await writeFile(filePath, compressedData);
-
-      const manifest: SnapshotManifest = {
-        epoch,
-        hash: snapshotHash,
-        size: compressedData.length,
-        timestamp: snapshot.timestamp,
-        blockHeight: metadata.blockHeight,
-        checksums: new Map(),
-      };
-
-      this.snapshots.set(epoch, manifest);
-      this.currentSnapshot = snapshot;
-
-      await this.saveManifests();
-      await this.pruneOldSnapshots();
-
-      this.emit('snapshot-created', {
-        epoch,
-        hash: snapshotHash,
-        size: compressedData.length,
+      // Write snapshot with compression
+      const writeStream = createWriteStream(snapshotPath);
+      const gzipStream = zlib.createGzip({
+        level: zlib.constants.Z_DEFAULT_COMPRESSION,
       });
 
-      return snapshotHash;
+      // Write header
+      const headerBuffer = Buffer.alloc(8);
+      headerBuffer.writeUInt32BE(SNAPSHOT_MAGIC, 0);
+      headerBuffer.writeUInt32BE(0, 4); // Placeholder for metadata length
+
+      const metadataJson = JSON.stringify(metadata);
+      const metadataBuffer = Buffer.from(metadataJson, 'utf-8');
+      const metadataLength = metadataBuffer.length;
+
+      // Update header with actual metadata length
+      headerBuffer.writeUInt32BE(metadataLength, 4);
+
+      // Create combined data stream
+      const dataBuffer = Buffer.concat([
+        headerBuffer,
+        metadataBuffer,
+        serialized,
+      ]);
+
+      metadata.checksum = crypto
+        .createHash('sha256')
+        .update(dataBuffer)
+        .digest('hex');
+
+      // Re-create with correct checksum
+      const metadataJsonWithChecksum = JSON.stringify(metadata);
+      const metadataBufferWithChecksum = Buffer.from(
+        metadataJsonWithChecksum,
+        'utf-8',
+      );
+      headerBuffer.writeUInt32BE(metadataBufferWithChecksum.length, 4);
+
+      const finalDataBuffer = Buffer.concat([
+        headerBuffer,
+        metadataBufferWithChecksum,
+        serialized,
+      ]);
+
+      await pipeline(
+        async function* () {
+          yield finalDataBuffer;
+        },
+        gzipStream,
+        writeStream,
+      );
+
+      // Update index
+      const stats = await fs.stat(snapshotPath);
+      this.snapshotIndex.set(epoch, {
+        epoch,
+        offset: 0,
+        length: stats.size,
+        checksum: metadata.checksum,
+      });
+
+      await this.saveSnapshotIndex();
+
+      const duration = Date.now() - startTime;
+      this.logger.info('Snapshot created successfully', {
+        epoch,
+        duration,
+        fileSize: stats.size,
+        stateRoot,
+      });
+
+      this.emit('snapshot-created', { epoch, metadata });
+      return metadata;
     } catch (error) {
-      throw new Error(`Failed to create snapshot at epoch ${epoch}: ${error}`);
+      this.logger.error('Failed to create snapshot', { epoch, error });
+      throw error;
     }
   }
 
-  async loadSnapshot(epoch: number): Promise<WorldStateSnapshot> {
+  async restoreSnapshot(
+    epoch: number,
+    worldState: WorldState,
+  ): Promise<SnapshotMetadata> {
     try {
-      const filePath = path.join(this.snapshotDir, `snapshot-${epoch}.bin`);
-      const compressedData = await readFile(filePath);
-      const decompressed = await gunzip(compressedData);
+      this.logger.info('Restoring snapshot', { epoch });
 
-      const snapshot = this.deserializeSnapshot(decompressed);
+      const snapshotPath = this.getSnapshotPath(epoch);
+      const fileExists = await this.fileExists(snapshotPath);
 
-      if (!this.verifyStateHash(snapshot)) {
-        throw new Error(`State hash mismatch for epoch ${epoch}`);
+      if (!fileExists) {
+        throw new Error(`Snapshot not found for epoch ${epoch}`);
       }
 
-      this.currentSnapshot = snapshot;
-      this.emit('snapshot-loaded', { epoch, hash: snapshot.stateHash });
+      const startTime = Date.now();
 
-      return snapshot;
-    } catch (error) {
-      throw new Error(`Failed to load snapshot for epoch ${epoch}: ${error}`);
-    }
-  }
+      // Read and decompress snapshot
+      const buffer = await this.readCompressedSnapshot(snapshotPath);
 
-  private serializeSnapshot(snapshot: WorldStateSnapshot): Buffer {
-    const buffers: Buffer[] = [];
+      // Parse header
+      let offset = 0;
+      const magic = buffer.readUInt32BE(offset);
+      offset += 4;
 
-    // Header
-    const header = Buffer.alloc(64);
-    let offset = 0;
+      if (magic !== SNAPSHOT_MAGIC) {
+        throw new Error('Invalid snapshot file magic number');
+      }
 
-    header.writeUInt32BE(snapshot.epoch, offset);
-    offset += 4;
-    header.writeBigInt64BE(BigInt(snapshot.timestamp), offset);
-    offset += 8;
-    Buffer.from(snapshot.stateHash, 'hex').copy(header, offset, 0, 32);
-    offset += 32;
-    header.writeUInt32BE(snapshot.metadata.blockHeight, offset);
-    offset += 4;
-    header.writeUInt32BE(snapshot.metadata.chainId, offset);
-    offset += 4;
-    header.writeUInt16BE(snapshot.stateHash.length, offset);
-    offset += 2;
+      const metadataLength = buffer.readUInt32BE(offset);
+      offset += 4;
 
-    buffers.push(header);
-
-    // Entities
-    const entityCount = Buffer.alloc(4);
-    entityCount.writeUInt32BE(snapshot.entities.size);
-    buffers.push(entityCount);
-
-    for (const [entityId, entityState] of snapshot.entities) {
-      buffers.push(this.serializeEntity(entityId, entityState));
-    }
-
-    // Systems
-    const systemCount = Buffer.alloc(4);
-    systemCount.writeUInt32BE(snapshot.systems.size);
-    buffers.push(systemCount);
-
-    for (const [systemId, systemState] of snapshot.systems) {
-      buffers.push(this.serializeSystem(systemId, systemState));
-    }
-
-    // Metadata
-    buffers.push(this.serializeMetadata(snapshot.metadata));
-
-    return Buffer.concat(buffers);
-  }
-
-  private deserializeSnapshot(buffer: Buffer): WorldStateSnapshot {
-    let offset = 0;
-
-    const epoch = buffer.readUInt32BE(offset);
-    offset += 4;
-
-    const timestamp = Number(buffer.readBigInt64BE(offset));
-    offset += 8;
-
-    const stateHash = buffer.slice(offset, offset + 32).toString('hex');
-    offset += 32;
-
-    const blockHeight = buffer.readUInt32BE(offset);
-    offset += 4;
-
-    const chainId = buffer.readUInt32BE(offset);
-    offset += 4;
-
-    offset += 2; // Skip hash length field
-
-    // Deserialize entities
-    const entities = new Map<string, EntityState>();
-    const entityCount = buffer.readUInt32BE(offset);
-    offset += 4;
-
-    for (let i = 0; i < entityCount; i++) {
-      const { entityId, entityState, bytesRead } = this.deserializeEntity(
-        buffer,
-        offset
+      // Parse metadata
+      const metadataBuffer = buffer.subarray(offset, offset + metadataLength);
+      const metadata: SnapshotMetadata = JSON.parse(
+        metadataBuffer.toString('utf-8'),
       );
-      entities.set(entityId, entityState);
-      offset += bytesRead;
-    }
+      offset += metadataLength;
 
-    // Deserialize systems
-    const systems = new Map
+      // Verify checksum
+      const expectedChecksum = metadata.checksum;
+      const dataToHash = buffer.subarray(
+        0,
+        offset + (buffer.length - offset),
+      );
+      const calculatedChecksum = crypto
+        .createHash('sha256')
+        .update(dataToHash)
+        .digest('hex');
+
+      if (calculatedChecksum !== expectedChecksum) {
+        throw new Error(
+          `Snapshot checksum mismatch. Expected ${expectedChecksum}, got ${calculatedChecksum}`,
+        );
+      }
+
+      // Deserialize state
+      const stateData = buffer.subarray(offset);
+      await this.deserializeWorldState(stateData, worldState);
+
+      const duration = Date.now() - startTime;
+      this.logger.info('Snapshot restored successfully', {
+        epoch,
+        duration,
+        stateRoot: metadata.stateRoot,
+        accountCount: metadata.accountCount,
+        entityCount: metadata.
