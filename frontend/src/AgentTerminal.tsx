@@ -18,6 +18,27 @@ interface CompletedTask {
   completedAt: string;
 }
 
+interface RecentCommit {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+  url: string;
+}
+
+interface GitHubCommitResponse {
+  sha: string;
+  html_url: string;
+  commit: {
+    message: string;
+    author: {
+      name: string;
+      date: string;
+    } | null;
+  };
+}
+
 interface AgentState {
   isWorking: boolean;
   currentTask: Task | null;
@@ -40,12 +61,58 @@ const AgentTerminal: React.FC = () => {
   });
   const [connected, setConnected] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
+  const [recentCommits, setRecentCommits] = useState<RecentCommit[]>([]);
+  const [recentCommitsLoading, setRecentCommitsLoading] = useState(true);
   const outputRef = useRef<HTMLDivElement>(null);
   const textBufferRef = useRef('');
   const displayIndexRef = useRef(0);
   const animationFrameRef = useRef<number>();
 
   const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+
+  const normalizeGitHubCommits = useCallback((commits: GitHubCommitResponse[]): RecentCommit[] => {
+    return commits.map(commit => ({
+      sha: commit.sha,
+      shortSha: commit.sha.slice(0, 7),
+      message: (commit.commit.message || 'Commit').split('\n')[0],
+      author: commit.commit.author?.name || 'GitHub',
+      date: commit.commit.author?.date || '',
+      url: commit.html_url,
+    }));
+  }, []);
+
+  const loadRecentCommits = useCallback(async () => {
+    setRecentCommitsLoading(true);
+
+    try {
+      const githubResponse = await fetch('https://api.github.com/repos/openchain-dev/openchain/commits?per_page=5', {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+
+      if (githubResponse.ok) {
+        const commits = await githubResponse.json();
+        setRecentCommits(normalizeGitHubCommits(commits));
+        return;
+      }
+
+      const localResponse = await fetch(`${API_BASE}/api/git/status`);
+      if (localResponse.ok) {
+        const data = await localResponse.json();
+        setRecentCommits((data.recentCommits || []).map((commit: any) => ({
+          sha: commit.hash,
+          shortSha: commit.shortHash,
+          message: commit.message,
+          author: commit.author,
+          date: commit.date,
+          url: `https://github.com/openchain-dev/openchain/commit/${commit.hash}`,
+        })));
+      }
+    } catch (error) {
+      console.error('[AgentTerminal] Failed to load recent commits:', error);
+    } finally {
+      setRecentCommitsLoading(false);
+    }
+  }, [API_BASE, normalizeGitHubCommits]);
 
   // Typewriter effect - renders text character by character
   const typewriterEffect = useCallback(() => {
@@ -112,6 +179,12 @@ const AgentTerminal: React.FC = () => {
     
     loadPersistedTasks();
   }, [API_BASE]);
+
+  useEffect(() => {
+    loadRecentCommits();
+    const refresh = setInterval(loadRecentCommits, 60000);
+    return () => clearInterval(refresh);
+  }, [loadRecentCommits]);
 
   // SSE Connection
   useEffect(() => {
@@ -204,7 +277,8 @@ const AgentTerminal: React.FC = () => {
               // Code deployed to GitHub
               appendText(`\n[DEPLOYED] Commit ${data.data.commit} pushed to ${data.data.branch || 'main'}\n`);
               appendText(`  Message: ${data.data.message}\n`);
-              appendText(`  View: https://github.com/OPENchain/openchain/commit/${data.data.commit}\n`);
+              appendText(`  View: https://github.com/openchain-dev/openchain/commit/${data.data.commit}\n`);
+              loadRecentCommits();
               break;
 
             case 'status':
@@ -239,7 +313,7 @@ const AgentTerminal: React.FC = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [API_BASE, appendText, resetOutput]);
+  }, [API_BASE, appendText, resetOutput, loadRecentCommits]);
 
   // Parse and render output with syntax highlighting
   const renderOutput = (text: string) => {
@@ -283,11 +357,14 @@ const AgentTerminal: React.FC = () => {
       }
       
       // GitHub link
-      if (line.includes('github.com/OPENchain')) {
+      if (line.includes('github.com/openchain-dev/openchain')) {
+        const href = line
+          .replace('  View: ', '')
+          .trim();
         return (
           <div key={i} style={{ paddingLeft: 12 }}>
-            <a 
-              href={line.replace('  View: ', '').trim()} 
+            <a
+              href={href}
               target="_blank" 
               rel="noopener noreferrer"
               style={{ color: '#60a5fa', textDecoration: 'underline' }}
@@ -387,9 +464,10 @@ const AgentTerminal: React.FC = () => {
     });
   };
 
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const formatCommitTime = (dateValue: string) => {
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return dateValue;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -445,7 +523,7 @@ const AgentTerminal: React.FC = () => {
                 fontFamily: "'JetBrains Mono', monospace",
                 color: 'var(--teal)',
                 fontWeight: 700,
-              }}>AI</span>
+              }}>LLM</span>
               <span style={{ 
                 fontSize: 9, 
                 color: 'var(--teal)',
@@ -610,42 +688,74 @@ const AgentTerminal: React.FC = () => {
         )}
       </div>
 
-      {/* Recent Tasks Footer */}
-      {state.completedTasks.length > 0 && (
+      {/* Recent GitHub Commits Footer */}
+      <div style={{
+        background: 'var(--bg-secondary)',
+        borderTop: '1px solid var(--border)',
+        padding: '10px 16px',
+      }}>
         <div style={{
-          background: 'var(--bg-secondary)',
-          borderTop: '1px solid var(--border)',
-          padding: '10px 16px',
+          fontSize: 10,
+          color: 'var(--text-muted)',
+          marginBottom: 8,
+          textTransform: 'uppercase',
+          letterSpacing: 1,
         }}>
-          <div style={{ 
-            fontSize: 10, 
-            color: 'var(--text-muted)', 
-            marginBottom: 8,
-            textTransform: 'uppercase',
-            letterSpacing: 1,
-          }}>
-            Recent Work
+          Recent Work
+        </div>
+        {recentCommitsLoading ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+            Loading GitHub commits...
           </div>
+        ) : recentCommits.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+            No GitHub commits loaded.
+          </div>
+        ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {state.completedTasks.slice(0, 3).map((task, i) => (
-              <div key={i} style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                padding: '6px 10px',
-                fontSize: 11,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}>
-                <span style={{ color: 'var(--teal)' }}>✓</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{task.title.replace(/^(Building|Auditing|Analyzing|Proposing|Documenting|Writing):\s*/, '')}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{formatTime(task.completedAt)}</span>
-              </div>
+            {recentCommits.slice(0, 3).map(commit => (
+              <a
+                key={commit.sha}
+                href={commit.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  padding: '6px 10px',
+                  fontSize: 11,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  color: 'inherit',
+                  textDecoration: 'none',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                }}
+                title={`${commit.shortSha} ${commit.message}`}
+              >
+                <span style={{ color: 'var(--teal)', fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>
+                  {commit.shortSha}
+                </span>
+                <span style={{
+                  color: 'var(--text-secondary)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  minWidth: 0,
+                  maxWidth: 280,
+                }}>
+                  {commit.message}
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 10, flexShrink: 0 }}>
+                  {formatCommitTime(commit.date)}
+                </span>
+              </a>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* CSS Animations */}
       <style>{`
