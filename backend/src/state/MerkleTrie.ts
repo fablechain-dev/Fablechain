@@ -1,261 +1,236 @@
 ```typescript
 import crypto from 'crypto';
 
-interface TrieNode {
-  nodeType: 'branch' | 'leaf' | 'extension';
-  children?: Map<string, TrieNode | string>; // For branch nodes, maps nibble to child or hash
-  key?: string; // For leaf/extension nodes
-  value?: string; // For leaf nodes only
-  hash?: string; // Cached hash of this node
+export interface TrieNode {
+  type: 'branch' | 'leaf' | 'extension';
+  hash?: Buffer;
+  children?: (TrieNode | null)[];
+  key?: Buffer;
+  value?: Buffer;
+  dirty: boolean;
 }
 
-interface Proof {
-  nodes: string[];
-  indices: number[];
+export interface ProofNode {
+  nodeHash: Buffer;
+  nodeData: Buffer;
+  path: number[];
 }
 
-interface VerifyResult {
-  valid: boolean;
-  value?: string;
+export interface MerkleProof {
+  key: Buffer;
+  value: Buffer | null;
+  proof: ProofNode[];
+  root: Buffer;
 }
 
-export class MerkleTrie {
-  private root: TrieNode | null = null;
-  private nodeCache: Map<string, TrieNode> = new Map();
-  private hashCache: Map<TrieNode, string> = new Map();
+class MerkleTrie {
+  private root: TrieNode | null;
+  private nodeCache: Map<string, TrieNode>;
+  private db: Map<string, Buffer>;
+  private dirty: Set<string>;
 
   constructor() {
-    this.root = this.createBranchNode();
+    this.root = null;
+    this.nodeCache = new Map();
+    this.db = new Map();
+    this.dirty = new Set();
   }
 
-  /**
-   * Insert a key-value pair into the trie
-   */
-  public insert(key: string, value: string): void {
-    this.validateInput(key, value);
-    const nibbles = this.keyToNibbles(key);
-
-    if (!this.root) {
-      this.root = this.createBranchNode();
+  private hashNode(node: TrieNode): Buffer {
+    if (node.hash && !node.dirty) {
+      return node.hash;
     }
 
-    this.root = this.insertNode(this.root, nibbles, value, 0);
-    this.hashCache.clear();
-  }
+    let encoded: Buffer;
 
-  /**
-   * Retrieve value for a given key
-   */
-  public get(key: string): string | null {
-    const nibbles = this.keyToNibbles(key);
-    if (!this.root) return null;
-
-    const result = this.getNode(this.root, nibbles, 0);
-    return result;
-  }
-
-  /**
-   * Delete a key from the trie
-   */
-  public delete(key: string): boolean {
-    const nibbles = this.keyToNibbles(key);
-    if (!this.root) return false;
-
-    const [deleted, newRoot] = this.deleteNode(this.root, nibbles, 0);
-    if (deleted) {
-      this.root = newRoot;
-      this.hashCache.clear();
-      this.nodeCache.clear();
-    }
-    return deleted;
-  }
-
-  /**
-   * Get the root hash of the trie (world-state root)
-   */
-  public getRootHash(): string {
-    if (!this.root) {
-      return this.hashEmpty();
-    }
-    return this.hashNode(this.root);
-  }
-
-  /**
-   * Generate a Merkle proof for a key
-   */
-  public prove(key: string): Proof {
-    const nibbles = this.keyToNibbles(key);
-    const nodes: string[] = [];
-    const indices: number[] = [];
-
-    this.proveNode(this.root, nibbles, 0, nodes, indices);
-
-    return { nodes, indices };
-  }
-
-  /**
-   * Verify a Merkle proof against a root hash
-   */
-  public verify(
-    rootHash: string,
-    key: string,
-    proof: Proof,
-    expectedValue: string
-  ): VerifyResult {
-    const nibbles = this.keyToNibbles(key);
-    let currentHash = rootHash;
-
-    if (proof.nodes.length === 0) {
-      return { valid: false };
+    if (node.type === 'leaf') {
+      const keyEncoded = this.encodeKey(node.key!, true);
+      encoded = Buffer.concat([
+        Buffer.from([0]),
+        keyEncoded,
+        node.value!,
+      ]);
+    } else if (node.type === 'extension') {
+      const keyEncoded = this.encodeKey(node.key!, false);
+      const childHash = this.hashNode(node.children![0]!);
+      encoded = Buffer.concat([
+        Buffer.from([1]),
+        keyEncoded,
+        childHash,
+      ]);
+    } else {
+      const childHashes = node.children!.map((child) =>
+        child ? this.hashNode(child) : Buffer.alloc(0)
+      );
+      encoded = Buffer.concat([Buffer.from([2]), ...childHashes]);
     }
 
-    for (let i = 0; i < proof.nodes.length; i++) {
-      const nodeData = proof.nodes[i];
-      const index = proof.indices[i];
+    const hash = crypto.createHash('sha256').update(encoded).digest();
+    node.hash = hash;
+    node.dirty = false;
 
-      try {
-        const reconstructed = this.reconstructHash(
-          nodeData,
-          index,
-          currentHash
-        );
-        currentHash = reconstructed;
-      } catch {
-        return { valid: false };
+    return hash;
+  }
+
+  private encodeKey(key: Buffer, isLeaf: boolean): Buffer {
+    const nibbles = this.bufferToNibbles(key);
+    const hex = isLeaf ? 0x20 : 0x00;
+
+    if (nibbles.length % 2 === 0) {
+      const result = Buffer.alloc(nibbles.length / 2 + 1);
+      result[0] = hex;
+      for (let i = 0; i < nibbles.length; i += 2) {
+        result[i / 2 + 1] = (nibbles[i] << 4) | nibbles[i + 1];
       }
+      return result;
+    } else {
+      const result = Buffer.alloc((nibbles.length + 1) / 2 + 1);
+      result[0] = hex | 0x10 | nibbles[0];
+      for (let i = 1; i < nibbles.length; i += 2) {
+        result[(i + 1) / 2] = (nibbles[i] << 4) | nibbles[i + 1];
+      }
+      return result;
     }
+  }
 
-    const finalLeaf = proof.nodes[proof.nodes.length - 1];
-    const leafData = JSON.parse(finalLeaf);
-
-    if (
-      leafData.nodeType === 'leaf' &&
-      leafData.value === expectedValue
-    ) {
-      return { valid: true, value: expectedValue };
+  private bufferToNibbles(buffer: Buffer): number[] {
+    const nibbles: number[] = [];
+    for (const byte of buffer) {
+      nibbles.push((byte >> 4) & 0xf);
+      nibbles.push(byte & 0xf);
     }
-
-    return { valid: false };
+    return nibbles;
   }
 
-  /**
-   * Serialize trie to JSON for persistence
-   */
-  public serialize(): string {
-    return JSON.stringify(this.nodeToJSON(this.root));
+  private getNibbles(buffer: Buffer): number[] {
+    return this.bufferToNibbles(buffer);
   }
 
-  /**
-   * Deserialize trie from JSON
-   */
-  public deserialize(data: string): void {
-    const parsed = JSON.parse(data);
-    this.root = this.jsonToNode(parsed);
-    this.hashCache.clear();
-  }
-
-  // ============ Private Methods ============
-
-  private createBranchNode(): TrieNode {
+  private createLeafNode(key: Buffer, value: Buffer): TrieNode {
     return {
-      nodeType: 'branch',
-      children: new Map(),
+      type: 'leaf',
+      key,
+      value,
+      dirty: true,
     };
   }
 
-  private keyToNibbles(key: string): string[] {
-    return key.split('').flatMap((char) => {
-      const hex = char.charCodeAt(0).toString(16).padStart(2, '0');
-      return [hex[0], hex[1]];
-    });
+  private createExtensionNode(key: Buffer, child: TrieNode): TrieNode {
+    return {
+      type: 'extension',
+      key,
+      children: [child],
+      dirty: true,
+    };
   }
 
-  private nibblesToKey(nibbles: string[]): string {
-    let result = '';
-    for (let i = 0; i < nibbles.length; i += 2) {
-      const hex = nibbles[i] + nibbles[i + 1];
-      result += String.fromCharCode(parseInt(hex, 16));
+  private createBranchNode(): TrieNode {
+    return {
+      type: 'branch',
+      children: Array(16).fill(null),
+      dirty: true,
+    };
+  }
+
+  insert(key: Buffer, value: Buffer): void {
+    if (!this.root) {
+      this.root = this.createLeafNode(key, value);
+      this.root.dirty = true;
+      return;
     }
-    return result;
+
+    this.root = this.insertNode(this.root, this.getNibbles(key), value, 0);
+    this.dirty.add('root');
   }
 
   private insertNode(
-    node: TrieNode | string,
-    nibbles: string[],
-    value: string,
+    node: TrieNode,
+    keyNibbles: number[],
+    value: Buffer,
     depth: number
   ): TrieNode {
-    if (typeof node === 'string') {
-      const cachedNode = this.nodeCache.get(node);
-      if (!cachedNode) throw new Error(`Invalid node reference: ${node}`);
-      return this.insertNode(cachedNode, nibbles, value, depth);
-    }
+    if (node.type === 'leaf') {
+      const nodeKeyNibbles = this.getNibbles(node.key!);
 
-    if (depth === nibbles.length) {
-      if (node.nodeType === 'leaf') {
+      let commonLength = 0;
+      while (
+        commonLength < keyNibbles.length &&
+        commonLength < nodeKeyNibbles.length &&
+        keyNibbles[commonLength] === nodeKeyNibbles[commonLength]
+      ) {
+        commonLength++;
+      }
+
+      if (commonLength === nodeKeyNibbles.length && commonLength === keyNibbles.length) {
         node.value = value;
+        node.dirty = true;
         return node;
       }
 
-      if (node.nodeType === 'branch') {
-        return {
-          nodeType: 'leaf',
-          key: this.nibblesToKey(nibbles),
-          value,
-        };
+      const branch = this.createBranchNode();
+
+      if (commonLength < nodeKeyNibbles.length) {
+        const remainingKey = Buffer.from(nodeKeyNibbles.slice(commonLength));
+        const leafNode = this.createLeafNode(remainingKey, node.value!);
+        branch.children![nodeKeyNibbles[commonLength]] = leafNode;
       }
 
-      if (node.nodeType === 'extension') {
-        const extNibbles = this.keyToNibbles(node.key || '');
-        if (this.nibbleArraysEqual(extNibbles, nibbles.slice(depth))) {
-          return node;
-        }
-        return this.splitExtensionNode(node, nibbles, value, depth);
-      }
-    }
-
-    if (node.nodeType === 'branch') {
-      const nibble = nibbles[depth];
-      const child = node.children!.get(nibble);
-
-      if (!child) {
-        const newLeaf: TrieNode = {
-          nodeType: 'leaf',
-          key: this.nibblesToKey(nibbles.slice(depth + 1)),
-          value,
-        };
-        node.children!.set(nibble, newLeaf);
+      if (commonLength < keyNibbles.length) {
+        const remainingKey = Buffer.from(keyNibbles.slice(commonLength));
+        const newLeaf = this.createLeafNode(remainingKey, value);
+        branch.children![keyNibbles[commonLength]] = newLeaf;
       } else {
-        const updated = this.insertNode(child, nibbles, value, depth + 1);
-        node.children!.set(nibble, updated);
+        branch.value = value;
       }
-      return node;
+
+      if (commonLength > 0) {
+        const extensionKey = Buffer.from(keyNibbles.slice(0, commonLength));
+        return this.createExtensionNode(extensionKey, branch);
+      }
+
+      return branch;
     }
 
-    if (node.nodeType === 'extension') {
-      const extNibbles = this.keyToNibbles(node.key || '');
-      const commonLength = this.commonPrefixLength(
-        extNibbles,
-        nibbles.slice(depth)
+    if (node.type === 'extension') {
+      const extensionKeyNibbles = this.getNibbles(node.key!);
+
+      let commonLength = 0;
+      while (
+        commonLength < extensionKeyNibbles.length &&
+        commonLength < keyNibbles.length &&
+        extensionKeyNibbles[commonLength] === keyNibbles[commonLength]
+      ) {
+        commonLength++;
+      }
+
+      if (commonLength === 0) {
+        const branch = this.createBranchNode();
+        branch.children![extensionKeyNibbles[0]] = node;
+        const remainingKey = Buffer.from(keyNibbles.slice(1));
+        const newLeaf = this.createLeafNode(remainingKey, value);
+        branch.children![keyNibbles[0]] = newLeaf;
+        return branch;
+      }
+
+      if (commonLength === extensionKeyNibbles.length) {
+        const childNode = node.children![0]!;
+        const newChild = this.insertNode(
+          childNode,
+          keyNibbles.slice(commonLength),
+          value,
+          depth + commonLength
+        );
+        node.children![0] = newChild;
+        node.dirty = true;
+        return node;
+      }
+
+      const remainingExtensionKey = Buffer.from(
+        extensionKeyNibbles.slice(commonLength)
+      );
+      const oldExtension = this.createExtensionNode(
+        remainingExtensionKey,
+        node.children![0]!
       );
 
-      if (commonLength === extNibbles.length) {
-        const child = node.children!.get('next');
-        if (child) {
-          const updated = this.insertNode(
-            child,
-            nibbles,
-            value,
-            depth + extNibbles.length
-          );
-          node.children!.set('next', updated);
-        }
-        return node;
-      }
-
-      return this.splitExtensionNode(node, nibbles, value, depth);
-    }
-
-    if (node.nodeType === 'leaf') {
-      const leafNibbles = this.keyToNibbles(node.key || '');
-      const commonLength = this.
+      const branch = this.createBranchNode();
