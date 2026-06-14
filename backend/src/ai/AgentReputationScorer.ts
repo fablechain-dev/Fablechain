@@ -1,212 +1,225 @@
 ```typescript
-import { ethers } from "ethers";
-import { Logger } from "winston";
-import { createLogger } from "winston";
-import * as fs from "fs";
-import * as path from "path";
+import { ethers } from 'ethers';
+import { Logger } from 'winston';
+import { createLogger, format, transports } from 'winston';
 
-interface ReputationMetrics {
-  totalTasks: number;
-  successfulTasks: number;
+interface ReputationScore {
+  agentId: string;
+  score: number;
+  taskSuccessRate: number;
+  hallucination_penalty: number;
+  lastUpdated: number;
+  totalTasksCompleted: number;
   failedTasks: number;
-  hallucinations: number;
-  exponentialMovingAverage: number;
-  lastUpdateTimestamp: number;
-  consecutiveFailures: number;
-  totalReputationScore: number;
+  hallucinationCount: number;
+  ema: number;
+  emaSmoothingFactor: number;
 }
 
 interface TaskResult {
   agentId: string;
   taskId: string;
   success: boolean;
-  hallucination: boolean;
-  completionTime: number;
+  hallucinationDetected: boolean;
   timestamp: number;
+  executionTime: number;
+  confidenceScore: number;
 }
 
 interface ReputationConfig {
-  successWeight: number;
-  failureWeight: number;
-  hallucinationPenalty: number;
-  emaAlpha: number;
-  minReputationScore: number;
-  maxReputationScore: number;
-  consecutiveFailureThreshold: number;
-  hallucinationThreshold: number;
+  initialScore: number;
+  minScore: number;
+  maxScore: number;
+  hallucination_penalty_multiplier: number;
+  emaSmoothingFactor: number;
+  successRateWeight: number;
+  hallucinationWeight: number;
+  eemaWeight: number;
 }
 
-class AgentReputationScorer {
-  private logger: Logger;
-  private reputationStore: Map<string, ReputationMetrics>;
-  private taskHistoryStore: Map<string, TaskResult[]>;
+export class AgentReputationScorer {
+  private reputationScores: Map<string, ReputationScore>;
+  private taskHistory: Map<string, TaskResult[]>;
   private config: ReputationConfig;
-  private persistencePath: string;
-  private contractAddress: string;
-  private ethersProvider: ethers.Provider | null;
+  private logger: Logger;
+  private contract: ethers.Contract | null;
+  private contractAddress: string | null;
+  private signer: ethers.Signer | null;
 
   constructor(
-    contractAddress: string,
-    persistencePath: string = "./data/reputation"
+    config?: Partial<ReputationConfig>,
+    contractAddress?: string,
+    signer?: ethers.Signer
   ) {
-    this.logger = createLogger({
-      level: "info",
-      format: require("winston").format.json(),
-      defaultMeta: { service: "agent-reputation-scorer" },
-      transports: [new require("winston").transports.File({ filename: "error.log", level: "error" }), new require("winston").transports.File({ filename: "combined.log" })],
-    });
-
-    this.contractAddress = contractAddress;
-    this.persistencePath = persistencePath;
-    this.reputationStore = new Map();
-    this.taskHistoryStore = new Map();
-    this.ethersProvider = null;
+    this.reputationScores = new Map();
+    this.taskHistory = new Map();
+    this.contractAddress = contractAddress || null;
+    this.signer = signer || null;
+    this.contract = null;
 
     this.config = {
-      successWeight: 0.8,
-      failureWeight: -0.5,
-      hallucinationPenalty: -0.3,
-      emaAlpha: 0.2,
-      minReputationScore: 0,
-      maxReputationScore: 100,
-      consecutiveFailureThreshold: 5,
-      hallucinationThreshold: 3,
+      initialScore: 5000,
+      minScore: 0,
+      maxScore: 10000,
+      hallucination_penalty_multiplier: 2.5,
+      emaSmoothingFactor: 0.3,
+      successRateWeight: 0.4,
+      hallucinationWeight: 0.35,
+      eemaWeight: 0.25,
+      ...config,
     };
 
-    this.initializePersistence();
-    this.logger.info(
-      `AgentReputationScorer initialized with contract: ${contractAddress}`
-    );
-  }
+    this.logger = createLogger({
+      level: 'info',
+      format: format.combine(
+        format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        format.errors({ stack: true }),
+        format.json()
+      ),
+      transports: [
+        new transports.File({ filename: 'logs/reputation-error.log', level: 'error' }),
+        new transports.File({ filename: 'logs/reputation-combined.log' }),
+      ],
+    });
 
-  private initializePersistence(): void {
-    if (!fs.existsSync(this.persistencePath)) {
-      fs.mkdirSync(this.persistencePath, { recursive: true });
-      this.logger.info(`Created persistence directory: ${this.persistencePath}`);
-    }
-
-    const reputationFile = path.join(this.persistencePath, "reputation.json");
-    const historyFile = path.join(this.persistencePath, "history.json");
-
-    if (fs.existsSync(reputationFile)) {
-      try {
-        const data = JSON.parse(fs.readFileSync(reputationFile, "utf-8"));
-        Object.entries(data).forEach(([agentId, metrics]) => {
-          this.reputationStore.set(agentId, metrics as ReputationMetrics);
-        });
-        this.logger.info(`Loaded ${this.reputationStore.size} agent reputations`);
-      } catch (error) {
-        this.logger.error(`Failed to load reputation file: ${error}`);
-      }
-    }
-
-    if (fs.existsSync(historyFile)) {
-      try {
-        const data = JSON.parse(fs.readFileSync(historyFile, "utf-8"));
-        Object.entries(data).forEach(([agentId, history]) => {
-          this.taskHistoryStore.set(agentId, history as TaskResult[]);
-        });
-        this.logger.info(
-          `Loaded history for ${this.taskHistoryStore.size} agents`
-        );
-      } catch (error) {
-        this.logger.error(`Failed to load history file: ${error}`);
-      }
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.add(
+        new transports.Console({
+          format: format.combine(format.colorize(), format.simple()),
+        })
+      );
     }
   }
 
-  private persistReputation(): void {
-    const reputationFile = path.join(this.persistencePath, "reputation.json");
-    const data = Object.fromEntries(this.reputationStore);
-    fs.writeFileSync(reputationFile, JSON.stringify(data, null, 2));
+  async initializeContract(abi: ethers.ContractInterface): Promise<void> {
+    if (!this.contractAddress || !this.signer) {
+      this.logger.warn('Contract initialization skipped: missing address or signer');
+      return;
+    }
+
+    try {
+      this.contract = new ethers.Contract(this.contractAddress, abi, this.signer);
+      this.logger.info(`Reputation contract initialized at ${this.contractAddress}`);
+    } catch (error) {
+      this.logger.error('Failed to initialize reputation contract', { error });
+      throw error;
+    }
   }
 
-  private persistHistory(): void {
-    const historyFile = path.join(this.persistencePath, "history.json");
-    const data = Object.fromEntries(this.taskHistoryStore);
-    fs.writeFileSync(historyFile, JSON.stringify(data, null, 2));
+  registerAgent(agentId: string): ReputationScore {
+    if (this.reputationScores.has(agentId)) {
+      this.logger.warn(`Agent ${agentId} already registered`);
+      return this.reputationScores.get(agentId)!;
+    }
+
+    const score: ReputationScore = {
+      agentId,
+      score: this.config.initialScore,
+      taskSuccessRate: 1.0,
+      hallucination_penalty: 0,
+      lastUpdated: Date.now(),
+      totalTasksCompleted: 0,
+      failedTasks: 0,
+      hallucinationCount: 0,
+      ema: this.config.initialScore,
+      emaSmoothingFactor: this.config.emaSmoothingFactor,
+    };
+
+    this.reputationScores.set(agentId, score);
+    this.taskHistory.set(agentId, []);
+
+    this.logger.info(`Agent registered: ${agentId} with initial score ${this.config.initialScore}`);
+    return score;
   }
 
-  public recordTaskResult(result: TaskResult): void {
-    const { agentId, success, hallucination, timestamp } = result;
-
-    if (!this.reputationStore.has(agentId)) {
-      this.reputationStore.set(agentId, this.initializeMetrics());
+  async recordTaskResult(result: TaskResult): Promise<ReputationScore> {
+    if (!this.reputationScores.has(result.agentId)) {
+      this.registerAgent(result.agentId);
     }
 
-    if (!this.taskHistoryStore.has(agentId)) {
-      this.taskHistoryStore.set(agentId, []);
-    }
-
-    const metrics = this.reputationStore.get(agentId)!;
-    const history = this.taskHistoryStore.get(agentId)!;
-
-    metrics.totalTasks += 1;
-    metrics.lastUpdateTimestamp = timestamp;
-
-    if (success) {
-      metrics.successfulTasks += 1;
-      metrics.consecutiveFailures = 0;
-    } else {
-      metrics.failedTasks += 1;
-      metrics.consecutiveFailures += 1;
-    }
-
-    if (hallucination) {
-      metrics.hallucinations += 1;
-    }
+    const reputation = this.reputationScores.get(result.agentId)!;
+    const history = this.taskHistory.get(result.agentId)!;
 
     history.push(result);
-    if (history.length > 1000) {
-      history.shift();
+    reputation.totalTasksCompleted += 1;
+
+    if (!result.success) {
+      reputation.failedTasks += 1;
     }
 
-    this.updateExponentialMovingAverage(agentId);
-    this.updateTotalReputationScore(agentId);
-
-    this.reputationStore.set(agentId, metrics);
-    this.taskHistoryStore.set(agentId, history);
-
-    this.persistReputation();
-    this.persistHistory();
-
-    this.logger.info(
-      `Recorded task for agent ${agentId}: success=${success}, hallucination=${hallucination}`
-    );
-
-    this.validateAgentStatus(agentId);
-  }
-
-  private updateExponentialMovingAverage(agentId: string): void {
-    const metrics = this.reputationStore.get(agentId);
-    if (!metrics) return;
-
-    const successRate = metrics.successfulTasks / metrics.totalTasks;
-    const currentValue = successRate * 100;
-
-    if (metrics.totalTasks === 1) {
-      metrics.exponentialMovingAverage = currentValue;
-    } else {
-      metrics.exponentialMovingAverage =
-        this.config.emaAlpha * currentValue +
-        (1 - this.config.emaAlpha) * metrics.exponentialMovingAverage;
+    if (result.hallucinationDetected) {
+      reputation.hallucinationCount += 1;
     }
 
-    metrics.exponentialMovingAverage = Math.max(
-      this.config.minReputationScore,
-      Math.min(this.config.maxReputationScore, metrics.exponentialMovingAverage)
-    );
+    reputation.taskSuccessRate =
+      (reputation.totalTasksCompleted - reputation.failedTasks) / reputation.totalTasksCompleted;
+
+    const updatedScore = this.calculateReputationScore(reputation);
+    reputation.score = updatedScore;
+    reputation.lastUpdated = Date.now();
+
+    this.logger.info(`Task result recorded for agent ${result.agentId}`, {
+      taskId: result.taskId,
+      success: result.success,
+      hallucinationDetected: result.hallucinationDetected,
+      newScore: updatedScore,
+    });
+
+    await this.persistScoreOnChain(reputation);
+
+    return reputation;
   }
 
-  private updateTotalReputationScore(agentId: string): void {
-    const metrics = this.reputationStore.get(agentId);
-    if (!metrics) return;
+  private calculateReputationScore(reputation: ReputationScore): number {
+    const successComponent = reputation.taskSuccessRate * this.config.maxScore;
 
-    const successRate = metrics.successfulTasks / metrics.totalTasks;
-    const failureRate = metrics.failedTasks / metrics.totalTasks;
-    const hallucinationRate =
-      metrics.hallucinations / Math.max(1, metrics.totalTasks);
+    const hallucinationPenalty =
+      reputation.hallucinationCount * this.config.hallucination_penalty_multiplier * 100;
 
-    let score =
-      successRate * this.config.successWeight +
-      failureRate * this.config.failureWeight +
+    const ema = this.calculateExponentialMovingAverage(reputation);
+
+    const weightedScore =
+      successComponent * this.config.successRateWeight +
+      (this.config.maxScore - Math.min(hallucinationPenalty, this.config.maxScore)) *
+        this.config.hallucinationWeight +
+      ema * this.config.eemaWeight;
+
+    const finalScore = Math.max(
+      this.config.minScore,
+      Math.min(this.config.maxScore, weightedScore)
+    );
+
+    reputation.hallucination_penalty = hallucinationPenalty;
+    reputation.ema = ema;
+
+    return finalScore;
+  }
+
+  private calculateExponentialMovingAverage(reputation: ReputationScore): number {
+    const history = this.taskHistory.get(reputation.agentId) || [];
+
+    if (history.length === 0) {
+      return reputation.score;
+    }
+
+    let ema = reputation.ema;
+    const recentTasks = history.slice(-50);
+
+    for (const task of recentTasks) {
+      const taskScore = task.success ? this.config.maxScore : 0;
+      ema = taskScore * this.config.emaSmoothingFactor + ema * (1 - this.config.emaSmoothingFactor);
+    }
+
+    return ema;
+  }
+
+  private async persistScoreOnChain(reputation: ReputationScore): Promise<void> {
+    if (!this.contract) {
+      return;
+    }
+
+    try {
+      const tx = await this.contract.updateAgentReputation(
+        reputation.agentId,
+        Math.floor(reputation.score),
+        Math.floor(reputation.taskSuccessRate * 10000),
