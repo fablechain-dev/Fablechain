@@ -1,251 +1,240 @@
 ```typescript
 import { EventEmitter } from 'events';
-import { createHash } from 'crypto';
-import pino from 'pino';
+import crypto from 'crypto';
+import { Logger } from '../utils/Logger';
+import { PeerConnection } from './PeerConnection';
+import { Message, GossipMessage, MessageType } from '../types/Message';
 
-export interface GossipMessage {
-  id: string;
-  sender: string;
-  payload: Buffer;
-  timestamp: number;
-  nonce: number;
-}
-
-export interface GossipConfig {
+interface GossipConfig {
   fanout: number;
   maxSeenSetSize: number;
-  decayInterval: number;
-  decayFactor: number;
+  seenSetDecayInterval: number;
+  seenSetDecayFactor: number;
   messageTimeout: number;
-  validationFn?: (msg: GossipMessage) => Promise<boolean>;
-}
-
-export interface PeerConnection {
-  peerId: string;
-  isActive: boolean;
-  send(msg: GossipMessage): Promise<void>;
-  close(): void;
+  duplicateWindow: number;
 }
 
 interface SeenMessageEntry {
   hash: string;
   timestamp: number;
-  decayCount: number;
+  count: number;
+}
+
+interface PendingMessage {
+  message: GossipMessage;
+  timestamp: number;
+  originPeerId: string;
 }
 
 export class GossipProtocol extends EventEmitter {
+  private peers: Map<string, PeerConnection> = new Map();
+  private seenMessages: Map<string, SeenMessageEntry> = new Map();
+  private pendingMessages: Map<string, PendingMessage> = new Map();
+  private logger: Logger;
   private config: GossipConfig;
-  private logger: pino.Logger;
-  private peers: Map<string, PeerConnection>;
-  private seenMessages: Map<string, SeenMessageEntry>;
-  private messageQueue: Map<string, GossipMessage>;
-  private decayTimer: NodeJS.Timeout | null = null;
-  private peerId: string;
+  private decayInterval: NodeJS.Timeout | null = null;
+  private processingInterval: NodeJS.Timeout | null = null;
 
-  constructor(peerId: string, config: Partial<GossipConfig> = {}) {
+  constructor(config: Partial<GossipConfig> = {}) {
     super();
-    this.peerId = peerId;
-    this.logger = pino({ name: 'GossipProtocol' });
-    
+    this.logger = new Logger('GossipProtocol');
     this.config = {
-      fanout: 8,
-      maxSeenSetSize: 10000,
-      decayInterval: 60000,
-      decayFactor: 0.9,
-      messageTimeout: 300000,
-      ...config,
+      fanout: config.fanout ?? 5,
+      maxSeenSetSize: config.maxSeenSetSize ?? 10000,
+      seenSetDecayInterval: config.seenSetDecayInterval ?? 60000,
+      seenSetDecayFactor: config.seenSetDecayFactor ?? 0.95,
+      messageTimeout: config.messageTimeout ?? 30000,
+      duplicateWindow: config.duplicateWindow ?? 5000,
     };
-
-    this.peers = new Map();
-    this.seenMessages = new Map();
-    this.messageQueue = new Map();
-
-    this.startDecayTimer();
   }
 
-  public addPeer(connection: PeerConnection): void {
-    if (this.peers.has(connection.peerId)) {
-      this.logger.warn(
-        { peerId: connection.peerId },
-        'Peer already connected, replacing'
-      );
-      this.peers.get(connection.peerId)?.close();
+  public start(): void {
+    this.startDecayInterval();
+    this.startProcessingInterval();
+    this.logger.info('Gossip protocol started', {
+      fanout: this.config.fanout,
+      maxSeenSetSize: this.config.maxSeenSetSize,
+    });
+  }
+
+  public stop(): void {
+    if (this.decayInterval) {
+      clearInterval(this.decayInterval);
+      this.decayInterval = null;
+    }
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval);
+      this.processingInterval = null;
+    }
+    this.logger.info('Gossip protocol stopped');
+  }
+
+  public addPeer(peerId: string, connection: PeerConnection): void {
+    if (this.peers.has(peerId)) {
+      this.logger.warn('Peer already exists', { peerId });
+      return;
     }
 
-    this.peers.set(connection.peerId, connection);
-    this.logger.info(
-      { peerId: connection.peerId, totalPeers: this.peers.size },
-      'Peer added to gossip network'
-    );
+    this.peers.set(peerId, connection);
+    connection.on('message', (message: GossipMessage) => {
+      this.handleIncomingMessage(message, peerId);
+    });
+
+    this.logger.debug('Peer added', { peerId, totalPeers: this.peers.size });
   }
 
   public removePeer(peerId: string): void {
-    const peer = this.peers.get(peerId);
-    if (peer) {
-      peer.close();
+    const connection = this.peers.get(peerId);
+    if (connection) {
+      connection.removeAllListeners('message');
       this.peers.delete(peerId);
-      this.logger.info(
-        { peerId, totalPeers: this.peers.size },
-        'Peer removed from gossip network'
-      );
+      this.logger.debug('Peer removed', { peerId, totalPeers: this.peers.size });
     }
   }
 
-  public async publishMessage(payload: Buffer, nonce: number = 0): Promise<void> {
-    const messageHash = this.hashMessage(payload);
-    
-    if (this.isDuplicate(messageHash)) {
-      this.logger.debug({ hash: messageHash }, 'Message already seen, skipping');
-      return;
-    }
-
-    const message: GossipMessage = {
+  public async publishMessage(message: Message): Promise<void> {
+    const gossipMessage: GossipMessage = {
       id: this.generateMessageId(),
-      sender: this.peerId,
-      payload,
+      type: message.type,
+      payload: message.payload,
       timestamp: Date.now(),
-      nonce,
+      originPeerId: 'self',
+      hash: '',
+      ttl: 32,
     };
 
-    this.recordSeenMessage(messageHash);
-    await this.propagateMessage(message);
-    this.emit('message', message);
+    gossipMessage.hash = this.computeMessageHash(gossipMessage);
+
+    this.recordSeenMessage(gossipMessage.hash);
+    await this.pushGossip(gossipMessage, 'self');
+
+    this.emit('published', gossipMessage);
+    this.logger.debug('Message published', { messageId: gossipMessage.id });
   }
 
-  public async receiveMessage(message: GossipMessage): Promise<void> {
-    const messageHash = this.hashMessage(message.payload);
-
-    if (this.isDuplicate(messageHash)) {
-      this.logger.debug(
-        { messageId: message.id, hash: messageHash },
-        'Duplicate message received'
-      );
-      return;
-    }
-
-    if (Date.now() - message.timestamp > this.config.messageTimeout) {
-      this.logger.warn(
-        { messageId: message.id },
-        'Message expired, discarding'
-      );
-      return;
-    }
-
-    if (this.config.validationFn) {
-      try {
-        const isValid = await this.config.validationFn(message);
-        if (!isValid) {
-          this.logger.warn(
-            { messageId: message.id, sender: message.sender },
-            'Message validation failed'
-          );
-          return;
-        }
-      } catch (error) {
-        this.logger.error(
-          { messageId: message.id, error },
-          'Message validation error'
-        );
-        return;
-      }
-    }
-
-    this.recordSeenMessage(messageHash);
-    await this.propagateMessage(message);
-    this.emit('message', message);
-
-    this.logger.debug(
-      { messageId: message.id, sender: message.sender },
-      'Message received and propagated'
-    );
-  }
-
-  private async propagateMessage(message: GossipMessage): Promise<void> {
-    const activePeers = Array.from(this.peers.values()).filter(p => p.isActive);
-
-    if (activePeers.length === 0) {
-      this.logger.debug('No active peers available for gossip propagation');
-      return;
-    }
-
-    const fanout = Math.min(this.config.fanout, activePeers.length);
-    const selectedPeers = this.selectRandomPeers(activePeers, fanout);
-
-    const sendPromises = selectedPeers.map(peer =>
-      this.sendToPeer(peer, message)
-    );
-
-    const results = await Promise.allSettled(sendPromises);
-
-    const failed = results.filter(r => r.status === 'rejected').length;
-    if (failed > 0) {
-      this.logger.warn(
-        { messageId: message.id, failed, total: selectedPeers.length },
-        'Some gossip sends failed'
-      );
-    }
-  }
-
-  private async sendToPeer(
-    peer: PeerConnection,
-    message: GossipMessage
+  private async handleIncomingMessage(
+    message: GossipMessage,
+    originPeerId: string
   ): Promise<void> {
-    try {
-      await peer.send(message);
-    } catch (error) {
-      this.logger.error(
-        { peerId: peer.peerId, messageId: message.id, error },
-        'Failed to send message to peer'
-      );
-      throw error;
+    const messageHash = message.hash || this.computeMessageHash(message);
+
+    if (this.hasSeen(messageHash)) {
+      this.logger.debug('Duplicate message received', {
+        messageId: message.id,
+        peerId: originPeerId,
+      });
+      this.incrementSeenCount(messageHash);
+      return;
     }
+
+    if (message.ttl <= 0) {
+      this.logger.debug('Message TTL expired', { messageId: message.id });
+      return;
+    }
+
+    this.recordSeenMessage(messageHash);
+    this.emit('received', message);
+
+    message.ttl--;
+    await this.pushGossip(message, originPeerId);
+
+    this.logger.debug('Message relayed', {
+      messageId: message.id,
+      ttl: message.ttl,
+    });
   }
 
-  private selectRandomPeers(
-    peers: PeerConnection[],
-    count: number
-  ): PeerConnection[] {
-    const shuffled = [...peers].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+  private async pushGossip(
+    message: GossipMessage,
+    originPeerId: string
+  ): Promise<void> {
+    const targetPeers = this.selectPeersForGossip(originPeerId);
+
+    if (targetPeers.length === 0) {
+      this.logger.debug('No peers available for gossip');
+      return;
+    }
+
+    const pushPromises = targetPeers.map((peerId) => {
+      const connection = this.peers.get(peerId);
+      if (!connection) {
+        return Promise.resolve();
+      }
+
+      return connection
+        .sendMessage(message)
+        .catch((error) => {
+          this.logger.warn('Failed to send gossip message', {
+            peerId,
+            messageId: message.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+    });
+
+    await Promise.all(pushPromises);
+  }
+
+  private selectPeersForGossip(originPeerId: string): string[] {
+    const availablePeers = Array.from(this.peers.keys()).filter(
+      (peerId) => peerId !== originPeerId
+    );
+
+    if (availablePeers.length <= this.config.fanout) {
+      return availablePeers;
+    }
+
+    const selectedPeers: string[] = [];
+    const shuffled = this.shuffleArray(availablePeers);
+
+    for (let i = 0; i < this.config.fanout && i < shuffled.length; i++) {
+      selectedPeers.push(shuffled[i]);
+    }
+
+    return selectedPeers;
+  }
+
+  private computeMessageHash(message: GossipMessage | Message): string {
+    const content = JSON.stringify({
+      type: message.type,
+      payload: message.payload,
+      timestamp: 'timestamp' in message ? message.timestamp : Date.now(),
+    });
+
+    return crypto.createHash('sha256').update(content).digest('hex');
   }
 
   private recordSeenMessage(hash: string): void {
-    if (this.seenMessages.size >= this.config.maxSeenSetSize) {
-      this.pruneLeastRecentlyUsed();
+    const now = Date.now();
+
+    if (this.seenMessages.has(hash)) {
+      const entry = this.seenMessages.get(hash)!;
+      entry.timestamp = now;
+      entry.count++;
+      return;
     }
 
     this.seenMessages.set(hash, {
       hash,
-      timestamp: Date.now(),
-      decayCount: 0,
+      timestamp: now,
+      count: 1,
     });
-  }
 
-  private isDuplicate(hash: string): boolean {
-    return this.seenMessages.has(hash);
-  }
-
-  private hashMessage(payload: Buffer): string {
-    return createHash('sha256').update(payload).digest('hex');
-  }
-
-  private generateMessageId(): string {
-    return `${this.peerId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }
-
-  private pruneLeastRecentlyUsed(): void {
-    const entries = Array.from(this.seenMessages.values());
-    entries.sort((a, b) => a.timestamp - b.timestamp);
-
-    const pruneCount = Math.ceil(this.config.maxSeenSetSize * 0.1);
-    for (let i = 0; i < pruneCount; i++) {
-      this.seenMessages.delete(entries[i].hash);
+    if (this.seenMessages.size > this.config.maxSeenSetSize) {
+      this.pruneSeenSet();
     }
-
-    this.logger.debug(
-      { pruned: pruneCount, remaining: this.seenMessages.size },
-      'Seen set pruned'
-    );
   }
 
-  private
+  private incrementSeenCount(hash: string): void {
+    const entry = this.seenMessages.get(hash);
+    if (entry) {
+      entry.count++;
+      entry.timestamp = Date.now();
+    }
+  }
+
+  private hasSeen(hash: string): boolean {
+    const entry = this.seenMessages.get(hash);
+    if (!entry) {
+      return false;
+    }
