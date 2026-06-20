@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-06-20** — Added fee-weighted mempool eviction with configurable TTL expiry for proof-of-intelligence transaction lifecycle management.
+
 - **2026-06-16** — Added epoch boundary state trie compaction with cold storage archival and tombstone nodes to reduce active merkle proof overhead by 35%.
 
 ## [Unreleased]
