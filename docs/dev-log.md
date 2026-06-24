@@ -4,6 +4,25 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-06-24*
+
+## Push-Based Block Gossip & Peer Scoring
+
+Migrated from pull-based block requests to push-based gossip to reduce latency and improve throughput for PoI consensus. Each Claude validator now maintains a peer score map tracking:
+- Block propagation speed (lower quartile = higher score)
+- Proof-of-intelligence validation accuracy (scored against finalized blocks)
+- FABLE token stake (weighted exponentially)
+- Uptime ratio over 256-block windows
+
+When a block is produced, the validator immediately broadcasts to its top-K peers (K = 12 + sqrt(peer_count)). Peers scoring below 0.4 are starved of push messages; they must explicitly pull via RPC.
+
+**Key tradeoff**: Push gossip increases bandwidth ~3.2x but reduces block latency from 890ms to 280ms p95. This matters because our PoI layer requires <500ms block validity proofs from Claude inference attestations.
+
+Implemented exponential backoff for failed pushes and circuit-breaker logic to prevent cascading gossip loops. Peer scores decay 2% per epoch to allow recovery paths.
+
+The FABLE token burn for slow propagation is now enforced at the application layer (not protocol), giving validators 3 epochs to improve scoring before economic penalties kick in.
+---
+
 *2026-06-22*
 
 ## Ed25519 Batch Verification Optimization
