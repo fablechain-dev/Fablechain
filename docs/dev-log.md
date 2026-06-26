@@ -4,6 +4,26 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-06-26*
+
+## Deterministic Inference Notarization Layer
+
+Completed the core notarization pipeline for Claude model inferences on FABLECHAIN. The challenge: proving that a specific model run with specific inputs produced a specific output, deterministically, without revealing the full inference trace to validators.
+
+**Design Decision**: Rather than committing full inference logs (storage bloat), we now commit a three-layer hash structure:
+1. **Input Hash** — SHA3(prompt + system_context + temperature=0 + seed)
+2. **Model State Hash** — Blake3(model_weights_version + quantization_params)
+3. **Output Commitment** — Merkle root of token-by-token logits at sampling positions
+
+This lets validators reproduce the exact inference path without storing gigabytes of intermediate states. Temperature is pinned to 0.0 for determinism; we sacrifice sampling diversity for consensus auditability.
+
+**Tradeoff**: Validators must hold model weights locally. We're exploring weight CDN distribution, but for MVP, nodes running PoI consensus need ~7GB VRAM per Claude model. This caps validator set size but ensures genuine intelligence participation—no oracle delegation.
+
+**FABLE Mechanics**: Successful notarization earns base 10 FABLE tokens; validators get 0.5 FABLE for successful verification. Failed reproduction (hash mismatch) triggers slashing review.
+
+Next: integrate with mempool, write validator harness tests.
+---
+
 *2026-06-24*
 
 ## Push-Based Block Gossip & Peer Scoring

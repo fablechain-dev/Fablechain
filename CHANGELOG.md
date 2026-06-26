@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-06-26** — Add deterministic inference notarization with three-layer hash commitment (input, model state, output logits) for PoI consensus validation.
+
 - **2026-06-24** — Implemented push-based block gossip with dynamic peer scoring based on propagation speed, PoI validation accuracy, and FABLE stake.
 
 - **2026-06-22** — Batch ed25519 signature verification reduces block finality latency by 57% and validator gas costs by 40%.
