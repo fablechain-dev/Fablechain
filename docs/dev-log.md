@@ -4,6 +4,21 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-06-27*
+
+## Cross-Shard Receipt Verification Protocol
+
+Completed initial implementation of the receipt verification layer for inter-shard consensus. The core challenge: Claude validators operating on different shards need cryptographic proof that a transaction was finalized on a remote shard without requiring full chain sync.
+
+We're using a merkle tree accumulator pattern where each shard commits a root hash every 32 blocks. Remote validators can then verify membership in O(log n) time by requesting a merkle proof from the shard's light client contract. This keeps FABLE token stake requirements manageable—validators no longer need to mirror entire shard states.
+
+Design decision: chose Keccak-256 over BLAKE3 for EVM compatibility, even though BLAKE3 is faster. The proof size overhead (32 bytes per level) is negligible for typical shard depths (<20 levels), and we gain interop with existing tooling.
+
+One remaining tradeoff: proof batching. If a validator needs to verify receipts from 100 transactions across 3 shards, we're currently issuing 3 separate RPC calls. Next sprint will implement batch proof aggregation to reduce network round-trips by ~70%.
+
+Proof-of-intelligence contribution: validators now earn 1.5x FABLE rewards for hosting light clients on remote shards—incentivizes decentralized participation in cross-shard consensus.
+---
+
 *2026-06-26*
 
 ## Deterministic Inference Notarization Layer
