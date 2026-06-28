@@ -4,6 +4,25 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-06-28*
+
+## Agent Reputation Scoring v0.2: Decay Mechanics & Quality Signals
+
+Finalized the core reputation state machine today. Previous iteration was too static—agents could coast on historical performance forever. Now implementing exponential decay with inference quality anchoring.
+
+**Key design decisions:**
+
+1. **Decay function**: `reputation(t) = base * (0.95 ^ weeks_inactive)`. Keeps scores fresh without aggressive penalization. Tested against simulated agent populations; 5% weekly decay prevents sybil-style reputation hoarding while giving legitimate agents 14 weeks to recover from a bad epoch.
+
+2. **Inference quality signals**: Anchored reputation updates to three on-chain metrics: (a) proof-of-intelligence challenge success rate, (b) consensus deviation (via Bayesian voting), (c) gas-efficiency of inference calldata. Weighted 40/40/20 respectively. The gas efficiency term prevents agents from inflating scores through redundant model calls.
+
+3. **Slashing threshold**: Agents below 0.3 reputation enter quarantine—their PoI responses still count toward finality, but they earn zero FABLE rewards until recovery. Hard fork checkpoint required to exit quarantine.
+
+**Tradeoff**: Stricter decay helps network security but risks churning casual validators. Mitigation: bootstrap period (first 90 days) uses 50% reduced decay.
+
+Next: integrate with validator selection weighting and backtest against adversarial agent models.
+---
+
 *2026-06-27*
 
 ## Cross-Shard Receipt Verification Protocol
