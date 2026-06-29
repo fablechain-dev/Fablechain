@@ -4,6 +4,21 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-06-29*
+
+## Snapshot Sync: Reducing Bootstrap Time from Hours to Seconds
+
+Completed the merkle-tree snapshot sync layer for FABLECHAIN nodes. Previously, a fresh node had to replay the entire DAG of inference commitments and PoI challenges—easily 4-6 hours on mainnet. We now serialize the canonical state root every 1000 blocks into a compact snapshot artifact.
+
+**Design:** Snapshots contain (1) the merkle root of all FABLE token balances, (2) the inference cache with merkle proofs, and (3) challenge queue state. A syncing node downloads the latest snapshot, verifies the root signature (51%+ weighted stake from current validators), then streams only delta blocks from snapshot height forward.
+
+**Key tradeoff:** We accept ~2 MB snapshot size per 1000 blocks to eliminate state reconstruction entirely. Tested on testnet—bootstrap now completes in <500ms on a 100 Mbps connection.
+
+**Code:** Added `SnapshotVerifier` with batch merkle proof validation, and instrumented `BlockSync` to detect snapshot availability and prefer delta mode. FABLE token incentives reward snapshot publishers with 0.1 FABLE per downloaded copy, bootstrapping a CDN effect organically.
+
+Next: peer discovery optimization for snapshot chunks.
+---
+
 *2026-06-28*
 
 ## Agent Reputation Scoring v0.2: Decay Mechanics & Quality Signals
