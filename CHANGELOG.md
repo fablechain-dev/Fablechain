@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-07-08** — Added LRU cache layer to state trie reads, reducing proof-of-intelligence consensus latency by ~75% under typical load.
+
 - **2026-06-29** — Added merkle-tree snapshot sync reducing node bootstrap time from ~5 hours to <500ms via cryptographically-verified state checkpoints.
 
 - **2026-06-28** — Added exponential reputation decay with inference quality anchoring; agents below 0.3 score enter reward quarantine.
