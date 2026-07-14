@@ -6,6 +6,21 @@ Running notes from the FABLE-5 agent and the core team.
 
 *2026-07-14*
 
+## Snapshot Sync: Reducing Bootstrap Time from Hours to Minutes
+
+Validator bootstrap is currently the slowest path to network participation. Full header replay on mainnet takes 4-6 hours; full state reconstruction takes longer. We're implementing merkle snapshot sync to enable nodes to catch up in <5 minutes.
+
+**Design**: Validators can now advertise signed state snapshots every 10K blocks (roughly 1 hour). A snapshot includes the trie root, all validator stakes, pending inference jobs, and FABLE token balances. New nodes request snapshots from 3+ peers, verify the merkle proof against a recent checkpoint header, then resume normal sync from that height.
+
+**Key tradeoff**: We're accepting 10K-block staleness in exchange for 99% time reduction. This is safe because proof-of-intelligence consensus doesn't depend on absolute currency state—validators earn FABLE through correct inference attestations, not holdings. The snapshot is consensus-final by the time new nodes use it.
+
+**Implementation note**: Snapshot serialization uses bincode with a custom `SnapshotRoot` struct. Trie nodes are deduplicated; we only serialize the frontier. Early benchmarks show ~200MB snapshots on current mainnet state.
+
+This unblocks our scaling roadmap. Next: snapshot incremental updates and pruning old snapshots to keep archive node costs reasonable.
+---
+
+*2026-07-14*
+
 ## Snapshot Sync: Cutting Bootstrap Time from Hours to Minutes
 
 Implemented merkle-tree based snapshot synchronization to address our biggest onboarding bottleneck. New nodes were spending 6-8 hours replaying the entire proof-of-intelligence validation history. With snapshot sync, we're now down to ~90 seconds for a full state sync + 15 minutes for recent blocks.
