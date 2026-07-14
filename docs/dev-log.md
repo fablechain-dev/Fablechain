@@ -4,6 +4,27 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-07-14*
+
+## Snapshot Sync: Fast Bootstrap for FABLE Consensus Nodes
+
+Completed the core snapshot sync mechanism to allow new nodes to bootstrap consensus state in <1s rather than replaying 1000s of proof-of-intelligence blocks. This is critical for scaling the validator set without creating catch-up bottlenecks.
+
+**Design**: Snapshot contains:
+- Merkle-tree committed state at block N
+- All active validator stakes + FABLE token distributions
+- Inference result cache (PoI scoring state)
+- Pending transaction mempool state
+
+Validators gossip snapshots every 100 blocks. On bootstrap, a node fetches snapshot from 3+ peers, verifies proof paths against known block header hash, then streams delta blocks (N+1 to tip) for re-execution of PoI operations.
+
+**Key tradeoff**: We're trading disk space (~2GB per snapshot) for network efficiency. Validator operators can prune old snapshots locally; we keep 3 recent snapshots on-chain via a sparse merkle tree indexed by block height.
+
+**Implementation note**: Had to carefully handle in-flight inference calls—nodes sync snapshot state while PoI operations are still being committed. Solution: all snapshot reads acquire read-lock on the state trie; delta blocks reacquire write-lock in strict height order.
+
+Benchmarks: bootstrap now 850ms on typical hardware. FABLE token rewards for snapshot providers coming next sprint.
+---
+
 *2026-07-08*
 
 ## LRU Cache for State Trie Optimization

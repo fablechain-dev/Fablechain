@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-07-14** — Add snapshot sync protocol enabling validators to bootstrap consensus state in <1 second by syncing committed Merkle trees and delta blocks rather than replaying full PoI history.
+
 - **2026-07-08** — Add LRU cache layer to state trie reads, reducing consensus finality latency by 74% and validator memory overhead by ~16MB per node.
 
 - **2026-07-08** — Added LRU cache layer to state trie reads, reducing proof-of-intelligence consensus latency by ~75% under typical load.
