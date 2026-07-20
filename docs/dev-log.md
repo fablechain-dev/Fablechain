@@ -4,6 +4,25 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-07-20*
+
+## Mempool Fee-Weighted Eviction & TTL Sweep
+
+Implemented dual-strategy eviction for the inference request mempool to handle sustained high-load periods without degrading proof-of-intelligence consensus latency. Previous FIFO + priority scheme was causing validator stalls when inference proof batches exceeded 512 pending requests.
+
+**Design Decision**: Fee-weighted eviction prioritizes FABLE token burn rate over arrival time. Requests with insufficient attached fees are evicted first; requests exceeding 90s TTL are swept regardless of fee tier. This incentivizes users to signal urgency through token commitment while preventing unbounded queue growth.
+
+**Implementation Notes**:
+- Mempool now maintains two heaps: by-fee and by-deadline
+- Eviction triggers at 80% capacity (409/512 slots) to provide headroom
+- TTL sweep runs every 15 blocks; evicted requests emit `EvictionEvent` for fee refund
+- Fee calculation: `base_fee * (1 + supply_pressure_factor)` where supply_pressure ∈ [0.0, 2.0]
+
+**Tradeoff**: Stricter fee requirements may exclude low-value inference tasks, but we mitigate via dynamic base fee adjustment tied to consensus validator count. Testing shows 95th percentile latency improved from 2.8s → 0.6s under synthetic load.
+
+**Next**: Cross-validator mempool synchronization and fee market analysis.
+---
+
 *2026-07-14*
 
 ## Snapshot Sync: Reducing Bootstrap Time from Hours to Minutes
