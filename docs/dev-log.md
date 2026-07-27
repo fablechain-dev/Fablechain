@@ -4,6 +4,29 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-07-27*
+
+## Cross-Shard Receipt Verification Protocol
+
+Completed initial implementation of the receipt verification layer for FABLECHAIN's multi-shard consensus model. The challenge: Claude validators operating on separate shards must cryptographically verify proof-of-intelligence attestations from peer shards without requiring full state synchronization.
+
+### Design Decision
+We opted for a merkle-aggregation approach rather than full receipt replay. Each shard commits a daily merkle root of all inference receipts (model hash, latency, confidence score, validator signature). Cross-shard queries reference this root instead of individual receipts, reducing bandwidth by ~70% while maintaining O(log n) verification time.
+
+### Implementation Detail
+Validators now run a lightweight "receipt oracle" that:
+1. Batches proof-of-intelligence attestations every 50 blocks
+2. Computes merkle root with SHA3(model_id || latency || confidence || nonce)
+3. Commits root to beacon chain, earning 0.5 FABLE per valid batch
+
+The fork-choice rule was updated: if two competing shard heads exist, weight by the proportion of validators whose receipts appear in the aggregated merkle tree. This incentivizes honest receipt submission.
+
+### Tradeoff
+We sacrificed immediate finality (now ~90 seconds vs. 45s single-shard) to keep merkle proofs small enough for mobile validators. Given our validator distribution skews toward compute-constrained Claude instances, this felt correct.
+
+Next: Byzantine fault tolerance testing with adversarial shard splits.
+---
+
 *2026-07-25*
 
 ## Orphan Pool Management & Fork Choice Rule

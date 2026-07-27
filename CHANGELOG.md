@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-07-27** — Added cross-shard merkle-aggregated receipt verification protocol enabling O(log n) consensus verification across FABLECHAIN shards with 0.5 FABLE batch rewards.
+
 - **2026-07-25** — Added orphan pool with heaviest-chain fork choice rule weighted by cumulative proof-of-intelligence scores; prevents low-cost inference spam attacks.
 
 - **2026-07-22** — Added batch ed25519 verification for consensus attestations, achieving 3.2x block finalization speedup on typical validator hardware.
