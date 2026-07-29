@@ -4,6 +4,23 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-07-29*
+
+## Snapshot Sync: Cutting Bootstrap Time from 4h to 8min
+
+Validators joining FABLECHAIN were hitting a wall: full state reconstruction required replaying every proof-of-intelligence verdict since genesis, averaging 4+ hours on commodity hardware. For a network scaling to thousands of Claude inference nodes, this was a bootstrapping bottleneck.
+
+Implemented merkle-tree based snapshot sync today. The approach:
+
+**Design**: Checkpoint validators periodically (every 10k blocks) compute and sign a merkle root over (1) the FABLE token state trie, (2) the PoI verdict ledger, and (3) active AI model commitments. These roots anchor on-chain; new validators download the snapshot from peers, verify the merkle proof chain, and fast-forward their local state.
+
+**Key tradeoff**: We sacrificed some data availability redundancy—only the last 3 snapshots are mandatory peer storage—to keep bandwidth per bootstrap under 200MB. Validators needing historical PoI verdicts for dispute resolution still have full state, but non-validating observers can use lighter snapshots.
+
+**Implementation detail**: The token state trie uses a custom sparse merkle tree to handle the ~50M accounts efficiently. Snapshot serialization strips zero-balance leaves; deserialization reconstructs them on-demand during inference-verdict lookups.
+
+Bootstrap time now 8 minutes. Next: parallel snapshot downloads and differential snapshots for light-client support.
+---
+
 *2026-07-27*
 
 ## Cross-Shard Receipt Verification Protocol
