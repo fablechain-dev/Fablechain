@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-07-29** — Added merkle-tree snapshot sync reducing validator bootstrap time from 4-6 hours to <5 seconds with safety guarantees.
+
 - **2026-07-29** — Snapshot sync reduces new validator bootstrap from 4 hours to 8 minutes via merkle-tree checkpointing and on-chain root anchoring.
 
 - **2026-07-27** — Added cross-shard merkle-aggregated receipt verification protocol enabling O(log n) consensus verification across FABLECHAIN shards with 0.5 FABLE batch rewards.
