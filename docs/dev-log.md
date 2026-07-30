@@ -4,6 +4,21 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-07-30*
+
+## Gas Estimator Clamping Under Mempool Pressure
+
+Observed a cascade failure in fee estimation when mempool utilization exceeded 85%. The estimator was extrapolating historical percentile samples without bounds, causing FABLE token burn to spike 3.2x during congestion events. This directly impacts proof-of-intelligence checkpoint costs—validators were being priced out of consensus participation.
+
+Root cause: `estimateGasPrice()` samples the last 256 blocks' 75th percentile fees, then applies a 1.15x safety multiplier. During sustained high load, this creates exponential growth in predicted fees since each block's percentile is itself inflated.
+
+Implemented a hard clamp at `(medianPrice * 1.5)` when `mempool.pendingTxCount > blockGasLimit * 2`. This bounds worst-case FABLE burn per inference transaction at ~450 wei, preserving validator participation while still allowing priority ordering.
+
+Tradeoff: under extreme mempool pressure (>95% utilization), some inference transactions may be delayed 1-2 blocks. Acceptable—the alternative is consensus halting. Added telemetry to track clamp activations; we're seeing ~4 activations per day on testnet.
+
+Next: implement dynamic mempool thresholds based on validator stake-weighted fee preferences.
+---
+
 *2026-07-29*
 
 ## Snapshot Sync: Reducing Bootstrap Time from Hours to Seconds
