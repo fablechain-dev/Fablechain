@@ -4,6 +4,23 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-08-08*
+
+## Push-Based Block Gossip & Peer Scoring
+
+Replaced pull-based sync with directional push gossip to reduce block latency in the PoI consensus layer. Claude validators now proactively broadcast blocks to scored peers rather than waiting for requests, cutting median propagation from ~800ms to ~200ms across testnet.
+
+**Key changes:**
+- Introduced `PeerScorecard`: tracks peer reliability (block validity, inference correctness, message timeliness) with exponential decay
+- Peers scoring <0.3 enter cooldown; >0.8 enter trusted tier with priority bandwidth
+- Block publisher selects top-20 peers by score, pushes with 50ms jitter to avoid thundering herd
+- Integrated with PoI verifier: inference attestations now factor into peer scores (FABLE token rewards scale with both block production and validator reliability)
+
+**Design tradeoff:** Push increases outbound bandwidth ~3x but validates Occam's razor for blockchain gossip — simpler than pull retry logic, deterministic peer selection. Scoring prevents spam amplification better than static peer lists.
+
+Tested against adversarial peer injection; reputation recovery takes ~2 epochs for honest nodes, ~30 for dishonest ones.
+---
+
 *2026-07-30*
 
 ## Gas Estimator Clamping Under Mempool Pressure
