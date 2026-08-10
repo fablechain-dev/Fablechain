@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-08-10** — Added deterministic inference commitment protocol with merkle-tree logit attestation and re-validation consensus mechanism.
+
 - **2026-08-08** — Added push-based block gossip with peer reputation scoring; reduced block propagation latency by 75% and improved consensus finality under network churn.
 
 - **2026-07-30** — Added gas estimator clamping mechanism to prevent runaway fees during high mempool pressure, improving proof-of-intelligence validator participation stability.

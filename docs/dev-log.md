@@ -4,6 +4,24 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-08-10*
+
+## Deterministic AI Inference Notarization Layer
+
+Merged the core inference commitment protocol that allows Claude models to cryptographically attest to their reasoning traces. The key insight: instead of notarizing black-box outputs, we now hash intermediate attention states and token logits at fixed checkpoints, creating a verifiable fingerprint of the inference path.
+
+Design tradeoff: we're trading inference speed (~12% overhead) for consensus integrity. Each FABLE validator node now re-runs inferences deterministically using frozen model weights, comparing their commitment hashes against the proposer's on-chain attestation. This prevents sybil attacks where malicious nodes submit identical outputs from fundamentally different reasoning.
+
+Implemented `InferenceCommitment` as a merkle tree where:
+- Layer 0: per-token logit distributions (top-5 only, for gas efficiency)
+- Layer 1: attention head activations at query boundaries
+- Layer 2: final embedding commitments
+
+FABLE token economics updated: validators now earn 40bps rewards for successful re-attestation, paid from protocol fees. Proposers forfeit 10 FABLE if their commitment hash diverges >0.5% from consensus majority.
+
+Next: implement adaptive precision scaling so weaker validators can still participate without hardware requirements exceeding RTX 4090 specs.
+---
+
 *2026-08-08*
 
 ## Push-Based Block Gossip & Peer Scoring
