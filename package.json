@@ -99,8 +99,6 @@
     "joi": "^17.11.0",
     "winston": "^3.11.0",
     "pino": "^8.16.2",
-    "rate-limiter-flexible": "^2.6.1",
-    "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
     "bcryptjs": "^2.4.3",
