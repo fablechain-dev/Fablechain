@@ -35,6 +35,15 @@ Scope: verify telemetry commit integrity + baseline repo health. Read-only findi
 - Evidence: git status shows node_modules/.bin/* as modified; repo tracks it.
 - Impact: noise in every diff; 1523 files. Not touched by my commit.
 - Note: leave as-is unless the owner wants a .gitignore cleanup (separate task).
+- RESOLVED 2026-08-12: backend/node_modules untracked via `git rm -r --cached`.
+  Correction to the count above: it was 3,907 files, not 1,523.
+  .gitignore already contained `node_modules/` (line 2) - the rule was correct
+  all along but inert, because gitignore does not apply to already-tracked
+  files. No .gitignore edit was needed; untracking alone activated it.
+  Scope note: only backend/node_modules was ever tracked. Root and
+  frontend/node_modules were already correctly ignored.
+  Files were NOT deleted from disk - `--cached` affects the index only; all
+  272 packages remain installed.
 
 ## Verified clean
 - Telemetry commit 4ce1e26: 12 files, 0 tsc errors in touched files (checked).
@@ -113,10 +122,16 @@ remain, neither of which used the deleted packages:
 - nginx.conf:11-12,41,55 - edge limits (api 10r/s burst 20, web 30r/s burst 50)
 
 ### Still open
-- F3 (node_modules tracked in git) - untouched, still ~3,900 of 7,404 tracked
-  files. Separate cleanup task, owner's call.
-- UNRELATED and unverified: backend/package.json carries a
+- F3 (node_modules tracked in git) - RESOLVED in a follow-up commit the same
+  day; see the resolution note under F3 above. All three findings are now
+  closed.
+- UNRELATED and unverified: backend/package.json carried a
   `@latitude-data/telemetry` ^4.0.0 -> ^3.3.0 DOWNGRADE, uncommitted, sitting on
   top of commit 4ce1e26 which added Latitude tracing. Deliberately left out of
-  this commit. Someone should confirm tracing still works at 3.3.0 before it
-  lands.
+  this commit.
+  UPDATE (same day): reverted at the owner's direction - the pin is back to
+  ^4.0.0, which is the current published latest and resolves cleanly. Only 1 of
+  the ~3,895 reverted lines was the pin itself; the rest was unrelated lockfile
+  churn (@solana/*, siwe, socket.io, opentelemetry) swept in by the same install.
+  Nothing now depends on 3.3.0. Reason for the original downgrade was never
+  established.
