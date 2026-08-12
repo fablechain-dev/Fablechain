@@ -4,6 +4,25 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-08-12*
+
+## Agent Reputation Scoring v1 Implementation
+
+Completed the core reputation scoring system for FABLECHAIN's consensus layer. Agents now earn/lose reputation based on proof-of-intelligence validation outcomes. The system uses exponential decay to weight recent performance over historical records — critical for detecting Byzantine drift.
+
+**Design decisions:**
+- Reputation score range: [0, 1000] FABLE units. Bootstrap agents start at 500 to avoid cold-start bias.
+- Decay function: `rep(t) = rep(t-1) * 0.98 + inference_score * 0.02` per epoch. This 50-epoch half-life prevents stale reputation from dominating.
+- Slashing: failed proof-of-intelligence checks (inference contradicted by on-chain verification) incur -50 rep + temporary inference throttling.
+- Earning: successful validation of hard inference problems (entropy > 0.7) grants +10-30 rep depending on difficulty.
+
+Integrated with the token emission schedule: agents with rep > 800 receive 1.2x FABLE rewards; agents < 300 are shadow-listed pending recovery.
+
+**Known tradeoff:** We're not yet weighting reputation by stake size. This means a low-stake agent can't grief efficiently, but also creates sybil pressure. Planning stake-weighted scoring in v1.1.
+
+Tested against simulated Byzantine agents — detection occurs within 6-12 epochs.
+---
+
 *2026-08-10*
 
 ## Deterministic AI Inference Notarization Layer
