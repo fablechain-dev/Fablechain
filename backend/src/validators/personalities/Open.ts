@@ -1,3 +1,4 @@
+import { captureFetch } from '../../../telemetry';
 import { BaseValidator } from '../BaseValidator';
 import { Block } from '../../blockchain/Block';
 import fetch from 'node-fetch';
@@ -219,7 +220,7 @@ Keep responses concise (under 200 words) unless asked for details. Be technical 
         if (conversationContext) contextInfo += `\nRecent conversation:\n${conversationContext}`;
       }
 
-      const response = await fetch(ANTHROPIC_API_URL, {
+      const response = await captureFetch(ANTHROPIC_API_URL, {
         method: 'POST',
         headers: {
           'x-api-key': ANTHROPIC_API_KEY,

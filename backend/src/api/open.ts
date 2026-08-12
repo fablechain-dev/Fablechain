@@ -1,4 +1,6 @@
 import * as dotenv from 'dotenv';
+import { captureFetch } from '../telemetry';
+
 dotenv.config();
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -26,7 +28,7 @@ export async function anthropicChatCompletion(systemPrompt: string, message: str
   };
 
   try {
-    const response = await fetch(ANTHROPIC_API_URL, {
+    const response = await captureFetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_API_KEY,

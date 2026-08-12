@@ -1,3 +1,4 @@
+import '../telemetry';
 import Anthropic from '@anthropic-ai/sdk';
 
 // ============================================================================

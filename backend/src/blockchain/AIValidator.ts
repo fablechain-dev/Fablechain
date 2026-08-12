@@ -1,5 +1,6 @@
 import { Block, Transaction } from './Block';
 import { stateManager } from './StateManager';
+import { captureFetch } from '../telemetry';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -119,7 +120,7 @@ Respond with a JSON object (no markdown):
   "stateInconsistency": boolean
 }`;
 
-    const response = await fetch(ANTHROPIC_API_URL, {
+    const response = await captureFetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_API_KEY,

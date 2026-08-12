@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { eventBus } from '../events/EventBus';
+import { captureFetch } from '../telemetry';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -312,7 +313,7 @@ ${recentPosts}`;
       ? `${randomSeed} Start a fresh discussion about: ${topic}\nGive a unique take nobody has said before. 1-3 sentences.` 
       : `${randomSeed} Topic: ${topic}\nRecent:\n${recentMessages.join('\n')}\nRespond with something NEW. 1-3 sentences.`;
     
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await captureFetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ 
