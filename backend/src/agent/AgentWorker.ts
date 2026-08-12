@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import { EventEmitter } from 'events';
+import { captureFetch } from '../telemetry';
 import { TaskGenerator, Task } from './TaskGenerator';
 import { agentMemory } from './AgentMemory';
 import { chainObserver } from './ChainObserver';
@@ -248,7 +249,7 @@ Keep responses focused, around 500-800 words. People are watching you work - sho
     try {
       this.currentAbortController = new AbortController();
       
-      const response = await fetch(ANTHROPIC_API_URL, {
+      const response = await captureFetch(ANTHROPIC_API_URL, {
         method: 'POST',
         headers: {
           'x-api-key': ANTHROPIC_API_KEY,
@@ -364,7 +365,7 @@ People are watching you work. Show them autonomous LLM development in action.`;
       try {
         this.currentAbortController = new AbortController();
         
-        const response = await fetch(ANTHROPIC_API_URL, {
+        const response = await captureFetch(ANTHROPIC_API_URL, {
           method: 'POST',
           headers: {
             'x-api-key': ANTHROPIC_API_KEY!,

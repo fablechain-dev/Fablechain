@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv';
+import { captureFetch } from '../telemetry';
 
 dotenv.config();
 
@@ -315,7 +316,7 @@ End your response with your current position on a new line in brackets, one of: 
   }
 
   try {
-    const response = await fetch(ANTHROPIC_API_URL, {
+    const response = await captureFetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
         'x-api-key': ANTHROPIC_API_KEY,

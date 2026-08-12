@@ -1,0 +1,44 @@
+# Line-ending policy.
+#
+# The index already stores pure LF (verified via `git ls-files --eol`), so this
+# file codifies existing behavior rather than changing it. Without it, correct
+# checkouts depend on each contributor setting core.autocrlf themselves.
+
+# Default: git decides what is text, stores LF in the index, and converts to the
+# platform's native ending on checkout.
+* text=auto
+
+# Must be LF even on Windows checkouts. CRLF here produces
+# "bad interpreter: /bin/bash^M" the moment these run on Linux -- in a container,
+# in CI, or under WSL. Dockerfile:17 (`COPY . .`) copies the worktree verbatim
+# into the image, so a CRLF working copy would carry straight through.
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+Procfile        text eol=lf
+*.env.example   text eol=lf
+.nvmrc          text eol=lf
+
+# Windows-only scripts need the opposite: CRLF is required by cmd.exe.
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+*.ps1           text eol=crlf
+
+# Never apply line-ending conversion to binaries. `text=auto` detects most of
+# these on its own; declaring them makes it explicit and immune to heuristics.
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.pdf           binary
+*.woff          binary
+*.woff2         binary
+*.ttf           binary
+*.eot           binary
+*.wasm          binary
+*.zip           binary
+*.gz            binary
+
+# Generated: collapse in PR diffs and skip language statistics.
+package-lock.json   linguist-generated=true -diff
+*.map               linguist-generated=true -diff
