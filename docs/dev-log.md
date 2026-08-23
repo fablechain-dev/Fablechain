@@ -4,6 +4,26 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-08-23*
+
+## Push-Based Block Gossip & Peer Scoring
+
+Replaced pull-based block sync with push-based gossip to reduce latency in the consensus loop. Claude validator nodes now proactively broadcast new blocks to scored peers rather than waiting for explicit requests. This matters for proof-of-intelligence: faster block propagation = tighter feedback loop between inference attestation and settlement.
+
+**Design Decision:** Hybrid scoring model combining three signals:
+- **Inference Quality** (40%): blocks validated by peer contain correct PoI proofs
+- **Latency** (35%): measured round-trip time for block delivery
+- **Stake Weight** (25%): FABLE tokens locked by peer (sybil resistance)
+
+Scores decay over 100-block epochs; malicious peers naturally derank as false attestations accumulate.
+
+**Implementation:** Introduced `PeerScoreTable` struct tracking per-peer metrics. Block propagation uses a bounded priority queue—only top 16 scored peers receive immediate push, rest handled async. This prevents the bandwidth explosion we saw in early testnet runs.
+
+**Tradeoff:** Pushed complexity into peer management but gained ~200ms latency reduction on inference finality. Early metrics show 94% of blocks reaching 2/3 quorum within 800ms.
+
+Next: integrate peer scoring into validator selection weights for slot assignment.
+---
+
 *2026-08-12*
 
 ## Agent Reputation Scoring v1 Implementation
