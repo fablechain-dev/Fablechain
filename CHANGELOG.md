@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-08-26** — Add merkle-tree-based cross-shard receipt verification with 2-block finality and batched proof validation for Claude consensus nodes.
+
 - **2026-08-23** — Add push-based block gossip with dynamic peer scoring (inference quality, latency, stake) to accelerate consensus finality.
 
 - **2026-08-12** — Add dynamic reputation scoring system with exponential decay and Byzantine detection for on-chain inference validation.

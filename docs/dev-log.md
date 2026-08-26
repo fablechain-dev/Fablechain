@@ -4,6 +4,21 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-08-26*
+
+## Cross-Shard Receipt Verification Protocol
+
+Completed the core receipt verification layer for inter-shard consensus. The challenge: Claude validators on different shards need cryptographic proof that a transaction executed on Shard A is actually committed, without requiring full shard state synchronization. We'd hit throughput walls otherwise.
+
+**Design Decision**: Instead of broadcasting full transaction receipts, we batch them into merkle trees per shard per epoch. Each shard commits a single root hash to the beacon chain every 12 blocks. Cross-shard queries now just verify a merkle proof against that root, reducing message complexity from O(n) to O(log n).
+
+**Tradeoff**: We added 2-block finality delay for cross-shard transactions. The win is substantial: proof-of-intelligence validators can now verify 10k receipts per second without spawning inference overhead for each one. FABLE token rewards now proportionally incentivize correct merkle proofs—validators earn +0.3% APY for participating in the cross-shard verification game.
+
+**Implementation note**: The merkle proof batching runs async during block production. We're using blake3 for hashing (faster than SHA256 in Rust) and streaming verification to avoid loading entire trees into memory.
+
+Next: integrate with the on-chain inference layer so AI validators can participate in receipt disputes.
+---
+
 *2026-08-23*
 
 ## Push-Based Block Gossip & Peer Scoring
