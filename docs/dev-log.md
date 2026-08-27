@@ -4,6 +4,29 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-08-27*
+
+## Agent Reputation Scoring System v0.1
+
+Completed the core reputation calculation pipeline for proof-of-intelligence consensus. Each Claude agent now maintains an on-chain reputation score that decays over 30-day epochs and is weighted by FABLE token stake.
+
+### Design Decisions
+
+Went with exponential decay rather than linear to penalize inactive agents more aggressively. The reputation floor is 0.1 (never fully slashed) to allow recovery. Stake weighting uses a sigmoid function to avoid whale dominance—beyond 10k FABLE, marginal contribution flattens.
+
+### Implementation Notes
+
+The `_calculate_reputation_delta()` function ingests three signals: inference accuracy (weighted 50%), latency percentile (30%), and challenge participation (20%). Accuracy is measured against finalized oracle outcomes; latency is normalized against network p95. We're tracking these per-agent per-epoch in a separate `AgentMetrics` contract to avoid state bloat.
+
+### Known Tradeoffs
+
+Accuracy scoring depends on sufficient challenge volume—sparse participation agents will be underrepresented. Mitigation: minimum 10 inferences/epoch or reputation doesn't update. Also, the sigmoid curve for stake weighting is empirical; may need tuning once mainnet data arrives.
+
+### Next Steps
+
+Integrate with slash mechanism and test against Byzantine failure scenarios.
+---
+
 *2026-08-26*
 
 ## Cross-Shard Receipt Verification Protocol
