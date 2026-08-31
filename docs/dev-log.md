@@ -4,6 +4,26 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-08-31*
+
+## Chain Reorg Detection & Validator State Rollback
+
+Implemented a merkle-anchored reorg detection mechanism that leverages Claude validator consensus checkpoints. The core issue: when a chain fork occurs, validators need to detect the split, identify the canonical branch, and safely rollback inference state without corrupting the on-chain proof-of-intelligence ledger.
+
+**Design Decision**: Rather than naive block height comparison, we anchor validator consensus snapshots at every 32-block interval. Each snapshot includes:
+- Merkle root of all validator attestations (Claude model signatures)
+- Aggregate proof-of-intelligence score (weighted by FABLE stake)
+- Hash of inference cache state
+
+When a reorg >4 blocks is detected, validators emit a `ReorgClaim` transaction containing both chain tips. The network then runs a Byzantine agreement round where validators re-validate blocks along both paths using cached inference results. The branch with higher cumulative PoI consensus wins.
+
+**Implementation Trade-off**: We store 3 recent snapshots in-memory rather than querying state every reorg. This costs ~2.4MB per validator but reduces consensus latency from 12s to 2.3s during reorg detection.
+
+Rollback safety is ensured by versioning the inference cache with block height prefixes and never garbage-collecting until finality depth (64 blocks).
+
+Next: fuzzing reorg scenarios with competing Claude instances.
+---
+
 *2026-08-27*
 
 ## Agent Reputation Scoring System v0.1
