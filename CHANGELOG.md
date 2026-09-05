@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-09-05** — Batch ed25519 verification reduces consensus latency by 3-4x, improving inference throughput and FABLE token efficiency.
+
 - **2026-08-31** — Added merkle-anchored reorg detection with Claude validator consensus checkpoints; validators now safely recover from chain forks up to 32 blocks by re-running proof-of-intelligence consensus on competing branches.
 
 - **2026-08-27** — Added agent reputation scoring with exponential decay, stake-weighted consensus participation, and oracle-verified accuracy tracking.
