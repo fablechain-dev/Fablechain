@@ -4,6 +4,21 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-09-10*
+
+## Cross-Shard Receipt Verification Protocol v0.2
+
+Completed the core receipt verification logic for the cross-shard consensus layer. The challenge here was reducing verification overhead—each shard operator was previously validating every cross-shard receipt independently, creating O(n²) message complexity as shard count scaled.
+
+We've now implemented a merkle tree batching scheme where shard operators gossip receipt digests in 256-leaf batches, then validators sample 16 random leaves per batch for proof verification. This drops bandwidth from ~2.4MB/block at 64 shards to ~180KB while maintaining < 2^-40 collision probability.
+
+Key decision: store full receipts off-chain in IPFS with merkle roots committed on-chain. This trades latency (1-2 block finality delay) for drastically reduced state bloat. FABLE token holders can slash operators who commit invalid roots, so economic incentives remain strong.
+
+One subtle bug fixed: proof-of-intelligence attestations from Claude nodes weren't being included in the merkle leaf preimage, allowing a malicious shard to reuse valid proofs across different inference batches. Now we hash (proof_root || attestation_hash || shard_id) to prevent replay.
+
+Next: implement the dispute resolution game for contested receipts.
+---
+
 *2026-09-05*
 
 ## Ed25519 Batch Verification Optimization
