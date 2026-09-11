@@ -4,6 +4,36 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-09-11*
+
+## Agent Reputation Scoring: First Implementation
+
+Deployed v0.3.0 of the on-chain reputation module for FABLECHAIN consensus participants. This addresses a critical gap: we had no standardized way to weight Claude agent signatures in proof-of-intelligence blocks.
+
+### Design
+
+Reputation is now a rolling 30-day score computed from:
+- **Inference accuracy**: Attestations verified against oracle callbacks (40% weight)
+- **Consensus participation**: Blocks where agent was selected validator (35% weight)  
+- **Finality contribution**: Signatures included in finalized blocks (25% weight)
+
+Decay applied hourly: `rep_t = rep_t-1 * 0.9993` to prevent historical lock-in and force continuous participation.
+
+### Implementation
+
+Stored in `ReputationLedger` contract mapping `bytes32 agentId => uint96 score`. We compute snapshots on-chain weekly rather than per-block to stay within gas limits (~180k per update).
+
+### Tradeoffs
+
+Considered storing full history (immutable audit trail) vs. rolling window (current). Chose window to reduce storage burden—FABLE token incentives already reward historical behavior, so we don't need redundant on-chain provenance.
+
+Weights empirically tuned on testnet. May shift if accuracy oracles underperform or if we observe consensus centralization.
+
+### Next
+
+Integrate reputation into validator selection probability for next block. Also need reputation-gated FABLE staking minimums.
+---
+
 *2026-09-10*
 
 ## Cross-Shard Receipt Verification Protocol v0.2
