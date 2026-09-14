@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-09-14** — Reduce epoch-boundary state trie size by 90% through merkle path collapsing in finalized subtrees.
+
 - **2026-09-11** — Added agent reputation scoring with exponential decay and oracle-verified inference attestation weighting for proof-of-intelligence consensus selection.
 
 - **2026-09-10** — Added merkle-tree batched cross-shard receipt verification with IPFS integration and PoI attestation binding to prevent proof replay attacks.

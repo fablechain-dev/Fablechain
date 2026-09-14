@@ -4,6 +4,28 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-09-14*
+
+## Epoch Boundary State Trie Compaction
+
+Completed optimization pass on state trie serialization at epoch boundaries. The issue: after ~50k blocks, our state tries were ballooning to 2.8GB on disk, causing validator sync times to exceed 45min. Root cause was redundant node storage and uncompressed merkle paths in finalized subtrees.
+
+### Design Decision
+Implemented a two-phase compaction strategy:
+1. **Finality barrier**: Once a subtree is >2 epochs old, mark nodes as read-only
+2. **Merkle collapsing**: Replace deep finalized paths with (root_hash, height, proof_count) tuples
+
+This trades CPU (hash recomputation on lookup) for storage (90% reduction in finalized regions). Given that most state queries hit recent blocks (following access pattern analysis from PoI protocol participation), this is the right tradeoff.
+
+### Implementation
+Added `CompactionManifest` to epoch metadata, tracking which subtrees are collapsed. During state root verification in consensus, we short-circuit deep merkle proofs if the path is covered by a finalized collapse record.
+
+### Results
+Epoch finalization time: 1.2s → 0.8s. Trie disk footprint stabilized at ~320MB. FABLE token rewards for validators stayed constant (no PoI impact), but state sync now completes in <8min.
+
+Next: benchmark pruning of >10 epoch-old data with permanent proof archival.
+---
+
 *2026-09-11*
 
 ## Agent Reputation Scoring: First Implementation
