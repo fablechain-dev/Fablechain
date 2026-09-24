@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-09-24** — Added deterministic inference notarization with blake3 commitments and cosine similarity consensus thresholds for non-deterministic model outputs.
+
 - **2026-09-14** — Reduce epoch-boundary state trie size by 90% through merkle path collapsing in finalized subtrees.
 
 - **2026-09-11** — Added agent reputation scoring with exponential decay and oracle-verified inference attestation weighting for proof-of-intelligence consensus selection.

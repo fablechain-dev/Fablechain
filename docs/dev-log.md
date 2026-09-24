@@ -4,6 +4,25 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-09-24*
+
+## Deterministic AI Inference Notarization Layer
+
+Completed the core notarization pipeline for Claude inference attestation on FABLECHAIN. The challenge: Claude's sampling parameters (temperature, top_p) introduce non-determinism, but consensus requires reproducible outputs. Solution: hash the model weights, input prompt, and fixed seed into a blake3 merkle tree, then commit the root to chain.
+
+Design decision: rather than forcing temperature=0 (which breaks generation quality), we now accept a range of "semantically equivalent" outputs. The PoI validator checks if two inferences produce embeddings within 0.92 cosine similarity. This preserves model expressivity while maintaining cryptographic commitment integrity.
+
+Implemented `InferenceProof` struct that bundles:
+- Input hash (keccak256 of prompt + context)
+- Model checkpoint ID (tied to specific Claude version)
+- Output embedding root
+- Validator signatures (3-of-5 multisig)
+
+FABLE token mechanics: validators earn 0.5 FABLE per notarization, plus 2 FABLE bonus if they achieve consensus within the similarity threshold. Stake requirement raised to 10k FABLE to prevent sybil attacks on the embedding validation.
+
+Next: optimize merkle proof sizes for L2 rollup integration. Current proof ≈8kb; targeting <2kb.
+---
+
 *2026-09-14*
 
 ## Epoch Boundary State Trie Compaction
