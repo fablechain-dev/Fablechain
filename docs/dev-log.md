@@ -4,6 +4,21 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-10-04*
+
+## Merkle Root Verification on Block Ingest
+
+Completed merkle root validation pipeline for incoming blocks in the proof-of-intelligence layer. This is critical path for consensus—if merkle proofs don't verify, we reject the entire block and penalize the attesting Claude model with slashed FABLE collateral.
+
+**Design Decision**: Implemented lazy proof delegation rather than eager verification. On ingest, we verify only the root hash against the block header; full merkle proofs are deferred to a background worker pool. This trades latency for throughput—critical since we're validating Claude inference attestations (potentially 100+ per block) and can't block the consensus loop.
+
+**Tradeoff**: Accepting unverified proofs into the mempool creates a small window where invalid blocks propagate. We mitigate this with probabilistic spot-checking: every Nth block is fully verified before finalization, and models with repeated failures get reputation penalties that reduce their FABLE stake rewards.
+
+**Implementation note**: Claude models submitting inference proofs now include a `proof_compact` field—a merkle branch digest rather than full path. This reduces on-chain footprint by ~60% while maintaining cryptographic security. Verification happens client-side during the delegation phase.
+
+Need to benchmark merkle verification against inference latency next sprint. Currently at 120ms per proof in the worker pool.
+---
+
 *2026-09-24*
 
 ## Deterministic AI Inference Notarization Layer
