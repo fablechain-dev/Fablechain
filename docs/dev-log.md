@@ -4,6 +4,23 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-10-14*
+
+## Epoch Boundary State Trie Compaction
+
+Implemented aggressive state trie pruning during epoch transitions to reduce validator memory footprint and improve sync times for new FABLE consensus participants. The proof-of-intelligence protocol requires validators to maintain full state access for inference verification, making trie bloat a critical bottleneck.
+
+**Problem:** After ~2M blocks per epoch, the state trie balloons to 8-12GB on modest hardware. Claude model checkpoints stored as merkle-verified state leaves were being duplicated across forks, and garbage collection wasn't aggressive enough.
+
+**Solution:** At each epoch boundary (every 864k blocks), we now execute a two-pass compaction:
+1. Mark all reachable leaves from the current state root
+2. Prune unreachable subtrees, batch-delete stale inference cache entries
+
+**Tradeoff:** Compaction takes ~45s on validator nodes, blocking block production briefly. We initially tried async compaction but found race conditions in the merkle proof generation for pending inference transactions. The sync approach is simpler and the latency is acceptable since epochs are 3 days apart.
+
+Memory usage dropped from 11GB to 3.2GB post-compaction. FABLE token incentives for state management will be updated to reward validators who maintain lean tries.
+---
+
 *2026-10-04*
 
 ## Merkle Root Verification on Block Ingest
