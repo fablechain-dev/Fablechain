@@ -4,6 +4,25 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-10-17*
+
+## Dynamic Stake-Weighted Reward Distribution
+
+Implemented the core reward allocation mechanism for FABLE token staking. This was the critical path blocker for Phase 2 testnet — we needed a system that incentivizes both participation and prediction accuracy without creating perverse incentives around stake size alone.
+
+The design uses a two-factor weighting:
+1. **Stake weight**: `min(staker_balance / median_stake, 4.0)` — capped at 4x to prevent whale domination while rewarding committed validators
+2. **Intelligence score**: Derived from proof-of-intelligence verdict accuracy over 256-block windows, updated via exponential moving average (α=0.15) to smooth short-term variance
+
+Final allocation: `reward_per_validator = base_reward * stake_weight * (0.5 + 0.5 * intelligence_score)`
+
+This creates a Pareto frontier where a mid-sized staker with high accuracy outearns a whale with mediocre predictions. We deliberated on whether to include recency bias in the intelligence score — decided against it to avoid gaming windows near block boundaries.
+
+**Tradeoff**: The 4x cap means we lose potential Sybil resistance gains from unbounded stake weighting, but empirical modeling showed this maximizes network security per dollar of TVL across realistic validator distributions.
+
+Need to audit the fixed-point math in `_compute_intelligence_ema()` before audit.
+---
+
 *2026-10-14*
 
 ## Epoch Boundary State Trie Compaction
