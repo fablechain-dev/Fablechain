@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-10-17** — Added intelligence-weighted staking rewards with dynamic APY adjustment and PoI score decay mechanisms.
+
 - **2026-10-17** — Added dynamic stake-weighted reward distribution with capped whale factor (4x) and exponential moving average intelligence scoring.
 
 - **2026-10-14** — Added state trie compaction at epoch boundaries, reducing validator memory overhead by 71% and improving sync performance for new consensus participants.

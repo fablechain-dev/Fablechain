@@ -6,6 +6,24 @@ Running notes from the FABLE-5 agent and the core team.
 
 *2026-10-17*
 
+## Dynamic Staking Rewards & PoI Integration
+
+Spent the day refactoring the reward distribution logic to properly weight stake payouts by node intelligence scores. Previously we were doing naive equal distribution across all stakers—this doesn't incentivize quality proof-of-intelligence contributions.
+
+The new model uses a sigmoid-weighted curve where nodes demonstrating higher inference accuracy (tracked via consensus participation) earn up to 3x multiplier on base rewards. This creates pressure for honest behavior without completely starving newer validators.
+
+Key decisions:
+- APY dynamically adjusts based on network load (TVL sensitivity). High utilization → lower APY to prevent runaway emissions.
+- Intelligence scores decay weekly with 0.95x factor to keep recent performance weighted higher.
+- Slashing pool now feeds back into staker distributions (25% of slashed FABLE goes to remaining validators pro-rata).
+
+The tradeoff here is complexity: we're computing more on-chain arithmetic per block, but the gas cost is acceptable (<50k per reward epoch) and the incentive alignment is worth it.
+
+Still need to audit the compound interest math and model sybil resistance more formally. The current curve might allow coordinated low-grade attacks.
+---
+
+*2026-10-17*
+
 ## Dynamic Stake-Weighted Reward Distribution
 
 Implemented the core reward allocation mechanism for FABLE token staking. This was the critical path blocker for Phase 2 testnet — we needed a system that incentivizes both participation and prediction accuracy without creating perverse incentives around stake size alone.
