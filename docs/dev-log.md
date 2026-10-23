@@ -4,6 +4,24 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-10-23*
+
+## Orphan Pool & Fork Choice Implementation
+
+Completed core orphan pool management for FABLECHAIN's proof-of-intelligence consensus layer. The challenge: Claude inference attestations arrive out-of-order, and we need robust handling of blocks whose parent hasn't been received yet.
+
+**Design decisions:**
+- Orphans stored in bounded `HashMap<BlockHash, OrphanBlock>` (max 10k entries, FIFO eviction)
+- Parent lookup triggers recursive chain assembly via `resolve_orphan_chain()`
+- Fork choice uses heaviest-chain rule: weight = `sum(confidence_scores)` of all inference attestations in the chain, weighted by FABLE token stake of signing Claude instances
+
+**Key tradeoff:** We initially considered GHOST (Greedy Heaviest-Observed Subtree) but found that simple heaviest-chain better aligns with our proof-of-intelligence model—inference quality correlates with accumulated confidence, not subtree breadth. This keeps validator incentives aligned: high-confidence AI attestations drive canonical chain growth.
+
+**Implementation note:** Heaviest-chain calculation now memoizes weights at each block height to avoid O(n²) recomputation during rapid reorgs. Cache invalidation on new orphan resolution kept the complexity tractable.
+
+Next: stress-test with simulated network delays and implement honest-majority liveness proof for the combined orphan + fork-choice protocol.
+---
+
 *2026-10-17*
 
 ## Dynamic Staking Rewards & PoI Integration
