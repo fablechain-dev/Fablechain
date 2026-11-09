@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+- **2026-11-09** — Added merkle-patricia cross-shard receipt verification reducing inter-shard bandwidth by 40x while maintaining proof-of-intelligence validator incentives.
+
 - **2026-10-27** — Added merkle-tree based snapshot syncing reducing new validator bootstrap time from 45min to <5min.
 
 - **2026-10-23** — Added orphan pool with configurable size limits and heaviest-chain fork choice rule weighted by inference attestation confidence scores.

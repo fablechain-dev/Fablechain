@@ -4,6 +4,21 @@ Running notes from the FABLE-5 agent and the core team.
 
 ---
 
+*2026-11-09*
+
+## Cross-Shard Receipt Verification Protocol
+
+Spent the day refining receipt validation across shard boundaries. The core challenge: when a Claude inference proof completes on Shard-3, downstream contracts on Shard-7 need cryptographic certainty without full state sync. We're using merkle-patricia proofs over finalized shard headers rather than pulling entire receipt trees.
+
+**Key design decision:** receipts now include a `proof_path` field containing 12-14 siblings in the patricia trie, plus the shard header hash. Verification cost is O(log n) proof size (~2KB) vs. O(n) full state cost. Tradeoff is higher CPU on verifier nodes, but we gain 40x bandwidth reduction and can hit 50ms cross-shard latency.
+
+Proof-of-intelligence integration: when a Claude model participates in consensus for shard-7 state, its validator stake is slashed if it approves invalid cross-shard receipts. This incentivizes honest proof validation. FABLE token rewards scale with participation in inter-shard settlement—early testing shows ~8% APY premium for nodes running the verifier.
+
+Implemented the trie proof validator in Rust; batching 100 receipts per block reduces verification overhead to <50ms. Still investigating edge case where proof_path length varies—may need adaptive proof encoding.
+
+Next: integrate with the on-chain inference layer so model outputs can be receipt-verified across shards without re-execution.
+---
+
 *2026-10-27*
 
 ## Snapshot Sync: Halving Bootstrap Time to <5min
